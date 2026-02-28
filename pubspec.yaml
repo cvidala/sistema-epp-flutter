@@ -1,0 +1,40 @@
+name: epp_app
+description: "A new Flutter project."
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  path_provider: ^2.1.2
+  cupertino_icons: ^1.0.8
+  supabase_flutter: ^2.8.0
+  crypto: ^3.0.3
+  file_picker: ^8.0.0
+  pdf: ^3.11.3
+  printing: ^5.13.0
+  intl: ^0.19.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  uuid: ^4.4.2
+
+
+#dependencies:
+#  hive: ^2.2.3
+#  hive_flutter: ^1.1.0
+#  uuid: ^4.4.2
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+
+flutter:
+  uses-material-design: true
