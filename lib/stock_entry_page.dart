@@ -20,7 +20,7 @@ class _StockEntryPageState extends State<StockEntryPage> {
   List<dynamic> epps = [];
 
   String? bodegaId;
-  final Map<String, int> cantidades = {}; // epp_id -> cantidad
+  final Map<String, int> cantidades = {};
 
   final referenciaCtrl = TextEditingController();
 
@@ -43,18 +43,25 @@ class _StockEntryPageState extends State<StockEntryPage> {
     });
 
     try {
-      final b = await supabase.from('bodegas').select().order('created_at');
+      final b = await supabase
+          .from('bodegas')
+          .select()
+          .order('created_at')
+          .timeout(const Duration(seconds: 12));
+
       final c = await supabase
           .from('catalogo_epp')
           .select()
           .eq('activo', true)
-          .order('nombre');
+          .order('nombre')
+          .timeout(const Duration(seconds: 12));
 
       setState(() {
         bodegas = b;
         epps = c;
 
-        final ids = bodegas.map((x) => x['bodega_id'] as String).toList();
+        final ids =
+            bodegas.map((x) => x['bodega_id'] as String).toList();
         if (widget.initialBodegaId != null &&
             ids.contains(widget.initialBodegaId)) {
           bodegaId = widget.initialBodegaId;
@@ -125,7 +132,8 @@ class _StockEntryPageState extends State<StockEntryPage> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -133,17 +141,30 @@ class _StockEntryPageState extends State<StockEntryPage> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: error != null
-            ? Text('Error: $error')
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error: $error',
+                      style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadInit,
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              )
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DropdownButtonFormField<String>(
                     value: bodegaId,
                     items: bodegas
-                        .map<DropdownMenuItem<String>>((b) => DropdownMenuItem(
-                              value: b['bodega_id'],
-                              child: Text(b['nombre'] ?? 'Bodega'),
-                            ))
+                        .map<DropdownMenuItem<String>>(
+                          (b) => DropdownMenuItem(
+                            value: b['bodega_id'],
+                            child: Text(b['nombre'] ?? 'Bodega'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => bodegaId = v),
                     decoration: const InputDecoration(
@@ -160,7 +181,10 @@ class _StockEntryPageState extends State<StockEntryPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Cantidades a ingresar:'),
+                  const Text(
+                    'Cantidades a ingresar:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   Expanded(
                     child: ListView.builder(
@@ -168,9 +192,19 @@ class _StockEntryPageState extends State<StockEntryPage> {
                       itemBuilder: (context, index) {
                         final e = epps[index];
                         final id = e['epp_id'] as String;
+                        final nombre =
+                            (e['nombre'] ?? '').toString();
+                        final codigo =
+                            (e['codigo'] ?? '').toString();
 
                         return ListTile(
-                          title: Text(e['nombre'] ?? ''),
+                          title: Text(nombre),
+                          subtitle: codigo.isNotEmpty
+                              ? Text(codigo,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black45))
+                              : null,
                           trailing: SizedBox(
                             width: 80,
                             child: TextField(
@@ -189,6 +223,7 @@ class _StockEntryPageState extends State<StockEntryPage> {
                       },
                     ),
                   ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'new_delivery_page.dart';
 import 'worker_detail_page.dart';
-import 'services/sync_service.dart';
+import 'services/connectivity_service.dart'; // ✅ NUEVO
+import 'services/device_id_service.dart';    // ✅ NUEVO
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
-
 
 class WorkersPage extends StatefulWidget {
   final String obraId;
@@ -27,7 +26,9 @@ class _WorkersPageState extends State<WorkersPage> {
 
   bool loading = true;
   bool offlineMode = false;
+  bool syncing = false;
   String? error;
+
   List<dynamic> trabajadores = [];
   List<dynamic> filtrados = [];
 
@@ -36,11 +37,27 @@ class _WorkersPageState extends State<WorkersPage> {
     super.initState();
     _loadWorkers();
     searchCtrl.addListener(_applyFilter);
+
+    // ✅ Iniciar monitoreo de conectividad con sync automático
+    ConnectivityService.instance.start(
+      intervalSeconds: 10,
+      onSyncComplete: () {
+        if (mounted) {
+          _loadWorkers();
+          setState(() {}); // refresca badge pendientes
+        }
+      },
+      onStatusChange: () {
+        if (mounted) setState(() {}); // refresca banner offline/online
+      },
+    );
   }
 
   @override
   void dispose() {
     searchCtrl.dispose();
+    // ✅ Detener monitoreo al salir
+    ConnectivityService.instance.stop();
     super.dispose();
   }
 
@@ -74,29 +91,29 @@ class _WorkersPageState extends State<WorkersPage> {
           .order('nombre')
           .timeout(const Duration(seconds: 12));
 
-      // ✅ cachear para modo offline
-      await CacheService.setJson('trabajadores_activos', data, obraId: widget.obraId);
+      await CacheService.setJson('trabajadores_activos', data,
+          obraId: widget.obraId);
 
       setState(() {
         trabajadores = data;
         filtrados = data;
       });
     } catch (e) {
-      // ✅ fallback offline: leer cache
-      final cached = CacheService.getJson('trabajadores_activos', obraId: widget.obraId);
+      final cached = CacheService.getJson('trabajadores_activos',
+          obraId: widget.obraId);
 
       if (cached is List) {
         final data = cached.map((x) => x as Map).toList();
-
         setState(() {
           trabajadores = data;
           filtrados = data;
           offlineMode = true;
-          error = null; // importante: no pintar rojo si hay cache
+          error = null;
         });
       } else {
         setState(() => error =
-            'Sin conexión y sin cache local de trabajadores.\nAbre esta pantalla una vez con internet para cachear.');
+            'Sin conexión y sin cache local de trabajadores.\n'
+            'Abre esta pantalla una vez con internet para cachear.');
       }
     } finally {
       if (!mounted) return;
@@ -104,55 +121,212 @@ class _WorkersPageState extends State<WorkersPage> {
     }
   }
 
+  // ✅ Sync manual — delega a ConnectivityService (mismo SyncService + DeviceIdService real)
+  Future<void> _syncManual() async {
+    if (syncing) return;
+    setState(() => syncing = true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sincronizando entregas offline...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    try {
+      final resultado = await ConnectivityService.instance.syncManual();
+
+      if (!mounted) return;
+
+      final enviadas = resultado['enviadas'] ?? 0;
+      final errores = resultado['errores'] ?? 0;
+      final pendientes = resultado['pendientes'] ?? 0;
+
+      String msg;
+      if (enviadas == 0 && errores == 0) {
+        msg = 'Sin entregas pendientes de sincronización.';
+      } else {
+        msg = 'Sync terminado — '
+            '✅ $enviadas enviada${enviadas != 1 ? 's' : ''}'
+            '${errores > 0 ? ' · ❌ $errores error${errores != 1 ? 'es' : ''}' : ''}'
+            '${pendientes > 0 ? ' · ⏳ $pendientes pendiente${pendientes != 1 ? 's' : ''}' : ''}';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al sincronizar: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => syncing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
     }
+
+    final pendientesCount = OfflineQueueService.listPending()
+        .where((e) => e.status != 'SENT')
+        .length;
+
+    // Estado de conectividad real desde ConnectivityService
+    final isOnline = ConnectivityService.instance.isOnline;
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Trabajadores · ${widget.obraNombre}'),
         actions: [
-          IconButton(onPressed: _loadWorkers, icon: const Icon(Icons.refresh)),
-
           IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: () async {
-              final client = Supabase.instance.client;
+            onPressed: loading ? null : _loadWorkers,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Recargar',
+          ),
 
-              // MVP deviceId: si no tienes uno persistente, partimos con userId o 'dev'
-              final deviceId = client.auth.currentUser?.id ?? 'device-mvp';
+          // ✅ Botón sync con badge de pendientes y spinner durante sync
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: syncing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.sync),
+                onPressed: syncing ? null : _syncManual,
+                tooltip: 'Sincronizar entregas offline',
+              ),
+              if (pendientesCount > 0 && !syncing)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '$pendientesCount',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
 
-              final sync = SyncService(supabase: client, deviceId: deviceId);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sincronizando entregas offline...')),
-              );
-
-              await sync.syncOnce();
-
-              final pendientes = OfflineQueueService.listPending().where((e) => e.status != 'SENT').length;
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Sync terminado. Pendientes: $pendientes')),
-              );
-            },
+          // ✅ Indicador visual online/offline en AppBar
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Icon(
+              isOnline ? Icons.cloud_done : Icons.cloud_off,
+              color: isOnline ? Colors.greenAccent : Colors.grey,
+              size: 20,
+            ),
           ),
         ],
       ),
 
       body: error != null
-          ? Center(child: Text('Error: $error'))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error: $error',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadWorkers,
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            )
           : Column(
               children: [
-                if (offlineMode)
+                // Banner offline
+                if (offlineMode || !isOnline)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
                     color: Colors.grey.shade200,
-                    child: const Text('Modo OFFLINE: mostrando trabajadores desde cache local.'),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.cloud_off,
+                            size: 16, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Modo OFFLINE: mostrando trabajadores desde caché local.',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+
+                // Banner pendientes con mensaje contextual
+                if (pendientesCount > 0)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    color: Colors.orange.shade50,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.sync,
+                            size: 16, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$pendientesCount entrega${pendientesCount != 1 ? 's' : ''} '
+                            'pendiente${pendientesCount != 1 ? 's' : ''} de sincronización. '
+                            '${isOnline ? 'Sincronizando automáticamente...' : 'Se enviará al recuperar conexión.'}',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // DeviceId (útil para soporte en terreno; quitar en prod si no se necesita)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.phone_android,
+                          size: 13, color: Colors.black38),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Device: ${DeviceIdService.deviceId.substring(0, 8)}...',
+                        style: const TextStyle(
+                            fontSize: 11, color: Colors.black38),
+                      ),
+                    ],
+                  ),
+                ),
+
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: TextField(
@@ -164,32 +338,42 @@ class _WorkersPageState extends State<WorkersPage> {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: filtrados.length,
-                    itemBuilder: (context, index) {
-                      final t = filtrados[index];
-                      return ListTile(
-                        title: Text(t['nombre'] ?? 'Sin nombre'),
-                        subtitle: Text(t['rut'] ?? ''),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                            Navigator.of(context).push(
-                                MaterialPageRoute(
-                                builder: (_) => WorkerDetailPage(
-                                    obraId: widget.obraId,
-                                    obraNombre: widget.obraNombre,
-                                    trabajadorId: t['trabajador_id'],
-                                    trabajadorNombre: t['nombre'] ?? '',
-                                    trabajadorRut: t['rut'] ?? '',
-                                ),
-                                ),
-                            );
-                            },
 
-                      );
-                    },
-                  ),
+                Expanded(
+                  child: filtrados.isEmpty
+                      ? Center(
+                          child: Text(offlineMode
+                              ? 'Sin trabajadores en caché.'
+                              : 'Sin trabajadores activos.'),
+                        )
+                      : ListView.builder(
+                          itemCount: filtrados.length,
+                          itemBuilder: (context, index) {
+                            final t = filtrados[index];
+                            return ListTile(
+                              title: Text(t['nombre'] ?? 'Sin nombre'),
+                              subtitle: Text(t['rut'] ?? ''),
+                              trailing:
+                                  const Icon(Icons.chevron_right),
+                              onTap: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => WorkerDetailPage(
+                                      obraId: widget.obraId,
+                                      obraNombre: widget.obraNombre,
+                                      trabajadorId:
+                                          t['trabajador_id'],
+                                      trabajadorNombre:
+                                          t['nombre'] ?? '',
+                                      trabajadorRut: t['rut'] ?? '',
+                                    ),
+                                  ),
+                                );
+                                if (mounted) setState(() {});
+                              },
+                            );
+                          },
+                        ),
                 ),
               ],
             ),

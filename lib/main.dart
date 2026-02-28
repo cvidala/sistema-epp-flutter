@@ -5,24 +5,26 @@ import 'stock_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
-
-
+import 'services/device_id_service.dart'; // ✅ NUEVO
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-    await Hive.initFlutter();
-    await Hive.initFlutter();
-    await OfflineQueueService.init();
-    await CacheService.init(); // ✅ NUEVO
+  // ✅ Hive solo una vez
+  await Hive.initFlutter();
 
-    //await OfflineQueueService.init(); // abre la box de la cola
+  // ✅ Inicializar servicios en orden
+  await OfflineQueueService.init();
+  await CacheService.init();
+  await DeviceIdService.init(); // ✅ NUEVO — genera/recupera deviceId persistente
 
-    await Supabase.initialize(
-      url: 'https://ppltpmmtdnprgauwnytf.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbHRwbW10ZG5wcmdhdXdueXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNTM0NzIsImV4cCI6MjA4NTgyOTQ3Mn0.WsRKOEYNzU-tRrL3p6I_ip-AAQmNCgfVKEdockq_gE8',
-    );
-    runApp(const MyApp());
+  await Supabase.initialize(
+    url: 'https://ppltpmmtdnprgauwnytf.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbHRwbW10ZG5wcmdhdXdueXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNTM0NzIsImV4cCI6MjA4NTgyOTQ3Mn0.WsRKOEYNzU-tRrL3p6I_ip-AAQmNCgfVKEdockq_gE8',
+  );
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -155,7 +157,11 @@ class _ObrasPageState extends State<ObrasPage> {
     });
 
     try {
-      final data = await supabase.from('obras').select().order('created_at');
+      final data = await supabase
+          .from('obras')
+          .select()
+          .order('created_at')
+          .timeout(const Duration(seconds: 12));
       setState(() => obras = data);
     } catch (e) {
       setState(() => error = e.toString());
@@ -198,7 +204,6 @@ class _ObrasPageState extends State<ObrasPage> {
           ),
         ],
       ),
-
       body: error != null
           ? Center(child: Text('Error: $error'))
           : ListView.builder(
@@ -206,21 +211,20 @@ class _ObrasPageState extends State<ObrasPage> {
               itemBuilder: (context, index) {
                 final o = obras[index];
                 return ListTile(
-  title: Text(o['nombre'] ?? 'Sin nombre'),
-  subtitle: Text(o['direccion'] ?? ''),
-  trailing: const Icon(Icons.chevron_right),
-  onTap: () {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkersPage(
-          obraId: o['obra_id'],
-          obraNombre: o['nombre'] ?? '',
-        ),
-      ),
-    );
-  },
-);
-
+                  title: Text(o['nombre'] ?? 'Sin nombre'),
+                  subtitle: Text(o['direccion'] ?? ''),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => WorkersPage(
+                          obraId: o['obra_id'],
+                          obraNombre: o['nombre'] ?? '',
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
             ),
       floatingActionButton: FloatingActionButton(
