@@ -477,8 +477,11 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             'nombre': (it['nombre'] ?? it['codigo'] ?? 'EPP').toString(),
             'estado': (it['estado'] ?? 'PENDIENTE').toString(),
             'codigo': it['codigo']?.toString(),
+            'vence_por': it['vence_por']?.toString(),
             'vence_el': it['vence_el'],
             'dias_restantes': it['dias_restantes'],
+            'usos_restantes': it['usos_restantes'],
+            'usos_acumulados': it['usos_acumulados'],
           });
         }
       }
@@ -493,8 +496,11 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             'nombre': (it['nombre'] ?? it['codigo'] ?? 'EPP').toString(),
             'estado': (it['estado'] ?? 'PENDIENTE').toString(),
             'codigo': it['codigo']?.toString(),
+            'vence_por': it['vence_por']?.toString(),
             'vence_el': it['vence_el'],
             'dias_restantes': it['dias_restantes'],
+            'usos_restantes': it['usos_restantes'],
+            'usos_acumulados': it['usos_acumulados'],
           });
         }
       }
@@ -563,14 +569,26 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             final estado = (it['estado'] ?? 'PENDIENTE').toString();
             final dias = it['dias_restantes'];
             final venceEl = it['vence_el'];
+            final usoRestantes = it['usos_restantes'];
+            final usoAcumulados = it['usos_acumulados'];
+            final vencePor = (it['vence_por'] ?? '').toString();
 
             final esCritico = severidad == 'CRITICO';
             final color = esCritico ? Colors.red : Colors.orange;
             final icon = esCritico ? Icons.block : Icons.warning_amber_rounded;
 
+            // ✅ Detalle según tipo de vencimiento
             String extra = '';
-            if (estado.toUpperCase().contains('VENCE') ||
-                estado.toUpperCase().contains('VENC')) {
+            if (vencePor == 'USO' || vencePor == 'AMBOS') {
+              if (usoAcumulados != null) extra += ' · $usoAcumulados usos acumulados';
+              if (usoRestantes != null) extra += ' · $usoRestantes usos restantes';
+            }
+            if (vencePor == 'FECHA' || vencePor == 'AMBOS') {
+              if (dias != null) extra += ' · $dias días restantes';
+              if (venceEl != null) extra += ' · vence: $venceEl';
+            }
+            if (extra.isEmpty &&
+                (estado.toUpperCase().contains('VENC'))) {
               if (dias != null) extra = ' · $dias días';
               if (venceEl != null) extra += ' · vence: $venceEl';
             }
@@ -936,9 +954,22 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
         });
       }
 
+      // ✅ Registrar uso por cada EPP entregado (para control vence_por=USO/AMBOS)
+      try {
+        await supabase.rpc('registrar_uso_epp', params: {
+          'p_event_id':      eventId,
+          'p_trabajador_id': widget.trabajadorId,
+          'p_obra_id':       widget.obraId,
+          'p_items':         items,
+        });
+      } catch (usoErr) {
+        // No crítico: la entrega ya quedó registrada.
+        debugPrint('[guardar] registrar_uso_epp falló (no crítico): $usoErr');
+      }
+
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Entrega registrada: $eventId')));
+          .showSnackBar(SnackBar(content: Text('Entrega registrada: \$eventId')));
       Navigator.of(context).pop(true);
     } catch (e) {
       // Fallback offline si el flujo online falla a mitad
