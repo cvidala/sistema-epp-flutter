@@ -2,7 +2,8 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:signature/signature.dart';
 import 'evidence_service.dart';
 import 'models/evaluacion_entrega.dart';
 import 'services/entrega_service.dart';
@@ -59,6 +60,12 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
   Uint8List? evidenciaBytes;
   String? evidenciaNombre;
+  Uint8List? firmaBytes;       // PNG de la firma del trabajador
+  final SignatureController _firmaCtrl = SignatureController(
+    penStrokeWidth: 3,
+    penColor: const Color(0xFF0D2148),
+    exportBackgroundColor: Colors.white,
+  );
 
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
@@ -66,6 +73,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   // ✅ FIX: dispose() fuera de _eppRow(), en el lugar correcto
   @override
   void dispose() {
+    _firmaCtrl.dispose();
     _evalDebounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
@@ -818,15 +826,89 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   }
 
   Future<void> _pickEvidence() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
+    final picker = ImagePicker();
+    final photo  = await picker.pickImage(
+      source: ImageSource.camera,   // ← solo cámara, sin galería
+      imageQuality: 80,             // compresión razonable
+      preferredCameraDevice: CameraDevice.rear,
     );
-    if (result != null && result.files.single.bytes != null) {
-      setState(() {
-        evidenciaBytes = result.files.single.bytes!;
-        evidenciaNombre = result.files.single.name;
-      });
+    if (photo == null) return;
+    final bytes = await photo.readAsBytes();
+    setState(() {
+      evidenciaBytes  = bytes;
+      evidenciaNombre = photo.name;
+    });
+  }
+
+  /// Muestra un dialog con el canvas de firma táctil.
+  /// El trabajador firma con el dedo y se guarda como PNG.
+  Future<void> _mostrarPanelFirma() async {
+    _firmaCtrl.clear();
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Firma del trabajador'),
+        content: SizedBox(
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'El trabajador debe firmar con el dedo en el recuadro.',
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF0D2148), width: 2),
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Signature(
+                    controller: _firmaCtrl,
+                    height: 180,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Limpiar'),
+                onPressed: () => _firmaCtrl.clear(),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirmar firma'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (_firmaCtrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Debes firmar antes de confirmar.')),
+        );
+      }
+      return;
+    }
+
+    final png = await _firmaCtrl.toPngBytes();
+    if (png != null) {
+      setState(() => firmaBytes = png);
     }
   }
 
@@ -850,6 +932,11 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     if (evidenciaBytes == null) {
       setState(() =>
           error = 'Debes agregar evidencia (imagen) antes de guardar.');
+      return;
+    }
+
+    if (firmaBytes == null) {
+      setState(() => error = 'Debes registrar la firma del trabajador.');
       return;
     }
 
@@ -925,6 +1012,16 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       final evidenciaUrl =
           supabase.storage.from('evidencias').getPublicUrl(path);
 
+      // Subir firma como PNG separado
+      final firmaPath = 'epp/$eventId\_firma.png';
+      await supabase.storage.from('evidencias').uploadBinary(
+            firmaPath,
+            firmaBytes!,
+            fileOptions: const FileOptions(upsert: false),
+          );
+      final firmaUrl =
+          supabase.storage.from('evidencias').getPublicUrl(firmaPath);
+
       final payloadEntrega = <String, dynamic>{
         'event_id': eventId,
         'trabajador_id': widget.trabajadorId,
@@ -935,9 +1032,10 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
         'sync_status': 'ENVIADO',
         'evidencia_foto_url': evidenciaUrl,
         'evidencia_hash': evidenciaHash,
+        'firma_url': firmaUrl,
         'evaluacion': evaluacion,
         'declaracion_text': declaracion,
-        'validacion_tipo': 'CLICK',
+        'validacion_tipo': 'FIRMA_DIGITAL',
       };
 
       await supabase.from('entregas_epp').insert(payloadEntrega);
@@ -1088,9 +1186,12 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                   ),
                 ],
               )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            : CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   // ✅ Banner offline (visible arriba cuando no hay conexión)
                   if (modoOffline)
                     Container(
@@ -1154,15 +1255,67 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.camera_alt),
+                      icon: Icon(
+                        evidenciaBytes == null
+                            ? Icons.camera_alt
+                            : Icons.check_circle,
+                        color: Colors.white,
+                      ),
                       label: Text(
                         evidenciaBytes == null
                             ? 'Agregar evidencia (imagen)'
-                            : 'Evidencia cargada: ${evidenciaNombre ?? "imagen"}',
+                            : '✓ Evidencia cargada',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: evidenciaBytes == null
+                            ? null
+                            : Colors.green.shade600,
                       ),
                       onPressed: _pickEvidence,
                     ),
                   ),
+
+                  const SizedBox(height: 10),
+
+                  // Botón de firma del trabajador
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: Icon(
+                        firmaBytes == null
+                            ? Icons.draw_outlined
+                            : Icons.check_circle,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        firmaBytes == null
+                            ? 'Firma del trabajador'
+                            : '✓ Firma registrada',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: firmaBytes == null
+                            ? const Color(0xFF0D2148)
+                            : Colors.green.shade600,
+                      ),
+                      onPressed: _mostrarPanelFirma,
+                    ),
+                  ),
+
+                  // Preview de firma si ya fue capturada
+                  if (firmaBytes != null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      height: 80,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFEAEEF6)),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image.memory(firmaBytes!, fit: BoxFit.contain),
+                      ),
+                    ),
 
                   const SizedBox(height: 16),
                   const Text(
@@ -1244,9 +1397,13 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
                   const SizedBox(height: 10),
 
-                  Expanded(
-                    child: Builder(
-                      builder: (context) {
+                      ],  // end Column children
+                    ),  // end Column
+                  ),  // end SliverToBoxAdapter
+
+                  // EPP list as sliver — scrollea junto con el contenido superior
+                  Builder(
+                    builder: (context) {
                         final pendientes = _pendientesEppIds();
                         final criticos = _criticosEppIds();
 
@@ -1297,40 +1454,54 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                               : (q.isEmpty
                                   ? 'No hay EPP en el catálogo.'
                                   : 'Sin resultados para tu búsqueda.');
-                          return Center(child: Text(msg));
+                          return SliverToBoxAdapter(child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(child: Text(msg)),
+                          ));
                         }
 
-                        return ListView.builder(
-                          itemCount: lista.length,
-                          itemBuilder: (context, index) =>
-                              _eppRow(lista[index]),
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => _eppRow(lista[index]),
+                            childCount: lista.length,
+                          ),
                         );
                       },
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      // ✅ OFFLINE no bloquea el botón guardar
-                      onPressed: (estadoActual == 'BLOQUEO' || evaluando)
-                          ? null
-                          : _guardar,
-                      child: Text(
-                        estadoActual == 'BLOQUEO'
-                            ? 'Bloqueado'
-                            : evaluando
-                                ? 'Evaluando...'
-                                : modoOffline
-                                    ? 'Guardar (OFFLINE)'
-                                    : 'Guardar entrega',
-                      ),
-                    ),
-                  ),
-                ],
+                  ),  // end Builder sliver
+                ],  // end slivers
+              ),  // end CustomScrollView
+      ),
+      // ✅ Botón guardar fijo en la parte inferior, respeta barra del sistema
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: (estadoActual == 'BLOQUEO' || evaluando)
+                  ? null
+                  : _guardar,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: estadoActual == 'BLOQUEO'
+                    ? Colors.grey
+                    : modoOffline
+                        ? Colors.orange
+                        : null,
               ),
+              child: Text(
+                estadoActual == 'BLOQUEO'
+                    ? 'Bloqueado'
+                    : evaluando
+                        ? 'Evaluando...'
+                        : modoOffline
+                            ? 'Guardar (OFFLINE)'
+                            : 'Guardar entrega',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

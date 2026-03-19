@@ -22,6 +22,11 @@ class SyncService {
     final pendings = OfflineQueueService.listPending()
         .where((e) => e.status != 'SENT')
         .toList();
+    // Resetear errores previos para reintento
+    for (final e in pendings.where((e) => e.status == 'ERROR')) {
+      e.status = 'PENDING';
+      await OfflineQueueService.update(e);
+    }
 
     int enviadas = 0;
     int errores = 0;
@@ -33,6 +38,28 @@ class SyncService {
         e.status = 'UPLOADING';
         e.attempts += 1;
         await OfflineQueueService.update(e);
+
+        // ── 0) Verificar si ya existe en la DB (sync previo exitoso) ───────
+        //    El fallback usa event_id = 'EPP-SYNC-{localEventId}'
+        //    El RPC usa local_event_id. Revisamos ambos.
+        try {
+          final existing = await supabase
+              .from('entregas_epp')
+              .select('event_id, sync_status')
+              .or('event_id.eq.EPP-SYNC-${e.localEventId},local_event_id.eq.${e.localEventId}')
+              .maybeSingle()
+              .timeout(const Duration(seconds: 8));
+
+          if (existing != null) {
+            debugPrint('[SyncService] Ya existe en DB: ${existing['event_id']} — marcando SENT');
+            await OfflineQueueService.markSent(e.localEventId);
+            enviadas++;
+            continue;
+          }
+        } catch (checkErr) {
+          debugPrint('[SyncService] Check duplicado falló (no crítico): $checkErr');
+          // Continuar con el flujo normal
+        }
 
         // ── 1) Subir evidencia a Storage ──────────────────────────────────
         final Uint8List bytes =

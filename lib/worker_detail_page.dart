@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import 'new_delivery_page.dart';
 import 'services/cache_service.dart';
+import 'services/auth_service.dart';
 import 'services/offline_queue_service.dart';
 
 class WorkerDetailPage extends StatefulWidget {
@@ -16,6 +17,8 @@ class WorkerDetailPage extends StatefulWidget {
   final String trabajadorId;
   final String trabajadorNombre;
   final String trabajadorRut;
+  final bool canWrite;
+  final bool moduloEpp;
 
   const WorkerDetailPage({
     super.key,
@@ -24,6 +27,8 @@ class WorkerDetailPage extends StatefulWidget {
     required this.trabajadorId,
     required this.trabajadorNombre,
     required this.trabajadorRut,
+    this.canWrite  = true,
+    this.moduloEpp = true,
   });
 
   @override
@@ -80,7 +85,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
       final data = await supabase
           .from('entregas_epp')
           .select(
-              'event_id, created_at, items, bodega_id, evidencia_foto_url, evidencia_hash')
+              'event_id, created_at, items, bodega_id, evidencia_foto_url, evidencia_hash, firma_url')
           .eq('trabajador_id', widget.trabajadorId)
           .eq('obra_id', widget.obraId)
           .order('created_at', ascending: false)
@@ -209,7 +214,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
     return rows;
   }
 
-  void _showEvidenceDialog(String eventId, String? url, String? hash) {
+  void _showEvidenceDialog(String eventId, String? url, String? hash, {String? firmaUrl}) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -232,6 +237,32 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                   'Hash (SHA-256):\n${(hash == null || hash.isEmpty) ? "—" : hash}',
                   style: const TextStyle(fontSize: 12),
                 ),
+                if (firmaUrl != null && firmaUrl.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Firma del trabajador:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF0D2148)),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.network(
+                        firmaUrl,
+                        height: 120,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -378,11 +409,13 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
               onPressed: _loadAll, icon: const Icon(Icons.refresh)),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _goNewDelivery,
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva entrega'),
-      ),
+      floatingActionButton: (widget.canWrite && widget.moduloEpp)
+          ? FloatingActionButton.extended(
+              onPressed: _goNewDelivery,
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva entrega'),
+            )
+          : null,
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -473,6 +506,8 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                             (e['evidencia_foto_url'] ?? '').toString();
                         final hash =
                             (e['evidencia_hash'] ?? '').toString();
+                        final firmaUrl =
+                            (e['firma_url'] ?? '').toString();
                         final isOffline = e['_offline'] == true;
                         final offlineStatus =
                             (e['_status'] ?? '').toString();
@@ -522,6 +557,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                                       eventId,
                                       url.isEmpty ? null : url,
                                       hash.isEmpty ? null : hash,
+                                      firmaUrl: firmaUrl.isEmpty ? null : firmaUrl,
                                     ),
                             trailing: isOffline
                                 ? const Icon(Icons.sync,
@@ -542,6 +578,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                                           eventId,
                                           url.isEmpty ? null : url,
                                           hash.isEmpty ? null : hash,
+                                          firmaUrl: firmaUrl.isEmpty ? null : firmaUrl,
                                         ),
                                       ),
                                       IconButton(
