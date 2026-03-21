@@ -1615,7 +1615,7 @@ function refreshPage() { loadDashboard(); }
 
 // ── PAGE: TRABAJADORES ────────────────────────────────────────────
 async function loadPageTrabajadores() {
-  document.getElementById('trabTable').innerHTML = '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
+  document.getElementById('trabTable').innerHTML = '<tr><td colspan="7" class="empty-state">Cargando...</td></tr>';
   showLoading(true);
   try {
     // 1) Traer todos los trabajador_obras con join
@@ -1862,7 +1862,7 @@ function filterStock() {
 
 // ── PAGE: ENTREGAS ────────────────────────────────────────────────
 async function loadPageEntregas() {
-  document.getElementById('entTable').innerHTML = '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
+  document.getElementById('entTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
   showLoading(true);
   try {
     const { data } = await sb.from('entregas_epp')
@@ -2410,7 +2410,7 @@ async function desasignarTrabajadorDeCentro(obraId, trabId) {
 // USUARIOS — CRUD (ADMIN ONLY)
 // ═══════════════════════════════════════════════════════
 async function loadPageUsuarios() {
-  document.getElementById('usuariosTable').innerHTML = '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
+  document.getElementById('usuariosTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
   const { data, error } = await sb.from('perfiles').select('user_id, nombre, rol, activo, created_at').order('created_at', { ascending: false });
   if (error) { document.getElementById('usuariosTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${error.message}</td></tr>`; return; }
 
