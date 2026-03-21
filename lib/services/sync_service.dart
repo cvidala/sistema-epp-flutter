@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -280,6 +281,6 @@ class SyncService {
     for (final k in keys) {
       out[k] = m[k];
     }
-    return out.toString();
+    return jsonEncode(out);
   }
 }

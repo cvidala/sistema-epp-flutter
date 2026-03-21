@@ -1013,7 +1013,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
           supabase.storage.from('evidencias').getPublicUrl(path);
 
       // Subir firma como PNG separado
-      final firmaPath = 'epp/$eventId\_firma.png';
+      final firmaPath = 'epp/${eventId}_firma.png';
       await supabase.storage.from('evidencias').uploadBinary(
             firmaPath,
             firmaBytes!,
@@ -1067,7 +1067,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Entrega registrada: \$eventId')));
+          .showSnackBar(SnackBar(content: Text('Entrega registrada: $eventId')));
       Navigator.of(context).pop(true);
     } catch (e) {
       // Fallback offline si el flujo online falla a mitad

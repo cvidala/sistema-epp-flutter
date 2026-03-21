@@ -38,7 +38,7 @@ class EvidenceService {
     }
 
     static String hashString(String input) {
-    return hashBytes(Uint8List.fromList(input.codeUnits));
+    return hashBytes(Uint8List.fromList(utf8.encode(input)));
     }
 
 

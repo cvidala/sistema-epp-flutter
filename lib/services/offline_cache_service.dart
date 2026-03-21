@@ -21,7 +21,7 @@ class OfflineCacheService {
   }
 
   static Box get _b {
-    assert(_box != null, 'OfflineCacheService.init() no fue llamado');
+    if (_box == null) throw StateError('OfflineCacheService.init() no fue llamado');
     return _box!;
   }
 

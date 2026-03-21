@@ -9,7 +9,7 @@ class EvaluacionEntrega {
 
   factory EvaluacionEntrega.fromJson(Map<String, dynamic> json) {
     return EvaluacionEntrega(
-      estado: json['estado'],
+      estado: json['estado'] as String? ?? 'OK',
       detalle: json['detalle'] ?? {},
     );
   }
