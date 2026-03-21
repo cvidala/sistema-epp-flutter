@@ -3305,7 +3305,7 @@ function setTrabMode(mode) {
 }
 
 async function loadTrabExistentes() {
-  const { data } = await sb.from('trabajadores').select('trabajador_id, nombre, rut, cargo').order('nombre');
+  const { data } = await sb.from('trabajadores').select('trabajador_id, nombre, rut').order('nombre');
   allTrabExistentes = data || [];
   filtrarTrabExistentes();
 }
