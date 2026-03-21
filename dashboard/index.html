@@ -2996,14 +2996,110 @@ function exportReporteCSV() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// PDF EXPORT — Generador nativo sin dependencias
-// Construye un PDF real usando Canvas + Blob, con estilo TrazApp
+// PDF EXPORT — Ventana de impresión nativa del navegador
 // ═══════════════════════════════════════════════════════════════════
 
-async function exportReportePDF() {
+function exportReportePDF() {
   if (!reporteData || !reporteData.length) {
     alert('Genera un reporte primero antes de exportar.'); return;
   }
+
+  const tipoLabels = {
+    cumplimiento: 'Cumplimiento EPP por Trabajador',
+    entregas:     'Historial de Entregas',
+    stock:        'Stock y Movimientos de Bodega',
+    vencimientos: 'Vencimientos y Alertas EPP',
+  };
+
+  const titulo     = tipoLabels[reporteTipo] || 'Reporte';
+  const centroText = document.getElementById('rfCentro').options[document.getElementById('rfCentro').selectedIndex]?.text || 'Todos';
+  const desde      = document.getElementById('rfDesde').value;
+  const hasta      = document.getElementById('rfHasta').value;
+  const fechaGen   = new Date().toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+
+  const headers = [...document.querySelectorAll('#reporteTableHead th')].map(th => th.textContent.trim());
+  const rows    = [...document.querySelectorAll('#reporteTableBody tr')].map(tr =>
+    [...tr.querySelectorAll('td')].map(td => td.innerHTML.trim())
+  ).filter(r => r.some(c => c));
+
+  const kpis = [...document.querySelectorAll('.reporte-kpi')].map(el => ({
+    num:   el.querySelector('.reporte-kpi-num')?.textContent.trim() || '',
+    label: el.querySelector('.reporte-kpi-label')?.textContent.trim() || '',
+  }));
+
+  let chartImg = '';
+  try {
+    const cc = document.getElementById('reporteChart');
+    if (cc && reporteChartInstance) chartImg = `<img src="${cc.toDataURL('image/png')}" style="max-width:100%;height:180px;object-fit:contain;display:block;margin:0 auto;">`;
+  } catch(e) {}
+
+  const kpisHtml = kpis.length ? `
+    <div class="kpis">
+      ${kpis.map(k => `<div class="kpi"><div class="kpi-num">${k.num}</div><div class="kpi-label">${k.label}</div></div>`).join('')}
+    </div>` : '';
+
+  const theadHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+  const tbodyHtml = `<tbody>${rows.map((row, i) =>
+    `<tr class="${i % 2 === 0 ? '' : 'alt'}">${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`
+  ).join('')}</tbody>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TrazApp — ${titulo}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; font-size:11px; color:#0D2148; background:#fff; }
+  .header { background:#0D2148; color:white; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+  .header-left .brand { font-size:18px; font-weight:700; color:#E87722; }
+  .header-left .sub { font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:1.5px; text-transform:uppercase; }
+  .header-center { text-align:center; }
+  .header-center .title { font-size:15px; font-weight:700; }
+  .header-center .meta { font-size:9px; color:rgba(255,255,255,0.6); margin-top:4px; }
+  .header-right { text-align:right; font-size:9px; color:rgba(255,255,255,0.5); }
+  .kpis { display:flex; gap:12px; padding:14px 24px; background:#F0F3FA; border-bottom:1px solid #DDE3F0; }
+  .kpi { flex:1; background:white; border-radius:8px; padding:10px 14px; text-align:center; border:1px solid #DDE3F0; }
+  .kpi-num { font-size:20px; font-weight:700; color:#0D2148; font-family:monospace; }
+  .kpi-label { font-size:8.5px; color:#6B7A99; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
+  .chart-wrap { padding:12px 24px; border-bottom:1px solid #DDE3F0; }
+  .table-section { padding:0 24px 48px; }
+  .table-meta { font-size:10px; color:#6B7A99; padding:10px 0 6px; }
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  thead tr { background:#0D2148; color:white; }
+  thead th { padding:7px 8px; text-align:left; font-size:9px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; }
+  tbody tr td { padding:6px 8px; border-bottom:1px solid #EEF1F8; vertical-align:middle; }
+  tbody tr.alt td { background:#F7F9FD; }
+  .footer { background:#0D2148; color:rgba(255,255,255,0.5); text-align:center; font-size:8.5px; padding:8px; position:fixed; bottom:0; width:100%; }
+  @media print {
+    body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .footer { position:fixed; bottom:0; }
+    @page { size:A4 landscape; margin:0; }
+    tr { page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left"><div class="brand">TrazApp</div><div class="sub">EPP Dashboard</div></div>
+    <div class="header-center"><div class="title">${titulo}</div><div class="meta">Centro: ${centroText} &nbsp;|&nbsp; Período: ${desde} – ${hasta}</div></div>
+    <div class="header-right">Generado<br>${fechaGen}</div>
+  </div>
+  ${kpisHtml}
+  ${chartImg ? `<div class="chart-wrap">${chartImg}</div>` : ''}
+  <div class="table-section">
+    <div class="table-meta">${rows.length} registro${rows.length !== 1 ? 's' : ''}</div>
+    <table>${theadHtml}${tbodyHtml}</table>
+  </div>
+  <div class="footer">TrazApp — Sistema de Gestión de EPP — Documento generado automáticamente</div>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=1100,height=800');
+  win.document.write(html);
+  win.document.close();
+}
 
   const tipoLabels = {
     cumplimiento: 'Cumplimiento EPP por Trabajador',
@@ -3238,81 +3334,6 @@ function fitText(ctx, text, maxW) {
 }
 
 
-// ── PDF BUILDER (sin dependencias) ──────────────────────────────────
-function buildPDFFromCanvases(canvases, titulo) {
-  // Each canvas → JPEG base64
-  const images = canvases.map(c => {
-    const dataURL = c.toDataURL('image/jpeg', 0.92);
-    return dataURL.split(',')[1]; // raw base64
-  });
-
-  const W_PT = 841.89; // A4 landscape points width
-  const H_PT = 595.28; // A4 landscape points height
-
-  let pdf = '%PDF-1.4\n';
-  const offsets = [];
-  let obj = 1;
-
-  const addObj = (content) => {
-    offsets.push(pdf.length);
-    pdf += `${obj} 0 obj\n${content}\nendobj\n`;
-    return obj++;
-  };
-
-  // Catalog and pages will be added last
-  const pageObjIds = [];
-  const imageObjIds = [];
-
-  images.forEach((imgB64, i) => {
-    const imgBytes = atob(imgB64);
-    const imgLen = imgBytes.length;
-
-    // Image XObject
-    offsets.push(pdf.length);
-    const imgId = obj++;
-    imageObjIds.push(imgId);
-    pdf += `${imgId} 0 obj\n<< /Type /XObject /Subtype /Image /Width 1122 /Height 794 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgLen} >>\nstream\n`;
-    // Append binary
-    for (let j = 0; j < imgBytes.length; j++) pdf += imgBytes[j];
-    pdf += '\nendstream\nendobj\n';
-
-    // Page content stream
-    const contentStr = `q ${W_PT} 0 0 ${H_PT} 0 0 cm /Im${i} Do Q`;
-    offsets.push(pdf.length);
-    const contentId = obj++;
-    pdf += `${contentId} 0 obj\n<< /Length ${contentStr.length} >>\nstream\n${contentStr}\nendstream\nendobj\n`;
-
-    // Page object
-    const pageId = addObj(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W_PT} ${H_PT}] /Contents ${contentId} 0 R /Resources << /XObject << /Im${i} ${imgId} 0 R >> >> >>`);
-    pageObjIds.push(pageId);
-  });
-
-  // Pages dict (obj 2)
-  offsets.splice(1, 0, pdf.length);
-  pdf += `2 0 obj\n<< /Type /Pages /Kids [${pageObjIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pageObjIds.length} >>\nendobj\n`;
-
-  // Catalog (obj 1)
-  offsets.splice(0, 0, pdf.length);
-  pdf += `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
-
-  // xref
-  const xrefOffset = pdf.length;
-  const totalObjs = obj;
-  pdf += `xref\n0 ${totalObjs}\n0000000000 65535 f \n`;
-  offsets.forEach(o => {
-    pdf += String(o).padStart(10, '0') + ' 00000 n \n';
-  });
-  pdf += `trailer\n<< /Size ${totalObjs} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  // Download as binary
-  const bytes = new Uint8Array(pdf.length);
-  for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `TrazApp_${reporteTipo}_${new Date().toISOString().slice(0,10)}.pdf`;
-  link.click();
-}
 
 // ── HELPERS ─────────────────────────────────────────────────────────
 function roundRect(ctx, x, y, w, h, r) {
