@@ -1119,7 +1119,7 @@ async function doLogin() {
     if (!['ADMIN','SUPERVISOR'].includes(perfil.rol)) throw new Error('Acceso denegado. Solo ADMIN y SUPERVISOR pueden acceder al dashboard.');
 
     currentUser  = data.user;
-    currentPerfil = { ...perfil, userId: data.user.id };
+    currentPerfil = { ...perfil, userId: data.user.id, email: data.user.email };
 
     await initApp();
   } catch(e) {
@@ -1544,7 +1544,7 @@ function showLoading(v) {
       .maybeSingle();
 
     if (perfil && ['ADMIN','SUPERVISOR'].includes(perfil.rol)) {
-      currentPerfil = { ...perfil, userId: session.user.id };
+      currentPerfil = { ...perfil, userId: session.user.id, email: session.user.email };
       document.getElementById('loginScreen').style.display = 'none';
       await initApp();
       return;
@@ -2482,7 +2482,7 @@ async function saveNuevoUsuario() {
     }
     userId = signInData?.user?.id;
     // Re-authenticate as admin
-    await sb.auth.signInWithPassword({ email: currentPerfil._email || '', password: '' });
+    await sb.auth.signInWithPassword({ email: currentPerfil.email || '', password: '' });
   } else if (signUpErr) {
     errEl.textContent = signUpErr.message;
     errEl.style.display = 'block';
@@ -2500,8 +2500,7 @@ async function saveNuevoUsuario() {
   });
   if (perfilErr) { errEl.textContent = 'Error creando perfil: ' + perfilErr.message; errEl.style.display='block'; return; }
 
-  // Assign to centro if selected
-  if (obraId) await sb.from('obra_usuarios').upsert({ user_id: userId, obra_id: obraId, rol_obra: rol });
+  // (asignación a centro no implementada en el modal — se hace desde Gestión de Centros)
 
   closeModal('modalNuevoUsuario');
   alert(`✅ Usuario creado.
@@ -3142,26 +3141,6 @@ function truncate(str, max) {
 }
 
 
-function exportReporteCSV() {
-  if (!reporteData.length) return;
-  const headers = document.querySelectorAll('#reporteTableHead th');
-  const rows    = document.querySelectorAll('#reporteTableBody tr');
-  const escape  = v => `"${(v?.textContent||v||'').replace(/"/g,'""')}"`;
-
-  const csvHeaders = [...headers].map(h => escape(h)).join(',');
-  const csvRows = [...rows].map(tr =>
-    [...tr.querySelectorAll('td')].map(td => escape(td)).join(',')
-  ).join('\n');
-
-  const csv = '\uFEFF' + csvHeaders + '\n' + csvRows; // BOM for Excel
-  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `TrazApp_Reporte_${reporteTipo}_${new Date().toISOString().slice(0,10)}.csv`;
-  link.click();
-}
-
-
 // ═══════════════════════════════════════════════════════════════
 // REGLAS EPP POR CENTRO
 // Tabla obra_epp_reglas: obra_id, epp_id, nivel ('OBLIGATORIO'|'ADVERTENCIA')
@@ -3326,7 +3305,7 @@ function filtrarTrabExistentes() {
           </div>
           <div>
             <div style="font-weight:600;font-size:13px;color:var(--navy)">${t.nombre}</div>
-            <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${t.rut||'Sin RUT'} · ${t.cargo||'Sin cargo'}</div>
+            <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${t.rut||'Sin RUT'}</div>
           </div>
           <div id="check-${t.trabajador_id}" style="margin-left:auto;display:none;color:var(--orange);font-size:18px">✓</div>
         </div>`)
