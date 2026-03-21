@@ -2812,7 +2812,7 @@ async function generarReporteEntregas(f) {
 // ── REPORTE 3: STOCK Y MOVIMIENTOS ───────────────────────────────
 async function generarReporteStock(f) {
   let q = sb.from('stock_movimientos')
-    .select('tipo, cantidad, created_at, descripcion, bodegas(bodega_id, nombre, obras(nombre)), catalogo_epp(epp_id, nombre, codigo)')
+    .select('tipo, cantidad, created_at, bodegas(bodega_id, nombre, obras(nombre)), catalogo_epp(epp_id, nombre, codigo)')
     .order('created_at', { ascending: false }).limit(500);
   if (f.bodega !== 'all') q = q.eq('bodega_id', f.bodega);
   if (f.epp !== 'all') q = q.eq('epp_id', f.epp);
