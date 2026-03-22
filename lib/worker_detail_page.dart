@@ -487,10 +487,16 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
           body: Center(child: CircularProgressIndicator()));
     }
 
+    // Combinar y ordenar por fecha DESC para que las más recientes
+    // aparezcan primero independiente de si son offline o sincronizadas.
     final todasEntregas = [
       ...entregasOfflinePendientes,
       ...entregas,
-    ];
+    ]..sort((a, b) {
+        final aDate = (a['created_at'] ?? '').toString();
+        final bDate = (b['created_at'] ?? '').toString();
+        return bDate.compareTo(aDate); // DESC
+      });
 
     return Scaffold(
       appBar: AppBar(

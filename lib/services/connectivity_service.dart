@@ -129,8 +129,20 @@ class ConnectivityService {
   }
 
   /// Fuerza un sync manual inmediato (para el botón 🔄).
+  /// Resetea el backoff de entradas en ERROR para que sean reintentadas
+  /// independientemente de cuándo estaba programado el próximo intento.
   /// Retorna el resumen {enviadas, errores, pendientes}.
   Future<Map<String, int>> syncManual() async {
+    // Limpiar backoff: el usuario pidió reintentar explícitamente
+    final todas = OfflineQueueService.listAll()
+        .where((e) => e.status == 'ERROR')
+        .toList();
+    for (final e in todas) {
+      e.nextRetryAt = null;
+      e.status = 'PENDING';
+      await OfflineQueueService.update(e);
+    }
+
     final supabase = Supabase.instance.client;
     final deviceId = DeviceIdService.deviceId;
 
