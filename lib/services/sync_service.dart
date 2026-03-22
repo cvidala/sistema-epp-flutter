@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,20 +18,16 @@ class SyncService {
   final String deviceId;
   final VoidCallback? onSyncComplete;
 
-  /// Sincroniza todas las entregas pendientes.
-  /// Retorna un resumen: {enviadas, errores, pendientes}
+  /// Sincroniza todas las entregas pendientes respetando backoff.
+  /// Retorna {enviadas, errores, pendientes, fallidas}
   Future<Map<String, int>> syncOnce() async {
+    // listPending() ya filtra por backoff y estado — no resetear masivamente
     final pendings = OfflineQueueService.listPending()
         .where((e) => e.status != 'SENT')
         .toList();
-    // Resetear errores previos para reintento
-    for (final e in pendings.where((e) => e.status == 'ERROR')) {
-      e.status = 'PENDING';
-      await OfflineQueueService.update(e);
-    }
 
     int enviadas = 0;
-    int errores = 0;
+    int errores  = 0;
 
     debugPrint('[SyncService] Pendientes a sincronizar: ${pendings.length}');
 
@@ -39,9 +37,7 @@ class SyncService {
         e.attempts += 1;
         await OfflineQueueService.update(e);
 
-        // ── 0) Verificar si ya existe en la DB (sync previo exitoso) ───────
-        //    El fallback usa event_id = 'EPP-SYNC-{localEventId}'
-        //    El RPC usa local_event_id. Revisamos ambos.
+        // ── 0) Verificar duplicado ─────────────────────────────────────────
         try {
           final existing = await supabase
               .from('entregas_epp')
@@ -51,30 +47,50 @@ class SyncService {
               .timeout(const Duration(seconds: 8));
 
           if (existing != null) {
-            debugPrint('[SyncService] Ya existe en DB: ${existing['event_id']} — marcando SENT');
+            debugPrint('[SyncService] Ya existe: ${existing['event_id']} — SENT');
             await OfflineQueueService.markSent(e.localEventId);
             enviadas++;
             continue;
           }
         } catch (checkErr) {
           debugPrint('[SyncService] Check duplicado falló (no crítico): $checkErr');
-          // Continuar con el flujo normal
         }
 
         // ── 1) Subir evidencia a Storage ──────────────────────────────────
-        final Uint8List bytes =
+        final Uint8List evidenciaBytes =
             await EvidenceService.readEvidenceOffline(e.evidenciaLocalPath);
 
         final remotePath = 'epp/offline_${e.localEventId}.jpg';
         await supabase.storage.from('evidencias').uploadBinary(
               remotePath,
-              bytes,
+              evidenciaBytes,
               fileOptions: const FileOptions(upsert: true),
             );
         e.evidenciaRemotePath = remotePath;
         debugPrint('[SyncService] Evidencia subida: $remotePath');
 
-        // ── 2) get_prev_hash para encadenamiento D4 ────────────────────────
+        // ── 2) Subir firma a Storage (si existe) ──────────────────────────
+        String? firmaRemotePath;
+        String? firmaHash;
+        if (e.firmaLocalPath != null) {
+          final firmaBytes =
+              await EvidenceService.readEvidenceOffline(e.firmaLocalPath!);
+
+          firmaRemotePath = 'epp/offline_${e.localEventId}_firma.png';
+          await supabase.storage.from('evidencias').uploadBinary(
+                firmaRemotePath,
+                firmaBytes,
+                fileOptions: const FileOptions(upsert: true),
+              );
+          debugPrint('[SyncService] Firma subida: $firmaRemotePath');
+
+          // Calcular hash de la firma (para integridad encadenada)
+          firmaHash = e.firmaHash ?? EvidenceService.hashBytes(firmaBytes);
+          e.firmaHash = firmaHash;
+          await OfflineQueueService.update(e);
+        }
+
+        // ── 3) get_prev_hash para encadenamiento ──────────────────────────
         String? prevHash;
         try {
           final prevResp = await supabase.rpc('get_prev_hash', params: {
@@ -89,111 +105,113 @@ class SyncService {
           prevHash = null;
         }
 
-        // ── 3) Calcular hash encadenado (D4) ──────────────────────────────
+        // ── 4) Calcular hash encadenado ────────────────────────────────────
+        // IMPORTANTE: firma_hash incluido → cualquier alteración rompe la cadena
         final payload = <String, dynamic>{
-          'device_id': deviceId,
-          'local_event_id': e.localEventId,
-          'scope': e.scope,
-          'obra_id': e.obraId,
-          'trabajador_id': e.trabajadorId,
-          'bodega_id': e.bodegaId,
-          'items': _canonicalItems(e.items),
-          'evidencia_hash': e.evidenciaHash,
+          'device_id':         deviceId,
+          'local_event_id':    e.localEventId,
+          'scope':             e.scope,
+          'obra_id':           e.obraId,
+          'trabajador_id':     e.trabajadorId,
+          'bodega_id':         e.bodegaId,
+          'items':             _canonicalItems(e.items),
+          'evidencia_hash':    e.evidenciaHash,
           'created_at_client': e.createdAtClientIso,
-          'evidencia_path': remotePath,
+          'evidencia_path':    remotePath,
+          if (firmaHash != null)    'firma_hash':  firmaHash,
+          if (firmaRemotePath != null) 'firma_path': firmaRemotePath,
+          if (e.forensics != null) 'forensics_gps_lat': e.forensics!['gps_lat'],
+          if (e.forensics != null) 'forensics_gps_lng': e.forensics!['gps_lng'],
         };
-        final canon = _canonicalJson(payload);
-        final toHash = '${prevHash ?? ''}|$canon';
+        final canon    = _canonicalJson(payload);
+        final toHash   = '${prevHash ?? ''}|$canon';
         final eventHash = EvidenceService.hashString(toHash);
         e.prevHash = prevHash;
-        e.hash = eventHash;
+        e.hash     = eventHash;
         await OfflineQueueService.update(e);
 
-        // ── 4) RPC atómico: insert_entrega_offline_v1 ─────────────────────
-        //    Inserta entregas_epp + stock_movimientos en una sola transacción.
-        //    Si el RPC falla por error de negocio ({ok: false}), NO usar fallback
-        //    porque podría ser un error válido (ej: epp_id inválido).
-        //    Solo usar fallback si el RPC no existe (excepción de red/404).
-        bool insertOk = false;
+        // ── 5) RPC atómico ────────────────────────────────────────────────
+        bool insertOk      = false;
         bool rpcDisponible = true;
 
         try {
           final ins = await supabase.rpc('insert_entrega_offline_v1', params: {
-            'p_device_id': deviceId,
-            'p_local_event_id': e.localEventId,
-            'p_scope': e.scope,
-            'p_obra_id': e.obraId,
-            'p_trabajador_id': e.trabajadorId,
-            'p_bodega_id': e.bodegaId,
-            'p_items': e.items,
-            'p_evidencia_path': remotePath,
-            'p_evidencia_hash': e.evidenciaHash,
-            'p_prev_hash': prevHash,
-            'p_hash': eventHash,
+            'p_device_id':        deviceId,
+            'p_local_event_id':   e.localEventId,
+            'p_scope':            e.scope,
+            'p_obra_id':          e.obraId,
+            'p_trabajador_id':    e.trabajadorId,
+            'p_bodega_id':        e.bodegaId,
+            'p_items':            e.items,
+            'p_evidencia_path':   remotePath,
+            'p_evidencia_hash':   e.evidenciaHash,
+            'p_prev_hash':        prevHash,
+            'p_hash':             eventHash,
             'p_created_at_client': e.createdAtClientIso,
+            'p_firma_path':       firmaRemotePath,
+            'p_firma_hash':       firmaHash,
+            'p_forensics':        e.forensics,
           }).timeout(const Duration(seconds: 20));
 
           debugPrint('[SyncService] RPC resp: $ins');
-
           insertOk = _parseOk(ins);
 
           if (!insertOk) {
-            // RPC existe pero retornó ok=false → error de negocio
             final errMsg = _parseError(ins);
-            debugPrint('[SyncService] RPC retornó error de negocio: $errMsg');
-            // NO hacer fallback: marcar como ERROR para revisión
-            e.status = 'ERROR';
-            e.lastError = 'RPC error: $errMsg';
-            await OfflineQueueService.update(e);
+            debugPrint('[SyncService] RPC error de negocio: $errMsg');
+            await _handleError(e, 'RPC error: $errMsg');
             errores++;
-            continue; // siguiente pendiente
+            continue;
           }
         } on PostgrestException catch (pgErr) {
-          // RPC no existe (código 404/PGRST202) → usar fallback
           if (pgErr.code == 'PGRST202' ||
               pgErr.message.contains('Could not find') ||
-              pgErr.message.contains('function') ) {
+              pgErr.message.contains('function')) {
             debugPrint('[SyncService] RPC no existe, usando fallback directo');
             rpcDisponible = false;
           } else {
-            rethrow; // otro error de Postgres → propagar al catch externo
+            rethrow;
           }
         }
 
-        // ── 5) Fallback directo (solo si RPC no existe en DB) ─────────────
-        //    Dos inserts separados — menos seguro que el RPC pero funcional.
-        //    Desaparecerá en cuanto el RPC esté creado en Supabase.
+        // ── 6) Fallback directo (si RPC no existe) ────────────────────────
         if (!rpcDisponible) {
           debugPrint('[SyncService] Fallback: insert directo (no atómico)');
-          final userId = supabase.auth.currentUser?.id;
+          final userId  = supabase.auth.currentUser?.id;
           final eventId = 'EPP-SYNC-${e.localEventId}';
           final evidenciaUrl = supabase.storage
               .from('evidencias')
               .getPublicUrl(remotePath);
+          final firmaUrl = firmaRemotePath != null
+              ? supabase.storage.from('evidencias').getPublicUrl(firmaRemotePath)
+              : null;
 
           await supabase.from('entregas_epp').insert({
-            'event_id': eventId,
-            'trabajador_id': e.trabajadorId,
-            'obra_id': e.obraId,
-            'bodega_id': e.bodegaId,
-            'items': e.items,
-            'entregado_por': userId,
-            'sync_status': 'ENVIADO',
+            'event_id':          eventId,
+            'trabajador_id':     e.trabajadorId,
+            'obra_id':           e.obraId,
+            'bodega_id':         e.bodegaId,
+            'items':             e.items,
+            'entregado_por':     userId,
+            'sync_status':       'ENVIADO',
             'evidencia_foto_url': evidenciaUrl,
-            'evidencia_hash': e.evidenciaHash,
-            'validacion_tipo': 'OFFLINE_SYNC',
-            'created_at': e.createdAtClientIso,
+            'evidencia_hash':    e.evidenciaHash,
+            'firma_url':         firmaUrl,
+            'firma_hash':        firmaHash,
+            'forensics':         e.forensics,
+            'validacion_tipo':   'OFFLINE_SYNC',
+            'created_at':        e.createdAtClientIso,
           });
 
           for (final it in e.items) {
             await supabase.from('stock_movimientos').insert({
-              'bodega_id': e.bodegaId,
-              'epp_id': it['epp_id'],
-              'tipo': 'SALIDA',
-              'cantidad': it['cantidad'],
+              'bodega_id':           e.bodegaId,
+              'epp_id':              it['epp_id'],
+              'tipo':                'SALIDA',
+              'cantidad':            it['cantidad'],
               'referencia_event_id': eventId,
-              'motivo': 'Entrega EPP (sync offline)',
-              'created_by': userId,
+              'motivo':              'Entrega EPP (sync offline)',
+              'created_by':         userId,
             });
           }
 
@@ -201,16 +219,14 @@ class SyncService {
           insertOk = true;
         }
 
-        // ── 6) Marcar como SENT ───────────────────────────────────────────
+        // ── 7) Marcar SENT ────────────────────────────────────────────────
         if (insertOk) {
           await OfflineQueueService.markSent(e.localEventId);
           enviadas++;
           debugPrint('[SyncService] ✅ ${e.localEventId} → SENT');
         }
       } catch (ex) {
-        e.status = 'ERROR';
-        e.lastError = ex.toString();
-        await OfflineQueueService.update(e);
+        await _handleError(e, ex.toString());
         errores++;
         debugPrint('[SyncService] ❌ Error en ${e.localEventId}: $ex');
       }
@@ -227,10 +243,32 @@ class SyncService {
     onSyncComplete?.call();
 
     return {
-      'enviadas': enviadas,
-      'errores': errores,
+      'enviadas':   enviadas,
+      'errores':    errores,
       'pendientes': pendientesRestantes,
     };
+  }
+
+  // ─────────────────────────────────────────────
+  // BACKOFF EXPONENCIAL
+  // ─────────────────────────────────────────────
+
+  /// Registra un error con backoff. Si supera maxAttempts → FAILED permanente.
+  Future<void> _handleError(OfflineEntrega e, String error) async {
+    if (e.attempts >= e.maxAttempts) {
+      await OfflineQueueService.markFailed(e.localEventId,
+          'Máximo de intentos alcanzado (${ e.maxAttempts}). Último: $error');
+      debugPrint('[SyncService] ⛔ ${e.localEventId} → FAILED permanente');
+      return;
+    }
+    e.status    = 'ERROR';
+    e.lastError = error;
+    // Backoff: min(2^(attempts-1), 60) minutos
+    final delayMin = min(pow(2, e.attempts - 1).toInt(), 60);
+    e.nextRetryAt =
+        DateTime.now().add(Duration(minutes: delayMin)).toIso8601String();
+    await OfflineQueueService.update(e);
+    debugPrint('[SyncService] ⏳ ${e.localEventId} → retry en ${delayMin}min');
   }
 
   // ─────────────────────────────────────────────
@@ -269,14 +307,14 @@ class SyncService {
   List<Map<String, dynamic>> _canonicalItems(
       List<Map<String, dynamic>> items) {
     final list = items.map((x) => Map<String, dynamic>.from(x)).toList();
-    list.sort((a, b) =>
-        a['epp_id'].toString().compareTo(b['epp_id'].toString()));
+    list.sort(
+        (a, b) => a['epp_id'].toString().compareTo(b['epp_id'].toString()));
     return list;
   }
 
   String _canonicalJson(Map<String, dynamic> m) {
     final keys = m.keys.toList()..sort();
-    final out = <String, dynamic>{};
+    final out  = <String, dynamic>{};
     for (final k in keys) {
       out[k] = m[k];
     }

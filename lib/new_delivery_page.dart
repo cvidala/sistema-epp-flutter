@@ -9,6 +9,7 @@ import 'models/evaluacion_entrega.dart';
 import 'dart:async';
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
+import 'services/forensic_service.dart';
 
 class NewDeliveryPage extends StatefulWidget {
   final String obraId;
@@ -59,6 +60,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   Uint8List? evidenciaBytes;
   String? evidenciaNombre;
   Uint8List? firmaBytes;       // PNG de la firma del trabajador
+  Map<String, dynamic>? _forensicData; // GPS + device info capturado al firmar
   final SignatureController _firmaCtrl = SignatureController(
     penStrokeWidth: 3,
     penColor: const Color(0xFF0D2148),
@@ -812,6 +814,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       evidenciaLocalPath: localPath,
       evidenciaHash: evidenciaHash,
       firmaLocalPath: firmaLocalPath,
+      forensics: _forensicData,
     );
 
     await OfflineQueueService.enqueue(e);
@@ -916,7 +919,12 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
     final png = await _firmaCtrl.toPngBytes();
     if (png != null) {
-      setState(() => firmaBytes = png);
+      // Capturar GPS + device info en el momento exacto de la firma
+      final forensics = await ForensicService.capture();
+      setState(() {
+        firmaBytes    = png;
+        _forensicData = forensics;
+      });
     }
   }
 
@@ -1037,6 +1045,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
         'bodega_id': bodegaId,
         'items': items,
         'entregado_por': userId,
+        'forensics': _forensicData,
         'sync_status': 'ENVIADO',
         'evidencia_foto_url': evidenciaUrl,
         'evidencia_hash': evidenciaHash,
