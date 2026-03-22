@@ -105,6 +105,13 @@ h1 em { color:var(--orange); font-style:normal; }
   cursor:pointer; text-decoration:none; transition:all 0.15s;
 }
 .btn-secondary:hover { background:rgba(255,255,255,0.14); }
+.btn-login {
+  background:transparent; color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.15);
+  border-radius:12px; padding:14px 24px; font-family:'Sora',sans-serif; font-size:14px; font-weight:500;
+  cursor:pointer; text-decoration:none; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;
+}
+.btn-login::before { content:'→'; font-size:13px; }
+.btn-login:hover { color:white; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.06); }
 
 /* Hero mockup */
 .hero-mockup {
@@ -446,6 +453,7 @@ footer {
   <div class="hero-actions">
     <a href="#contacto" class="btn-primary">Solicitar demo →</a>
     <a href="#como-funciona" class="btn-secondary">Ver cómo funciona</a>
+    <a href="https://dashboard.trazapp.cl" class="btn-login" target="_blank">Iniciar sesión</a>
   </div>
 
   <div class="hero-mockup" style="max-width:900px;width:100%">
