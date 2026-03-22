@@ -209,6 +209,183 @@ class _WorkersPageState extends State<WorkersPage> {
     }
   }
 
+  /// Muestra el menú de opciones para agregar un trabajador.
+  void _showAgregarMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Agregar trabajador',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFF0D2148),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D2148).withAlpha(20),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.person_add_outlined,
+                      color: Color(0xFF0D2148)),
+                ),
+                title: const Text('Nuevo trabajador',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Crear uno que aún no existe en el sistema'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _crearTrabajador();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE87722).withAlpha(20),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.group_add_outlined,
+                      color: Color(0xFFE87722)),
+                ),
+                title: const Text('Agregar existente',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Asignar un trabajador ya registrado a esta obra'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _agregarTrabajadorExistente();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Busca trabajadores existentes que no están en esta obra y permite asignarlos.
+  Future<void> _agregarTrabajadorExistente() async {
+    // IDs ya en la obra
+    final enObraIds = trabajadores
+        .map((t) => (t['trabajador_id'] ?? '').toString())
+        .toSet();
+
+    List<dynamic> disponibles = [];
+    try {
+      final todos = await supabase
+          .from('trabajadores')
+          .select('trabajador_id, nombre, rut')
+          .eq('estado', 'ACTIVO')
+          .order('nombre');
+
+      disponibles = (todos as List)
+          .where((t) => !enObraIds.contains(t['trabajador_id'].toString()))
+          .toList();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al cargar trabajadores: $e')));
+      }
+      return;
+    }
+
+    if (disponibles.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Todos los trabajadores del sistema ya están en esta obra.')),
+        );
+      }
+      return;
+    }
+
+    // Diálogo de búsqueda y selección
+    if (!mounted) return;
+    final seleccionado = await showDialog<Map>(
+      context: context,
+      builder: (ctx) => _DialogSeleccionarTrabajador(
+          trabajadores: disponibles),
+    );
+
+    if (seleccionado == null || !mounted) return;
+
+    final cargoCtrl = TextEditingController();
+    // Pedir cargo opcional
+    final cargoConfirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Asignar ${seleccionado['nombre']}'),
+        content: TextField(
+          controller: cargoCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Cargo en esta obra (opcional)',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Asignar'),
+          ),
+        ],
+      ),
+    );
+
+    if (cargoConfirm != true || !mounted) return;
+
+    try {
+      await supabase.from('trabajador_obras').insert({
+        'trabajador_id': seleccionado['trabajador_id'],
+        'obra_id': widget.obraId,
+        'activo': true,
+        'cargo': cargoCtrl.text.trim().isEmpty ? null : cargoCtrl.text.trim(),
+      });
+      _loadWorkers();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  '${seleccionado['nombre']} asignado a ${widget.obraNombre}.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al asignar: $e')),
+        );
+      }
+    }
+  }
+
   /// Crea un nuevo trabajador. Solo accesible si _canWriteThisObra.
   Future<void> _crearTrabajador() async {
     final nombreCtrl = TextEditingController();
@@ -571,11 +748,11 @@ class _WorkersPageState extends State<WorkersPage> {
               ],
             ),
 
-      // FAB crear trabajador: solo ADMIN o SUPERVISOR de esta obra
+      // FAB: solo ADMIN o SUPERVISOR de esta obra
       floatingActionButton: _canWriteThisObra
           ? FloatingActionButton(
-              onPressed: _crearTrabajador,
-              tooltip: 'Nuevo trabajador',
+              onPressed: _showAgregarMenu,
+              tooltip: 'Agregar trabajador',
               child: const Icon(Icons.person_add),
             )
           : null,
@@ -611,6 +788,140 @@ class _Banner extends StatelessWidget {
             child: Text(text, style: const TextStyle(fontSize: 13)),
           ),
         ],
+      ),
+    );
+  }
+}
+// ─────────────────────────────────────────────────────────────
+// Diálogo de búsqueda y selección de trabajador existente
+// ─────────────────────────────────────────────────────────────
+class _DialogSeleccionarTrabajador extends StatefulWidget {
+  final List<dynamic> trabajadores;
+  const _DialogSeleccionarTrabajador({required this.trabajadores});
+
+  @override
+  State<_DialogSeleccionarTrabajador> createState() =>
+      _DialogSeleccionarTrabajadorState();
+}
+
+class _DialogSeleccionarTrabajadorState
+    extends State<_DialogSeleccionarTrabajador> {
+  final _searchCtrl = TextEditingController();
+  List<dynamic> _filtrados = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtrados = widget.trabajadores;
+    _searchCtrl.addListener(_filter);
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _filter() {
+    final q = _searchCtrl.text.toLowerCase().trim();
+    setState(() {
+      _filtrados = q.isEmpty
+          ? widget.trabajadores
+          : widget.trabajadores.where((t) {
+              final nombre = (t['nombre'] ?? '').toString().toLowerCase();
+              final rut = (t['rut'] ?? '').toString().toLowerCase();
+              return nombre.contains(q) || rut.contains(q);
+            }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Seleccionar trabajador',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF0D2148),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _searchCtrl,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar por nombre o RUT…',
+                      prefixIcon: Icon(Icons.search),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: _filtrados.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('Sin resultados.',
+                          style: TextStyle(color: Color(0xFF6B7A99))),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _filtrados.length,
+                      itemBuilder: (_, i) {
+                        final t = _filtrados[i];
+                        final inicial = (t['nombre'] ?? '?')
+                            .toString()
+                            .substring(0, 1)
+                            .toUpperCase();
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF0D2148),
+                            child: Text(inicial,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                          title: Text(t['nombre'] ?? '',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0D2148))),
+                          subtitle: Text(t['rut'] ?? '',
+                              style: const TextStyle(
+                                  color: Color(0xFF6B7A99), fontSize: 13)),
+                          onTap: () => Navigator.of(context)
+                              .pop(Map<String, dynamic>.from(t)),
+                        );
+                      },
+                    ),
+            ),
+            const Divider(height: 1),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

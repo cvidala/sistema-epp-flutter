@@ -790,6 +790,14 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       filenameHint: evidenciaNombre ?? 'evidencia.jpg',
     );
 
+    String? firmaLocalPath;
+    if (firmaBytes != null) {
+      firmaLocalPath = await EvidenceService.saveEvidenceOffline(
+        bytes: firmaBytes!,
+        filenameHint: 'firma.png',
+      );
+    }
+
     final evidenciaHash = EvidenceService.hashBytes(evidenciaBytes!);
     final localEventId = OfflineQueueService.newLocalEventId();
 
@@ -803,6 +811,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       items: items,
       evidenciaLocalPath: localPath,
       evidenciaHash: evidenciaHash,
+      firmaLocalPath: firmaLocalPath,
     );
 
     await OfflineQueueService.enqueue(e);

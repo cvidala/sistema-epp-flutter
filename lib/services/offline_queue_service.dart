@@ -13,6 +13,7 @@ class OfflineEntrega {
     required this.items,
     required this.evidenciaLocalPath, // path local (mobile) o bytesBase64 si web
     required this.evidenciaHash,
+    this.firmaLocalPath,
     this.evidenciaRemotePath,
     this.prevHash,
     this.hash,
@@ -32,6 +33,7 @@ class OfflineEntrega {
 
   final String evidenciaLocalPath;
   final String evidenciaHash;
+  String? firmaLocalPath;
   String? evidenciaRemotePath;
 
   String? prevHash;
@@ -51,6 +53,7 @@ class OfflineEntrega {
         'items': items,
         'evidenciaLocalPath': evidenciaLocalPath,
         'evidenciaHash': evidenciaHash,
+        'firmaLocalPath': firmaLocalPath,
         'evidenciaRemotePath': evidenciaRemotePath,
         'prevHash': prevHash,
         'hash': hash,
@@ -69,6 +72,7 @@ class OfflineEntrega {
         items: (m['items'] as List).map((x) => Map<String, dynamic>.from(x)).toList(),
         evidenciaLocalPath: m['evidenciaLocalPath'],
         evidenciaHash: m['evidenciaHash'],
+        firmaLocalPath: m['firmaLocalPath'] as String?,
         evidenciaRemotePath: m['evidenciaRemotePath'],
         prevHash: m['prevHash'],
         hash: m['hash'],
