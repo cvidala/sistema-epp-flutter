@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 
 import 'new_delivery_page.dart';
 import 'services/cache_service.dart';
-import 'services/auth_service.dart';
 import 'services/offline_queue_service.dart';
 
 class WorkerDetailPage extends StatefulWidget {
@@ -320,7 +319,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
           if (rows.isEmpty)
             pw.Text('Sin ítems.')
           else
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: const ['EPP', 'Cantidad'],
               data: rows,
               headerStyle:
@@ -602,6 +601,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                                           await Clipboard.setData(
                                               ClipboardData(text: msg));
                                           if (!mounted) return;
+                                          // ignore: use_build_context_synchronously
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(const SnackBar(
                                                   content: Text(

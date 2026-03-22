@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import 'evidence_service.dart';
 import 'models/evaluacion_entrega.dart';
-import 'services/entrega_service.dart';
 import 'dart:async';
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
@@ -40,7 +39,6 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   // ✅ FIX: flag modo offline
   bool modoOffline = false;
 
-  final _entregaService = EntregaService();
 
   EvaluacionEntrega? evaluacionActual;
   String estadoActual = 'OK';
@@ -160,9 +158,10 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             'Sin conexión y sin cache local.\nAbre esta pantalla una vez con internet para cargar bodegas y catálogo.');
       }
     } finally {
-      if (!mounted) return;
-      setState(() => loading = false);
-      debugPrint('[_loadInit] loading=false');
+      if (mounted) {
+        setState(() => loading = false);
+        debugPrint('[_loadInit] loading=false');
+      }
     }
   }
 
@@ -260,12 +259,12 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   // ─────────────────────────────────────────────
 
   int _countCriticos() {
-    final crit = evaluacionActual?.detalle?['pendientes_criticos'];
+    final crit = evaluacionActual?.detalle['pendientes_criticos'];
     return (crit is List) ? crit.length : 0;
   }
 
   int _countNoCriticos() {
-    final noCrit = evaluacionActual?.detalle?['pendientes_no_criticos'];
+    final noCrit = evaluacionActual?.detalle['pendientes_no_criticos'];
     return (noCrit is List) ? noCrit.length : 0;
   }
 
@@ -524,7 +523,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     final checklist = _extraerChecklistDesdeEvaluacion();
 
     String? warningMsg;
-    final w = evaluacionActual?.detalle?['warnings'];
+    final w = evaluacionActual?.detalle['warnings'];
     if (w is List && w.isNotEmpty && w.first is Map) {
       warningMsg = (w.first['message'] ?? '').toString();
     }

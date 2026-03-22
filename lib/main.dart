@@ -143,7 +143,7 @@ class _LoginGateState extends State<LoginGate> {
 
     // ── Hay sesión guardada: verificar conectividad ─────────
     final connectivity = await Connectivity().checkConnectivity();
-    final hayInternet  = connectivity != ConnectivityResult.none;
+    final hayInternet  = connectivity.any((r) => r != ConnectivityResult.none);
 
     if (hayInternet) {
       // Online: cargar perfil desde Supabase y sincronizar caché

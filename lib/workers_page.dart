@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'worker_detail_page.dart';
 import 'services/connectivity_service.dart';
-import 'services/device_id_service.dart';
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
 import 'services/auth_service.dart';
@@ -215,8 +214,6 @@ class _WorkersPageState extends State<WorkersPage> {
     final nombreCtrl = TextEditingController();
     final rutCtrl    = TextEditingController();
     final cargoCtrl  = TextEditingController();
-    final trabajadorId = const Uuid().v4();
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -269,13 +266,17 @@ class _WorkersPageState extends State<WorkersPage> {
     final nombre = nombreCtrl.text.trim();
     final rut    = rutCtrl.text.trim();
     if (nombre.isEmpty) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El nombre es obligatorio')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El nombre es obligatorio')));
+      }
       return;
     }
     if (rut.isEmpty) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El RUT es obligatorio')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El RUT es obligatorio')));
+      }
       return;
     }
 
