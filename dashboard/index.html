@@ -305,7 +305,7 @@
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
     <div class="login-logo">
-      <div class="login-icon">🛡️</div>
+      <div class="login-icon" style="background:none;padding:0;overflow:hidden;"><img src="favicon.png" style="width:44px;height:44px;border-radius:10px;display:block;object-fit:cover;" alt="TrazApp"></div>
       <div>
         <div class="login-title">TrazApp</div>
         <div class="login-sub" style="color:var(--muted);font-size:12px;">Dashboard EPP</div>
@@ -326,7 +326,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon">🛡️</div>
+      <div class="logo-icon" style="background:none;padding:0;overflow:hidden;"><img src="favicon.png" style="width:36px;height:36px;border-radius:8px;display:block;object-fit:cover;" alt="TrazApp"></div>
       <div>
         <div class="logo-text">TrazApp</div>
         <div class="logo-sub">EPP Dashboard</div>
@@ -338,6 +338,7 @@
       <div class="nav-item" data-page="trabajadores" onclick="navTo('trabajadores')"><span class="nav-icon">👷</span> Trabajadores</div>
       <div class="nav-item" data-page="stock" onclick="navTo('stock')"><span class="nav-icon">📦</span> Stock EPP</div>
       <div class="nav-item" data-page="entregas" onclick="navTo('entregas')"><span class="nav-icon">📋</span> Entregas</div>
+      <div class="nav-item" data-page="asistencia" onclick="navTo('asistencia')"><span class="nav-icon">🕐</span> Asistencia</div>
       <div class="nav-item" data-page="reportes" onclick="navTo('reportes')"><span class="nav-icon">📊</span> Reportes</div>
     </div>
     <div class="sidebar-section">
@@ -590,6 +591,41 @@
         <div id="centrosList"></div>
       </div>
 
+
+      <!-- PAGE: ASISTENCIA -->
+      <div class="page" id="page-asistencia">
+        <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div class="page-title">🕐 Asistencia Diaria</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="date" id="asistFecha" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
+            <select id="asistTipoFiltro" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
+              <option value="">Todos los tipos</option>
+              <option value="Entrada">Entrada</option>
+              <option value="Salida">Salida</option>
+              <option value="Salida a Colación">Salida a Colación</option>
+              <option value="Entrada de Colación">Entrada de Colación</option>
+              <option value="Permiso Especial">Permiso Especial</option>
+            </select>
+            <button onclick="loadPageAsistencia()" style="padding:8px 16px;background:var(--orange);color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Buscar</button>
+            <button onclick="exportAsistenciaCSV()" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;">⬇ CSV</button>
+          </div>
+        </div>
+        <!-- KPIs Asistencia -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;" id="asistKpis">
+          <div class="kpi-card green"><div class="kpi-icon" style="background:#dcfce7;">🟢</div><div class="kpi-value" id="asistKpiEntradas">—</div><div class="kpi-label">Entradas</div></div>
+          <div class="kpi-card red"><div class="kpi-icon" style="background:#fee2e2;">🔴</div><div class="kpi-value" id="asistKpiSalidas">—</div><div class="kpi-label">Salidas</div></div>
+          <div class="kpi-card orange"><div class="kpi-icon" style="background:#ffedd5;">🟡</div><div class="kpi-value" id="asistKpiColacion">—</div><div class="kpi-label">Colaciones</div></div>
+          <div class="kpi-card navy"><div class="kpi-icon" style="background:#e0e7ff;">🔵</div><div class="kpi-value" id="asistKpiTotal">—</div><div class="kpi-label">Total del día</div></div>
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead><tr>
+              <th>RUT</th><th>Tipo de Marcaje</th><th>Hora</th><th>Fecha</th><th>Dispositivo</th><th>Estado</th><th>Foto</th>
+            </tr></thead>
+            <tbody id="asistTable"><tr><td colspan="7" class="empty-state">Selecciona una fecha y presiona Buscar</td></tr></tbody>
+          </table>
+        </div>
+      </div>
 
       <!-- PAGE: REPORTES -->
       <div class="page" id="page-reportes">
@@ -1569,6 +1605,7 @@ const PAGE_TITLES = {
   trabajadores: '👷 Trabajadores',
   stock: '📦 Stock EPP',
   entregas: '📋 Historial de Entregas',
+  asistencia: '🕐 Asistencia Diaria',
   alertas: '⚠️ Alertas EPP',
   centros: '🏗️ Centros de Costo',
   reglas:  '⚙️ Reglas EPP por Centro',
@@ -1601,6 +1638,7 @@ function navTo(page) {
   if (page === 'centros'      && allCentros.length === 0)      loadPageCentros();
   if (page === 'reportes')    initPageReportes();
   if (page === 'reglas')      initPageReglas();
+  if (page === 'asistencia')  initPageAsistencia();
 
   // Re-populate if switching back
   if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);
@@ -3340,6 +3378,127 @@ async function saveAsignarTrabExistente() {
   allTrabExistentes = [];
   closeModal('modalTrabForm');
   await loadPageTrabajadores();
+}
+
+// ── PAGE: ASISTENCIA ──────────────────────────────────────────────
+let allAsistencia = [];
+
+function initPageAsistencia() {
+  // Poner fecha de hoy por defecto
+  const hoy = new Date().toISOString().split('T')[0];
+  const fechaEl = document.getElementById('asistFecha');
+  if (fechaEl && !fechaEl.value) fechaEl.value = hoy;
+  loadPageAsistencia();
+}
+
+async function loadPageAsistencia() {
+  document.getElementById('asistTable').innerHTML =
+    '<tr><td colspan="7" class="empty-state">Cargando...</td></tr>';
+
+  const fecha = document.getElementById('asistFecha').value;
+  const tipo  = document.getElementById('asistTipoFiltro').value;
+
+  let query = sb.from('asistencias')
+    .select('*')
+    .order('captured_at', { ascending: false })
+    .limit(500);
+
+  if (fecha) {
+    query = query
+      .gte('captured_at', fecha + 'T00:00:00')
+      .lte('captured_at', fecha + 'T23:59:59');
+  }
+  if (tipo) query = query.eq('tipo', tipo);
+
+  const { data, error } = await query;
+  if (error) {
+    document.getElementById('asistTable').innerHTML =
+      `<tr><td colspan="7" class="empty-state">Error: ${error.message}</td></tr>`;
+    return;
+  }
+
+  allAsistencia = data || [];
+  renderAsistenciaPage(allAsistencia);
+}
+
+function renderAsistenciaPage(rows) {
+  // KPIs
+  const entradas = rows.filter(r => r.tipo === 'Entrada').length;
+  const salidas  = rows.filter(r => r.tipo === 'Salida').length;
+  const colacion = rows.filter(r => r.tipo?.includes('Colación')).length;
+  document.getElementById('asistKpiEntradas').textContent = entradas;
+  document.getElementById('asistKpiSalidas').textContent  = salidas;
+  document.getElementById('asistKpiColacion').textContent = colacion;
+  document.getElementById('asistKpiTotal').textContent    = rows.length;
+
+  if (rows.length === 0) {
+    document.getElementById('asistTable').innerHTML =
+      '<tr><td colspan="7" class="empty-state">Sin registros para los filtros seleccionados</td></tr>';
+    return;
+  }
+
+  const tipoBadge = {
+    'Entrada':             'background:#dcfce7;color:#166534',
+    'Salida':              'background:#fee2e2;color:#991b1b',
+    'Salida a Colación':   'background:#ffedd5;color:#92400e',
+    'Entrada de Colación': 'background:#dbeafe;color:#1e40af',
+    'Permiso Especial':    'background:#ede9fe;color:#5b21b6',
+  };
+
+  const supabaseUrl = 'https://ppltpmmtdnprgauwnytf.supabase.co';
+  const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbHRwbW10ZG5wcmdhdXdueXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNTM0NzIsImV4cCI6MjA4NTgyOTQ3Mn0.WsRKOEYNzU-tRrL3p6I_ip-AAQmNCgfVKEdockq_gE8';
+
+  document.getElementById('asistTable').innerHTML = rows.map(r => {
+    const dt = r.captured_at ? new Date(r.captured_at) : null;
+    const hora  = dt ? dt.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}) : '—';
+    const fecha = dt ? dt.toLocaleDateString('es-CL') : '—';
+    const bs = tipoBadge[r.tipo] || 'background:#f1f5f9;color:#475569';
+    const estadoBadge = r.sync_status === 'synced'
+      ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">Sync</span>'
+      : '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">Online</span>';
+    const foto = r.foto_path
+      ? `<a href="${supabaseUrl}/storage/v1/object/authenticated/asistencias-fotos/${r.foto_path}" target="_blank"
+           onclick="return viewFotoAsist('${r.foto_path}')" style="color:var(--orange);font-weight:600;font-size:12px;">Ver foto</a>`
+      : '<span style="color:var(--muted);font-size:12px;">—</span>';
+    return `<tr>
+      <td><span style="font-family:monospace;font-weight:600;">${r.rut || '—'}</span></td>
+      <td><span style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;${bs}">${r.tipo || '—'}</span></td>
+      <td>${hora}</td>
+      <td>${fecha}</td>
+      <td style="font-size:12px;color:var(--muted);">${r.device_model || '—'}</td>
+      <td>${estadoBadge}</td>
+      <td>${foto}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function viewFotoAsist(path) {
+  try {
+    const { data } = await sb.storage.from('asistencias-fotos').createSignedUrl(path, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  } catch(e) { alert('No se pudo cargar la foto'); }
+  return false;
+}
+
+function exportAsistenciaCSV() {
+  if (!allAsistencia.length) return;
+  const headers = ['RUT','Tipo','Hora','Fecha','Dispositivo','Estado'];
+  const rows = allAsistencia.map(r => {
+    const dt = r.captured_at ? new Date(r.captured_at) : null;
+    return [
+      r.rut || '',
+      r.tipo || '',
+      dt ? dt.toLocaleTimeString('es-CL') : '',
+      dt ? dt.toLocaleDateString('es-CL') : '',
+      r.device_model || '',
+      r.sync_status || ''
+    ].map(v => `"${v}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF' + csv);
+  a.download = `asistencia_${document.getElementById('asistFecha').value || 'todas'}.csv`;
+  a.click();
 }
 
 </script>
