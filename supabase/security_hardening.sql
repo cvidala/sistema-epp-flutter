@@ -96,7 +96,7 @@ CREATE POLICY "select_own_entregas"
     AND (
       -- Admin ve todo
       EXISTS (
-        SELECT 1 FROM usuarios u
+        SELECT 1 FROM perfiles u
         WHERE u.user_id = auth.uid()
           AND u.rol = 'ADMIN'
       )
@@ -132,7 +132,7 @@ CREATE POLICY "update_sync_status"
     AND (
       entregado_por = auth.uid()
       OR EXISTS (
-        SELECT 1 FROM usuarios u
+        SELECT 1 FROM perfiles u
         WHERE u.user_id = auth.uid() AND u.rol = 'ADMIN'
       )
     )
@@ -164,7 +164,7 @@ CREATE POLICY "select_stock_movimientos"
             WHERE ou.user_id = auth.uid() AND ou.obra_id = b.obra_id
           )
           OR EXISTS (
-            SELECT 1 FROM usuarios u
+            SELECT 1 FROM perfiles u
             WHERE u.user_id = auth.uid() AND u.rol = 'ADMIN'
           )
         )
@@ -197,7 +197,7 @@ CREATE POLICY "select_trabajadores"
   USING (
     auth.uid() IS NOT NULL
     AND (
-      EXISTS (SELECT 1 FROM usuarios u WHERE u.user_id = auth.uid() AND u.rol = 'ADMIN')
+      EXISTS (SELECT 1 FROM perfiles u WHERE u.user_id = auth.uid() AND u.rol = 'ADMIN')
       OR EXISTS (
         SELECT 1 FROM trabajador_obras tob
         JOIN obra_usuarios ou ON ou.obra_id = tob.obra_id
@@ -213,7 +213,7 @@ CREATE POLICY "insert_trabajadores"
   WITH CHECK (
     auth.uid() IS NOT NULL
     AND EXISTS (
-      SELECT 1 FROM usuarios u
+      SELECT 1 FROM perfiles u
       WHERE u.user_id = auth.uid() AND u.rol IN ('ADMIN', 'SUPERVISOR')
     )
   );

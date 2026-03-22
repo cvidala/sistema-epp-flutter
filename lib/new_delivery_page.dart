@@ -805,7 +805,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
     final e = OfflineEntrega(
       localEventId: localEventId,
-      createdAtClientIso: DateTime.now().toIso8601String(),
+      createdAtClientIso: DateTime.now().toUtc().toIso8601String(),
       scope: 'obra',
       obraId: widget.obraId,
       trabajadorId: widget.trabajadorId,
