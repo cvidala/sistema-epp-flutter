@@ -492,7 +492,7 @@ class _WorkersPageState extends State<WorkersPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final pendientesCount = OfflineQueueService.listPending()
+    final pendientesCount = OfflineQueueService.listAll()
         .where((e) => e.status != 'SENT')
         .length;
     final isOnline = ConnectivityService.instance.isOnline;

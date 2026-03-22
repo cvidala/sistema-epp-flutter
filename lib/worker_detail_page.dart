@@ -127,7 +127,10 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
   }
 
   List<dynamic> _getEntregasPendientesLocales() {
-    return OfflineQueueService.listPending()
+    // Usar listAll() para que ERROR/FAILED sigan visibles en la UI.
+    // listPending() oculta entradas en backoff o FAILED — la entrega
+    // parecía "perdida" aunque seguía en Hive.
+    return OfflineQueueService.listAll()
         .where((e) =>
             e.status != 'SENT' &&
             e.trabajadorId == widget.trabajadorId &&
