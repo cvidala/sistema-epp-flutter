@@ -1,6 +1,7 @@
 class AsistenciaPendiente {
   final String id;
   final String rut;
+  final String tipo;
   final String fotoLocalPath;
   final String fotoHash;
   final double? gpsLat;
@@ -15,6 +16,7 @@ class AsistenciaPendiente {
   AsistenciaPendiente({
     required this.id,
     required this.rut,
+    required this.tipo,
     required this.fotoLocalPath,
     required this.fotoHash,
     this.gpsLat,
@@ -30,6 +32,7 @@ class AsistenciaPendiente {
   Map<String, dynamic> toMap() => {
         'id': id,
         'rut': rut,
+        'tipo': tipo,
         'fotoLocalPath': fotoLocalPath,
         'fotoHash': fotoHash,
         'gpsLat': gpsLat,
@@ -46,6 +49,7 @@ class AsistenciaPendiente {
       AsistenciaPendiente(
         id: map['id'] as String,
         rut: map['rut'] as String,
+        tipo: map['tipo'] as String? ?? 'Entrada',
         fotoLocalPath: map['fotoLocalPath'] as String,
         fotoHash: map['fotoHash'] as String,
         gpsLat: (map['gpsLat'] as num?)?.toDouble(),

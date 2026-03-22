@@ -29,6 +29,7 @@ class AsistenciaUploadService {
     await _s.from('asistencias').insert({
       'local_event_id': a.id,
       'rut': a.rut,
+      'tipo': a.tipo,
       'foto_path': fotoPath,
       'gps_lat': a.gpsLat,
       'gps_lng': a.gpsLng,
@@ -45,11 +46,13 @@ class AsistenciaUploadService {
     required String rut,
     required Uint8List fotoBytes,
     required Map<String, dynamic>? forensics,
+    required String tipo,
   }) async {
     final path = await subirFoto(localEventId, rut, fotoBytes);
     await _s.from('asistencias').insert({
       'local_event_id': localEventId,
       'rut': rut,
+      'tipo': tipo,
       'foto_path': path,
       'gps_lat': forensics?['gps_lat'],
       'gps_lng': forensics?['gps_lng'],

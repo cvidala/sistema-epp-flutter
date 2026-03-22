@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS asistencias (
   gps_lng         DOUBLE PRECISION,
   gps_accuracy_m  DOUBLE PRECISION,
   device_model    TEXT,
+  tipo            TEXT NOT NULL DEFAULT 'Entrada', -- 'Entrada'|'Salida'|'Salida a Colación'|'Entrada de Colación'|'Permiso Especial'
   sync_status     TEXT NOT NULL DEFAULT 'online', -- 'online' | 'synced'
   captured_at     TIMESTAMPTZ,                    -- timestamp del dispositivo cliente
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -62,7 +63,26 @@ CREATE POLICY "no_delete_asistencias"
 --   ON storage.objects FOR SELECT TO authenticated
 --   USING (bucket_id = 'asistencias-fotos');
 
--- ── 4. VERIFICACIÓN ─────────────────────────────────────────
+-- ── 4. RPC: rut_existe ─────────────────────────────────────
+-- Permite al kiosko (anon) verificar si un RUT existe en la tabla trabajadores
+CREATE OR REPLACE FUNCTION public.rut_existe(p_rut text)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM trabajadores WHERE rut = p_rut
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.rut_existe(text) TO anon;
+
+-- ── 5. COLUMNA tipo (si tabla ya existe) ────────────────────
+ALTER TABLE asistencias
+  ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'Entrada';
+
+-- ── 6. VERIFICACIÓN ─────────────────────────────────────────
 /*
 SELECT tablename, policyname, cmd
 FROM pg_policies

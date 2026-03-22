@@ -288,24 +288,24 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 const SizedBox(height: 56),
 
-                // Logo / título
+                // Logo
                 Container(
-                  width: 80, height: 80,
+                  width: 90, height: 90,
                   margin: const EdgeInsets.only(bottom: 20),
-                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE87722),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFE87722).withOpacity(0.4),
+                        color: Colors.black.withOpacity(0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.health_and_safety,
-                      size: 44, color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset('app_icon.png', fit: BoxFit.cover),
+                  ),
                 ),
                 const Text(
                   'TrazApp',
