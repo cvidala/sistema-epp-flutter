@@ -20,20 +20,29 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.epp_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion // ML Kit requiere mínimo API 21
+        applicationId = "com.trazapp.epp"
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "app"
+    productFlavors {
+        create("epp") {
+            dimension = "app"
+            applicationId = "com.trazapp.epp"
+            resValue("string", "app_name", "TrazApp")
+        }
+        create("asistencia") {
+            dimension = "app"
+            applicationId = "com.trazapp.asistencia"
+            resValue("string", "app_name", "TrazApp Asistencia")
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
