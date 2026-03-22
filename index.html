@@ -55,6 +55,12 @@ nav {
   cursor:pointer; text-decoration:none; transition:background 0.15s;
 }
 .nav-cta:hover { background:var(--orange2); }
+.nav-login {
+  color:rgba(255,255,255,0.85); border:1px solid rgba(255,255,255,0.25); border-radius:10px;
+  padding:9px 20px; font-family:'Sora',sans-serif; font-size:14px; font-weight:600;
+  cursor:pointer; text-decoration:none; transition:all 0.15s;
+}
+.nav-login:hover { background:rgba(255,255,255,0.08); color:white; border-color:rgba(255,255,255,0.5); }
 .nav-mobile-btn { display:none; background:none; border:none; cursor:pointer; color:white; font-size:22px; }
 
 /* ── HERO ─────────────────────────────────────────────────── */
@@ -99,6 +105,13 @@ h1 em { color:var(--orange); font-style:normal; }
   cursor:pointer; text-decoration:none; transition:all 0.15s;
 }
 .btn-secondary:hover { background:rgba(255,255,255,0.14); }
+.btn-login {
+  background:transparent; color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.15);
+  border-radius:12px; padding:14px 24px; font-family:'Sora',sans-serif; font-size:14px; font-weight:500;
+  cursor:pointer; text-decoration:none; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;
+}
+.btn-login::before { content:'→'; font-size:13px; }
+.btn-login:hover { color:white; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.06); }
 
 /* Hero mockup */
 .hero-mockup {
@@ -420,7 +433,10 @@ footer {
     <a href="#para-quien">¿Para quién?</a>
     <a href="#contacto">Contacto</a>
   </div>
-  <a href="#contacto" class="nav-cta">Solicitar demo</a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <a href="/dashboard/" class="nav-login" target="_blank">Acceder</a>
+    <a href="#contacto" class="nav-cta">Solicitar demo</a>
+  </div>
   <button class="nav-mobile-btn" onclick="toggleMobileMenu()">☰</button>
 </nav>
 
@@ -437,6 +453,7 @@ footer {
   <div class="hero-actions">
     <a href="#contacto" class="btn-primary">Solicitar demo →</a>
     <a href="#como-funciona" class="btn-secondary">Ver cómo funciona</a>
+    <a href="/dashboard/" class="btn-login" target="_blank">Iniciar sesión</a>
   </div>
 
   <div class="hero-mockup" style="max-width:900px;width:100%">
