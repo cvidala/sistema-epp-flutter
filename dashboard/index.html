@@ -343,6 +343,7 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Gestión</div>
+      <div class="nav-item" data-page="mantenimiento" onclick="navTo('mantenimiento')"><span class="nav-icon">🔧</span> Mant. Trabajadores</div>
       <div class="nav-item" data-page="alertas" onclick="navTo('alertas')">
         <span class="nav-icon">⚠️</span> Alertas
         <span class="nav-badge" id="alertBadge" style="display:none">0</span>
@@ -480,7 +481,7 @@
             <div class="page-title">👷 Trabajadores</div>
             <div class="page-sub">Listado completo de trabajadores activos</div>
           </div>
-          <button class="btn btn-primary" onclick="openNuevoTrabajador()">+ Nuevo Trabajador</button>
+          <button class="btn btn-secondary" onclick="navTo('mantenimiento')">⚙️ Mantenimiento de Trabajadores</button>
         </div>
         <div class="search-bar">
           <input class="search-input" id="trabSearch" placeholder="🔍 Buscar por nombre o RUT..." oninput="filterTrabajadores()">
@@ -624,6 +625,39 @@
             </tr></thead>
             <tbody id="asistTable"><tr><td colspan="7" class="empty-state">Selecciona una fecha y presiona Buscar</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- PAGE: MANTENIMIENTO TRABAJADORES -->
+      <div class="page" id="page-mantenimiento">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="page-title">🔧 Mantenimiento de Trabajadores</div>
+            <div class="page-sub">Crear, eliminar y completar datos de trabajadores</div>
+          </div>
+          <button class="btn btn-primary" onclick="openMantNuevo()">+ Nuevo Trabajador</button>
+        </div>
+        <div class="search-bar" style="margin-bottom:16px">
+          <input class="search-input" id="mantSearch" placeholder="🔍 Buscar por nombre o RUT..." oninput="filterMant()">
+          <select class="search-select" id="mantEstadoFilter" onchange="filterMant()">
+            <option value="all">Todos</option>
+            <option value="incompleto">⚠️ Datos incompletos</option>
+            <option value="completo">✅ Completos</option>
+          </select>
+          <select class="search-select" id="mantCentroFilter" onchange="filterMant()">
+            <option value="all">Todos los centros</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead><tr>
+                <th>Trabajador</th><th>RUT</th><th>Centros asignados</th>
+                <th>Foto rostro</th><th>Datos</th><th>Acciones</th>
+              </tr></thead>
+              <tbody id="mantTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -932,6 +966,67 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="closeModal('modalAsignarCentro');loadPageTrabajadores()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: MANTENIMIENTO — NUEVO TRABAJADOR ═══ -->
+<div class="modal-bg" id="modalMantNuevo">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo Trabajador</div>
+      <button class="modal-close" onclick="closeModal('modalMantNuevo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="mantNuevoError" class="form-error"></div>
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        <input class="form-input" id="mantNombre" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">RUT *</label>
+        <input class="form-input" id="mantRut" placeholder="12.345.678-9">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Centro de costo inicial</label>
+        <select class="form-select" id="mantCentroInicial">
+          <option value="">Sin asignación</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalMantNuevo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMantNuevo()">Crear Trabajador</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: MANTENIMIENTO — FOTO ROSTRO ═══ -->
+<div class="modal-bg" id="modalMantFoto">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Foto de Rostro</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="modalMantFotoNombre"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalMantFoto')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mantFotoTrabId">
+      <div id="mantFotoPreviewWrap" style="text-align:center;margin-bottom:16px;display:none">
+        <img id="mantFotoPreview" style="width:140px;height:140px;object-fit:cover;border-radius:12px;border:2px solid var(--border);" alt="Foto actual">
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Foto actual</div>
+      </div>
+      <div id="mantFotoNoFoto" style="text-align:center;padding:24px;background:var(--bg);border-radius:12px;margin-bottom:16px;color:var(--muted);font-size:13px;">Sin foto cargada</div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Subir nueva foto (JPG/PNG, max 2MB)</label>
+        <input type="file" id="mantFotoFile" accept="image/jpeg,image/png" style="width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;">
+      </div>
+      <div id="mantFotoError" class="form-error" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalMantFoto')">Cerrar</button>
+      <button class="btn btn-primary" onclick="saveMantFoto()">Guardar Foto</button>
     </div>
   </div>
 </div>
@@ -1606,6 +1701,7 @@ const PAGE_TITLES = {
   stock: '📦 Stock EPP',
   entregas: '📋 Historial de Entregas',
   asistencia: '🕐 Asistencia Diaria',
+  mantenimiento: '🔧 Mantenimiento de Trabajadores',
   alertas: '⚠️ Alertas EPP',
   centros: '🏗️ Centros de Costo',
   reglas:  '⚙️ Reglas EPP por Centro',
@@ -1638,7 +1734,8 @@ function navTo(page) {
   if (page === 'centros'      && allCentros.length === 0)      loadPageCentros();
   if (page === 'reportes')    initPageReportes();
   if (page === 'reglas')      initPageReglas();
-  if (page === 'asistencia')  initPageAsistencia();
+  if (page === 'asistencia')    initPageAsistencia();
+  if (page === 'mantenimiento') loadPageMantenimiento();
 
   // Re-populate if switching back
   if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);
@@ -3499,6 +3596,189 @@ function exportAsistenciaCSV() {
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF' + csv);
   a.download = `asistencia_${document.getElementById('asistFecha').value || 'todas'}.csv`;
   a.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// MANTENIMIENTO DE TRABAJADORES
+// ═══════════════════════════════════════════════════════
+let allMantTrab = [];
+
+async function loadPageMantenimiento() {
+  document.getElementById('mantTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  showLoading(true);
+  try {
+    const { data: rows, error } = await sb
+      .from('trabajadores')
+      .select('trabajador_id, nombre, rut, datos_completos, foto_rostro_url, trabajador_obras(obras(nombre))')
+      .order('nombre');
+    if (error) throw error;
+
+    // Populate centro filter
+    const centros = new Set();
+    (rows || []).forEach(t => {
+      (t.trabajador_obras || []).forEach(to => {
+        if (to.obras?.nombre) centros.add(to.obras.nombre);
+      });
+    });
+    const sel = document.getElementById('mantCentroFilter');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="all">Todos los centros</option>' +
+      [...centros].sort().map(n => `<option value="${n}">${n}</option>`).join('');
+    if (prev) sel.value = prev;
+
+    allMantTrab = rows || [];
+    renderMantPage(allMantTrab);
+  } catch(e) {
+    document.getElementById('mantTable').innerHTML = `<tr><td colspan="6" class="empty-state" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+  } finally {
+    showLoading(false);
+  }
+}
+
+function filterMant() {
+  const q = document.getElementById('mantSearch').value.trim().toLowerCase();
+  const estado = document.getElementById('mantEstadoFilter').value;
+  const centro = document.getElementById('mantCentroFilter').value;
+  const filtered = allMantTrab.filter(t => {
+    if (q && !t.nombre.toLowerCase().includes(q) && !t.rut.toLowerCase().includes(q)) return false;
+    if (estado === 'incompleto' && t.datos_completos !== false) return false;
+    if (estado === 'completo'   && t.datos_completos === false) return false;
+    if (centro !== 'all') {
+      const centrosT = (t.trabajador_obras || []).map(to => to.obras?.nombre);
+      if (!centrosT.includes(centro)) return false;
+    }
+    return true;
+  });
+  renderMantPage(filtered);
+}
+
+function renderMantPage(list) {
+  const tb = document.getElementById('mantTable');
+  if (!list.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="empty-state">Sin resultados</td></tr>';
+    return;
+  }
+  tb.innerHTML = list.map(t => {
+    const centros = (t.trabajador_obras || []).map(to => to.obras?.nombre).filter(Boolean);
+    const centrosHtml = centros.length
+      ? centros.map(c => `<span style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;margin-right:4px">${c}</span>`).join('')
+      : '<span style="color:var(--muted);font-size:12px">Sin asignación</span>';
+
+    const fotoHtml = t.foto_rostro_url
+      ? `<img src="${t.foto_rostro_url}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--green)" onclick="window.open('${t.foto_rostro_url}','_blank')" title="Ver foto">`
+      : `<span style="color:var(--muted);font-size:12px">Sin foto</span>`;
+
+    const datosHtml = t.datos_completos === false
+      ? '<span class="badge warn">⚠️ Incompleto</span>'
+      : '<span class="badge ok">✅ Completo</span>';
+
+    const n = t.nombre.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const fotoUrl = (t.foto_rostro_url || '').replace(/'/g,"\\'");
+    return `<tr>
+      <td><div class="worker-name">${t.nombre}</div></td>
+      <td><span class="worker-rut">${t.rut}</span></td>
+      <td>${centrosHtml}</td>
+      <td>${fotoHtml}</td>
+      <td>${datosHtml}</td>
+      <td><div class="action-btns">
+        <button class="btn btn-sm btn-secondary" onclick="openMantFoto('${t.trabajador_id}','${n}','${fotoUrl}')">📷 Foto</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarTrabajador('${t.trabajador_id}','${n}')">🗑 Eliminar</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openMantNuevo() {
+  document.getElementById('mantNombre').value = '';
+  document.getElementById('mantRut').value = '';
+  document.getElementById('mantNuevoError').style.display = 'none';
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
+  const sel = document.getElementById('mantCentroInicial');
+  sel.innerHTML = '<option value="">Sin asignación</option>' +
+    (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  document.getElementById('modalMantNuevo').classList.add('open');
+}
+
+async function saveMantNuevo() {
+  const nombre = document.getElementById('mantNombre').value.trim();
+  const rut    = document.getElementById('mantRut').value.trim();
+  const obraId = document.getElementById('mantCentroInicial').value;
+  const errEl  = document.getElementById('mantNuevoError');
+  if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  const { data: dup } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
+  if (dup) { errEl.textContent = `El RUT ya está registrado como ${dup.nombre}`; errEl.style.display='block'; return; }
+  const { data: trab, error } = await sb.from('trabajadores').insert({ nombre, rut, datos_completos: true }).select().single();
+  if (error) { errEl.textContent = 'Error: ' + error.message; errEl.style.display='block'; return; }
+  if (obraId && trab) {
+    await sb.from('trabajador_obras').upsert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
+  }
+  closeModal('modalMantNuevo');
+  await loadPageMantenimiento();
+  // Also refresh trabajadores list if loaded
+  if (allTrabajadores.length > 0) loadPageTrabajadores();
+}
+
+function openMantFoto(trabId, nombre, fotoUrl) {
+  document.getElementById('mantFotoTrabId').value = trabId;
+  document.getElementById('modalMantFotoNombre').textContent = nombre;
+  document.getElementById('mantFotoFile').value = '';
+  document.getElementById('mantFotoError').style.display = 'none';
+  if (fotoUrl) {
+    document.getElementById('mantFotoPreview').src = fotoUrl;
+    document.getElementById('mantFotoPreviewWrap').style.display = 'block';
+    document.getElementById('mantFotoNoFoto').style.display = 'none';
+  } else {
+    document.getElementById('mantFotoPreviewWrap').style.display = 'none';
+    document.getElementById('mantFotoNoFoto').style.display = 'block';
+  }
+  document.getElementById('modalMantFoto').classList.add('open');
+}
+
+async function saveMantFoto() {
+  const trabId = document.getElementById('mantFotoTrabId').value;
+  const fileInput = document.getElementById('mantFotoFile');
+  const errEl = document.getElementById('mantFotoError');
+  errEl.style.display = 'none';
+  if (!fileInput.files.length) { errEl.textContent = 'Selecciona una imagen'; errEl.style.display='block'; return; }
+  const file = fileInput.files[0];
+  if (file.size > 2 * 1024 * 1024) { errEl.textContent = 'La imagen no debe superar 2 MB'; errEl.style.display='block'; return; }
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `rostros/${trabId}.${ext}`;
+  showLoading(true);
+  try {
+    const { error: upErr } = await sb.storage.from('fotos-rostro').upload(path, file, { upsert: true });
+    if (upErr) throw upErr;
+    const { data: urlData } = sb.storage.from('fotos-rostro').getPublicUrl(path);
+    const { error: dbErr } = await sb.from('trabajadores')
+      .update({ foto_rostro_url: urlData.publicUrl, datos_completos: true })
+      .eq('trabajador_id', trabId);
+    if (dbErr) throw dbErr;
+    closeModal('modalMantFoto');
+    await loadPageMantenimiento();
+  } catch(e) {
+    errEl.textContent = 'Error al subir foto: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function eliminarTrabajador(id, nombre) {
+  if (!confirm(`¿Eliminar a ${nombre}?\n\nSe eliminará el trabajador y todas sus asignaciones. Esta acción no se puede deshacer.`)) return;
+  showLoading(true);
+  try {
+    await sb.from('trabajador_obras').delete().eq('trabajador_id', id);
+    const { error } = await sb.from('trabajadores').delete().eq('trabajador_id', id);
+    if (error) throw error;
+    await loadPageMantenimiento();
+    // Invalidate trabajadores cache
+    allTrabajadores = [];
+  } catch(e) {
+    alert('Error al eliminar: ' + e.message);
+  } finally {
+    showLoading(false);
+  }
 }
 
 </script>

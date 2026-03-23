@@ -131,7 +131,7 @@ class _WorkersPageState extends State<WorkersPage> {
       // El RLS de trabajadores filtra además por can_access_trabajador().
       final raw = await supabase
           .from('trabajador_obras')
-          .select('cargo, trabajadores!inner(trabajador_id, nombre, rut, estado)')
+          .select('cargo, trabajadores!inner(trabajador_id, nombre, rut, estado, datos_completos)')
           .eq('obra_id', widget.obraId)
           .eq('activo', true)
           .eq('trabajadores.estado', 'ACTIVO')
@@ -461,11 +461,13 @@ class _WorkersPageState extends State<WorkersPage> {
       final trabajadorId = const Uuid().v4();
 
       // 1) Crear trabajador con UUID generado en cliente
+      // datos_completos: false → supervisor puede crear en campo, web debe completar foto/datos
       await supabase.from('trabajadores').insert({
-        'trabajador_id': trabajadorId,
-        'nombre': nombre,
-        'rut':    rut,
-        'estado': 'ACTIVO',
+        'trabajador_id':   trabajadorId,
+        'nombre':          nombre,
+        'rut':             rut,
+        'estado':          'ACTIVO',
+        'datos_completos': false,
       });
 
       // 2) Asignar a esta obra
@@ -702,12 +704,35 @@ class _WorkersPageState extends State<WorkersPage> {
                                     ),
                                   ),
                                 ),
-                                title: Text(
-                                  t['nombre'] ?? 'Sin nombre',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0D2148),
-                                  ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        t['nombre'] ?? 'Sin nombre',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0D2148),
+                                        ),
+                                      ),
+                                    ),
+                                    if (t['datos_completos'] == false)
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 6),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade100,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          '* Datos incompletos',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.orange.shade800,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 subtitle: Text(
                                   [
