@@ -989,7 +989,9 @@
         </div>
         <div class="form-group">
           <label class="form-label">RUT *</label>
-          <input class="form-input" id="mantRut" placeholder="12.345.678-9">
+          <input class="form-input" id="mantRut" placeholder="12.345.678-9"
+            oninput="mostrarErrorRut('mantRut','mantRutError',this.value)">
+          <div id="mantRutError" class="form-error" style="margin-top:4px;padding:6px 10px;font-size:11px;display:none"></div>
         </div>
       </div>
       <div class="form-row">
@@ -1398,7 +1400,7 @@ async function initApp() {
 
 // ── LOAD DASHBOARD ────────────────────────────────────────────────
 async function loadDashboard() {
-  showLoading(true);
+  // Sin overlay bloqueante — las tarjetas muestran "Cargando..." internamente
   try {
     const obraId = document.getElementById('centroSelect')?.value || 'all';
     const filtroObra = obraId !== 'all' ? obraId : null;
@@ -1423,8 +1425,6 @@ async function loadDashboard() {
 
   } catch(e) {
     console.error('Dashboard error:', e);
-  } finally {
-    showLoading(false);
   }
 }
 
@@ -1777,6 +1777,35 @@ let allStock = [];
 let allEntregas = [];
 let allAlertas = [];
 let allCentros = [];
+
+// ── VALIDADOR RUT CHILENO ─────────────────────────────────────────
+function validarRut(rut) {
+  const clean = rut.replace(/[.\-\s]/g, '').toUpperCase();
+  if (clean.length < 2) return false;
+  const body = clean.slice(0, -1);
+  const dv   = clean.slice(-1);
+  if (!/^\d+$/.test(body)) return false;
+  let sum = 0, factor = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body[i]) * factor;
+    factor = factor === 7 ? 2 : factor + 1;
+  }
+  const rem      = 11 - (sum % 11);
+  const expected = rem === 11 ? '0' : rem === 10 ? 'K' : String(rem);
+  return dv === expected;
+}
+
+function mostrarErrorRut(inputId, errorId, rut) {
+  const errEl = document.getElementById(errorId);
+  if (!errEl) return;
+  if (!rut) { errEl.textContent = ''; errEl.style.display = 'none'; return; }
+  if (!validarRut(rut)) {
+    errEl.textContent = 'RUT inválido — verifica el dígito verificador';
+    errEl.style.display = 'block';
+  } else {
+    errEl.textContent = ''; errEl.style.display = 'none';
+  }
+}
 
 // ── NAVIGATION ────────────────────────────────────────────────────
 const PAGE_TITLES = {
@@ -3855,6 +3884,7 @@ async function saveMantNuevo() {
   const emergencia_telefono = document.getElementById('mantEmerTel').value.trim();
 
   if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
+  if (!validarRut(rut)) { errEl.textContent = 'RUT inválido — verifica el dígito verificador'; errEl.style.display='block'; return; }
 
   const payload = {
     nombre, rut,
