@@ -1129,8 +1129,9 @@
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modalMantNuevo')">Cancelar</button>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:10px">
+      <div id="mantNuevoErrorFooter" class="form-error" style="margin:0;flex:1 1 100%;display:none"></div>
+      <button class="btn btn-secondary" onclick="closeModal('modalMantNuevo')" style="margin-left:auto">Cancelar</button>
       <button class="btn btn-primary" onclick="saveMantNuevo()">Guardar</button>
     </div>
   </div>
@@ -1472,6 +1473,10 @@ async function initApp() {
 
 
   await loadDashboard();
+
+  // Restaurar pestaña activa del localStorage
+  const savedPage = localStorage.getItem('trazapp_page');
+  if (savedPage && savedPage !== 'resumen') navTo(savedPage);
 }
 
 // ── FILTRO CENTRO ─────────────────────────────────────────────────
@@ -1949,6 +1954,7 @@ function navTo(page) {
   if (centroSel) centroSel.style.display = page === 'resumen' ? 'block' : 'none';
 
   currentPage = page;
+  localStorage.setItem('trazapp_page', page);
 
   // Lazy load page data
   if (page === 'trabajadores' && allTrabajadores.length === 0) loadPageTrabajadores();
@@ -3871,8 +3877,9 @@ function filterMant() {
   const filtered = allMantTrab.filter(t => {
     const fullN = [t.nombre, t.apellido].filter(Boolean).join(' ').toLowerCase();
     if (q && !fullN.includes(q) && !t.rut.toLowerCase().includes(q)) return false;
-    if (estado === 'incompleto' && t.datos_completos !== false) return false;
-    if (estado === 'completo'   && t.datos_completos === false) return false;
+    const completo = t.foto_rostro_url && t.datos_completos !== false;
+    if (estado === 'incompleto' && completo)  return false;
+    if (estado === 'completo'   && !completo) return false;
     if (centro !== 'all') {
       const ct = (t.trabajador_obras || []).map(to => to.obras?.nombre);
       if (!ct.includes(centro)) return false;
@@ -3895,9 +3902,11 @@ function renderMantPage(list) {
       ? `<img src="${t.foto_rostro_url}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--green)" onclick="window.open('${t.foto_rostro_url}','_blank')" title="Ver foto">`
       : `<span style="color:var(--muted);font-size:12px">Sin foto</span>`;
 
-    const datosHtml = t.datos_completos === false
-      ? '<span class="badge warn">⚠️ Incompleto</span>'
-      : '<span class="badge ok">✅ Completo</span>';
+    // Completo solo si tiene foto (cubre trabajadores antiguos sin foto pero con datos_completos=true)
+    const esCompleto = t.foto_rostro_url && t.datos_completos !== false;
+    const datosHtml = esCompleto
+      ? '<span class="badge ok">✅ Completo</span>'
+      : '<span class="badge warn">⚠️ Incompleto</span>';
 
     const fullName = [t.nombre, t.apellido].filter(Boolean).join(' ');
     const n       = fullName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -3977,10 +3986,20 @@ async function openMantEditar(trabId) {
 }
 
 // ── SAVE (create + update) ────────────────────────────────────
+function showMantError(msg) {
+  const top    = document.getElementById('mantNuevoError');
+  const footer = document.getElementById('mantNuevoErrorFooter');
+  top.textContent    = msg; top.style.display    = 'block';
+  footer.textContent = msg; footer.style.display = 'block';
+  // scroll modal body to top so the top error is also visible
+  const body = document.querySelector('#modalMantNuevo .modal-body');
+  if (body) body.scrollTop = 0;
+}
+
 async function saveMantNuevo() {
   const editId = document.getElementById('mantNombre').dataset.editId;
-  const errEl  = document.getElementById('mantNuevoError');
-  errEl.style.display = 'none';
+  document.getElementById('mantNuevoError').style.display       = 'none';
+  document.getElementById('mantNuevoErrorFooter').style.display = 'none';
 
   const nombre          = document.getElementById('mantNombre').value.trim();
   const apellido        = document.getElementById('mantApellido').value.trim();
@@ -4000,23 +4019,19 @@ async function saveMantNuevo() {
   const emerTelRaw          = document.getElementById('mantEmerTel').value.trim();
   const emergencia_telefono = emerTelRaw ? (emerTelRaw.startsWith('+56') ? emerTelRaw : '+56 ' + emerTelRaw) : '';
 
-  if (!nombre || !apellido || !rut || !email) { errEl.textContent = 'Nombre, apellido, RUT y email son obligatorios'; errEl.style.display='block'; return; }
-  if (!validarRut(rut)) { errEl.textContent = 'RUT inválido — verifica el dígito verificador'; errEl.style.display='block'; return; }
-  if (!validarEmail(email)) { errEl.textContent = 'El email ingresado no es válido'; errEl.style.display='block'; return; }
+  if (!nombre || !apellido || !rut || !email) { showMantError('Nombre, apellido, RUT y email son obligatorios'); return; }
+  if (!validarRut(rut)) { showMantError('RUT inválido — verifica el dígito verificador'); return; }
+  if (!validarEmail(email)) { showMantError('El email ingresado no es válido'); return; }
 
   // Campos adicionales obligatorios solo al crear desde dashboard (editId vacío)
   if (!editId) {
     const faltantes = [];
-    if (!fecha_nacimiento)                        faltantes.push('Fecha de nacimiento');
-    if (!telefono)                                faltantes.push('Teléfono');
-    if (!cargo)                                   faltantes.push('Cargo');
-    if (!fecha_ingreso)                           faltantes.push('Fecha de ingreso');
-    if (!tipo_contrato)                           faltantes.push('Tipo de contrato');
-    if (faltantes.length) {
-      errEl.textContent = 'Campos obligatorios faltantes: ' + faltantes.join(', ');
-      errEl.style.display = 'block';
-      return;
-    }
+    if (!fecha_nacimiento) faltantes.push('Fecha de nacimiento');
+    if (!telefono)         faltantes.push('Teléfono');
+    if (!cargo)            faltantes.push('Cargo');
+    if (!fecha_ingreso)    faltantes.push('Fecha de ingreso');
+    if (!tipo_contrato)    faltantes.push('Tipo de contrato');
+    if (faltantes.length) { showMantError('Campos obligatorios faltantes: ' + faltantes.join(', ')); return; }
   }
 
   const payload = {
@@ -4032,14 +4047,14 @@ async function saveMantNuevo() {
   if (editId) {
     // UPDATE
     const { error } = await sb.from('trabajadores').update(payload).eq('trabajador_id', editId);
-    if (error) { errEl.textContent = 'Error: ' + error.message; errEl.style.display='block'; return; }
+    if (error) { showMantError('Error: ' + error.message); return; }
   } else {
     // CREATE — verificar RUT duplicado
     const { data: dup } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
-    if (dup) { errEl.textContent = `El RUT ya está registrado como ${dup.nombre}`; errEl.style.display='block'; return; }
+    if (dup) { showMantError(`El RUT ya está registrado como ${dup.nombre}`); return; }
     payload.datos_completos = false; // se marca true solo al subir la foto
     const { data: trab, error } = await sb.from('trabajadores').insert(payload).select().single();
-    if (error) { errEl.textContent = 'Error: ' + error.message; errEl.style.display='block'; return; }
+    if (error) { showMantError('Error: ' + error.message); return; }
     const obraId = document.getElementById('mantCentroInicial').value;
     if (obraId && trab) {
       await sb.from('trabajador_obras').upsert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
