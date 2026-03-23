@@ -3,50 +3,70 @@
 -- Ejecutar en Supabase SQL Editor
 -- ============================================================
 
--- ── 1. NUEVAS COLUMNAS EN trabajadores ──────────────────────
+-- ── 1. COLUMNAS BÁSICAS (Mantenimiento v1) ──────────────────
 ALTER TABLE trabajadores
   ADD COLUMN IF NOT EXISTS datos_completos BOOLEAN NOT NULL DEFAULT TRUE;
 
 ALTER TABLE trabajadores
   ADD COLUMN IF NOT EXISTS foto_rostro_url TEXT;
 
--- Marcar como incompletos los trabajadores que ya no tienen foto
--- (opcional — solo si quieres clasificar los existentes)
--- UPDATE trabajadores SET datos_completos = FALSE WHERE foto_rostro_url IS NULL;
+-- ── 2. DATOS PERSONALES ─────────────────────────────────────
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE;
 
--- ── 2. STORAGE BUCKET: fotos-rostro ─────────────────────────
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS direccion TEXT;
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS telefono TEXT;
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS email TEXT;
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS nacionalidad TEXT DEFAULT 'Chilena';
+
+-- ── 3. DATOS LABORALES ───────────────────────────────────────
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS cargo TEXT;                        -- cargo base (independiente de la obra)
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS fecha_ingreso DATE;
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS tipo_contrato TEXT;                -- Indefinido | Plazo Fijo | Obra o Faena | Honorarios
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS afp TEXT;
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS sistema_salud TEXT;                -- Fonasa | Isapre + nombre
+
+-- ── 4. CONTACTO DE EMERGENCIA ────────────────────────────────
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS emergencia_nombre TEXT;
+
+ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS emergencia_telefono TEXT;
+
+-- ── 5. STORAGE BUCKET: fotos-rostro ─────────────────────────
 -- Crear en Supabase Dashboard: Storage → New bucket
--- Nombre: fotos-rostro
--- Tipo: PUBLIC (para que la URL pública funcione en el dashboard)
+-- Nombre: fotos-rostro  |  Tipo: PUBLIC
 --
--- Luego agregar estas políticas en Storage → Policies:
+-- Políticas Storage → Policies → FOTOS-ROSTRO → New policy:
+--   INSERT: authenticated  |  WITH CHECK: bucket_id = 'fotos-rostro'
+--   UPDATE: authenticated  |  USING:      bucket_id = 'fotos-rostro'
 
--- INSERT: solo autenticados pueden subir
--- CREATE POLICY "fotos_rostro_insert"
---   ON storage.objects FOR INSERT TO authenticated
---   WITH CHECK (bucket_id = 'fotos-rostro');
-
--- UPDATE (upsert): solo autenticados
--- CREATE POLICY "fotos_rostro_update"
---   ON storage.objects FOR UPDATE TO authenticated
---   USING (bucket_id = 'fotos-rostro');
-
--- SELECT: público (o solo autenticados si prefieres privado)
--- CREATE POLICY "fotos_rostro_select"
---   ON storage.objects FOR SELECT TO public
---   USING (bucket_id = 'fotos-rostro');
-
--- ── 3. RLS PARA DELETE EN trabajadores ──────────────────────
--- Permitir que admins puedan eliminar trabajadores desde el dashboard
+-- ── 6. RLS: permitir DELETE de trabajadores ──────────────────
 DROP POLICY IF EXISTS "delete_auth_trabajadores" ON trabajadores;
 CREATE POLICY "delete_auth_trabajadores"
   ON trabajadores FOR DELETE TO authenticated
   USING (true);
 
--- ── 4. VERIFICACIÓN ─────────────────────────────────────────
+-- ── 7. VERIFICACIÓN ─────────────────────────────────────────
 /*
 SELECT column_name, data_type, column_default
 FROM information_schema.columns
 WHERE table_name = 'trabajadores'
-  AND column_name IN ('datos_completos', 'foto_rostro_url');
+ORDER BY ordinal_position;
 */
