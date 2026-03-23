@@ -90,9 +90,10 @@ class _WorkersPageState extends State<WorkersPage> {
     }
     setState(() {
       filtrados = trabajadores.where((t) {
-        final nombre = (t['nombre'] ?? '').toString().toLowerCase();
-        final rut    = (t['rut'] ?? '').toString().toLowerCase();
-        return nombre.contains(q) || rut.contains(q);
+        final nombre   = (t['nombre']   ?? '').toString().toLowerCase();
+        final apellido = (t['apellido'] ?? '').toString().toLowerCase();
+        final rut      = (t['rut']      ?? '').toString().toLowerCase();
+        return nombre.contains(q) || apellido.contains(q) || rut.contains(q);
       }).toList();
     });
   }
@@ -131,7 +132,7 @@ class _WorkersPageState extends State<WorkersPage> {
       // El RLS de trabajadores filtra además por can_access_trabajador().
       final raw = await supabase
           .from('trabajador_obras')
-          .select('cargo, trabajadores!inner(trabajador_id, nombre, rut, estado, datos_completos)')
+          .select('cargo, trabajadores!inner(trabajador_id, nombre, apellido, rut, estado, datos_completos)')
           .eq('obra_id', widget.obraId)
           .eq('activo', true)
           .eq('trabajadores.estado', 'ACTIVO')
@@ -297,7 +298,7 @@ class _WorkersPageState extends State<WorkersPage> {
     try {
       final todos = await supabase
           .from('trabajadores')
-          .select('trabajador_id, nombre, rut')
+          .select('trabajador_id, nombre, apellido, rut')
           .eq('estado', 'ACTIVO')
           .order('nombre');
 
@@ -371,10 +372,10 @@ class _WorkersPageState extends State<WorkersPage> {
       });
       _loadWorkers();
       if (mounted) {
+        final snNombre = [seleccionado['nombre'] ?? '', seleccionado['apellido'] ?? '']
+            .where((s) => s.isNotEmpty).join(' ');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  '${seleccionado['nombre']} asignado a ${widget.obraNombre}.')),
+          SnackBar(content: Text('$snNombre asignado a ${widget.obraNombre}.')),
         );
       }
     } catch (e) {
@@ -674,10 +675,13 @@ class _WorkersPageState extends State<WorkersPage> {
                             itemCount: filtrados.length,
                             itemBuilder: (context, index) {
                               final t = filtrados[index];
-                              final inicial = (t['nombre'] ?? '?')
-                                  .toString()
-                                  .substring(0, 1)
-                                  .toUpperCase();
+                              final nombreCompleto = [
+                                t['nombre'] ?? '',
+                                t['apellido'] ?? '',
+                              ].where((s) => s.isNotEmpty).join(' ');
+                              final inicial = nombreCompleto.isNotEmpty
+                                  ? nombreCompleto[0].toUpperCase()
+                                  : '?';
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 decoration: BoxDecoration(
@@ -708,7 +712,7 @@ class _WorkersPageState extends State<WorkersPage> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        t['nombre'] ?? 'Sin nombre',
+                                        nombreCompleto.isNotEmpty ? nombreCompleto : 'Sin nombre',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           color: Color(0xFF0D2148),
@@ -755,8 +759,9 @@ class _WorkersPageState extends State<WorkersPage> {
                                         obraId: widget.obraId,
                                         obraNombre: widget.obraNombre,
                                         trabajadorId: t['trabajador_id'],
-                                        trabajadorNombre:
-                                            t['nombre'] ?? '',
+                                        trabajadorNombre: nombreCompleto.isNotEmpty
+                                            ? nombreCompleto
+                                            : (t['nombre'] ?? ''),
                                         trabajadorRut: t['rut'] ?? '',
                                         canWrite:  _canWriteThisObra,
                                         moduloEpp: perfil?.moduloEpp ?? true,
@@ -853,9 +858,10 @@ class _DialogSeleccionarTrabajadorState
       _filtrados = q.isEmpty
           ? widget.trabajadores
           : widget.trabajadores.where((t) {
-              final nombre = (t['nombre'] ?? '').toString().toLowerCase();
-              final rut = (t['rut'] ?? '').toString().toLowerCase();
-              return nombre.contains(q) || rut.contains(q);
+              final nombre   = (t['nombre']   ?? '').toString().toLowerCase();
+              final apellido = (t['apellido'] ?? '').toString().toLowerCase();
+              final rut      = (t['rut']      ?? '').toString().toLowerCase();
+              return nombre.contains(q) || apellido.contains(q) || rut.contains(q);
             }).toList();
     });
   }
@@ -909,10 +915,9 @@ class _DialogSeleccionarTrabajadorState
                       itemCount: _filtrados.length,
                       itemBuilder: (_, i) {
                         final t = _filtrados[i];
-                        final inicial = (t['nombre'] ?? '?')
-                            .toString()
-                            .substring(0, 1)
-                            .toUpperCase();
+                        final nc = [t['nombre'] ?? '', t['apellido'] ?? '']
+                            .where((s) => s.isNotEmpty).join(' ');
+                        final inicial = nc.isNotEmpty ? nc[0].toUpperCase() : '?';
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: const Color(0xFF0D2148),
@@ -921,7 +926,7 @@ class _DialogSeleccionarTrabajadorState
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold)),
                           ),
-                          title: Text(t['nombre'] ?? '',
+                          title: Text(nc.isNotEmpty ? nc : (t['nombre'] ?? ''),
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0D2148))),
