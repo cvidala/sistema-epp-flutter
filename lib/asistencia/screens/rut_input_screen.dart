@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show FontFeature;
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -103,14 +104,36 @@ class _RutInputScreenState extends State<RutInputScreen> {
   bool _cargando = false;
   _ResultStatus? _resultStatus;
   Timer? _resetTimer;
+  Timer? _clockTimer;
   int _countdown = 3;
   bool _online = false;
-  int _tipoIndex = 0; // Entrada por defecto
+  int _tipoIndex = 0;
   String? _rutError;
+  String _horaActual = '';
+  String _fechaActual = '';
+
+  static String _formatHora(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
+
+  static String _formatFecha(DateTime t) {
+    const dias   = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    const meses  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return '${dias[t.weekday - 1]} ${t.day} de ${meses[t.month - 1]} ${t.year}';
+  }
+
+  void _actualizarReloj() {
+    final now = DateTime.now();
+    setState(() {
+      _horaActual = _formatHora(now);
+      _fechaActual = _formatFecha(now);
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    _actualizarReloj();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _actualizarReloj());
     _online = AsistenciaSyncService.instance.isOnline;
     AsistenciaSyncService.instance.start(onStatusChange: () {
       if (mounted) {
@@ -122,6 +145,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
   @override
   void dispose() {
     _resetTimer?.cancel();
+    _clockTimer?.cancel();
     _rutController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -487,6 +511,52 @@ class _RutInputScreenState extends State<RutInputScreen> {
             ),
           ),
 
+          const SizedBox(height: 24),
+
+          // Reloj grande — hora de marcado
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0a1a3a),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  _horaActual,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 56,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 4,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _fechaActual,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.45),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Hora de marcado',
+                  style: TextStyle(
+                    color: const Color(0xFFE87722).withOpacity(0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const Spacer(),
 
           Text(
@@ -505,7 +575,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
     final isOk = _resultStatus == _ResultStatus.ok;
     final tipo = _tipos[_tipoIndex];
     return Container(
-      color: Colors.black.withOpacity(0.88),
+      color: Colors.black.withOpacity(0.92),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -513,12 +583,11 @@ class _RutInputScreenState extends State<RutInputScreen> {
             Icon(
               isOk ? Icons.check_circle_rounded : Icons.cloud_off_rounded,
               color: isOk ? const Color(0xFF22C55E) : const Color(0xFFE87722),
-              size: 90,
+              size: 80,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: tipo.bgColor,
                 borderRadius: BorderRadius.circular(20),
@@ -531,31 +600,50 @@ class _RutInputScreenState extends State<RutInputScreen> {
                     fontWeight: FontWeight.w700),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Text(
               isOk ? 'Asistencia Registrada' : 'Guardada Offline',
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 26,
+                  fontSize: 24,
                   fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            // Hora grande de confirmación
+            Text(
+              _horaActual,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 52,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+            Text(
+              _fechaActual,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Text(
                 isOk
-                    ? 'Tu asistencia fue registrada exitosamente.'
+                    ? 'Esta es la hora exacta de tu marcado.'
                     : 'Sin conexión. Se sincronizará automáticamente.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.65), fontSize: 15),
+                    color: Colors.white.withOpacity(0.55), fontSize: 13),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             Text(
               'Siguiente trabajador en $_countdown...',
               style: TextStyle(
-                  color: Colors.white.withOpacity(0.45), fontSize: 14),
+                  color: Colors.white.withOpacity(0.4), fontSize: 14),
             ),
           ],
         ),
