@@ -71,8 +71,12 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+  -- Normaliza ambos lados: sin puntos, guiones ni espacios, en mayúsculas
+  -- Así coincide independiente del formato en que esté guardado el RUT
   SELECT EXISTS (
-    SELECT 1 FROM trabajadores WHERE rut = p_rut
+    SELECT 1 FROM trabajadores
+    WHERE upper(replace(replace(replace(rut,   '.',''),'-',''),' ','')) =
+          upper(replace(replace(replace(p_rut, '.',''),'-',''),' ',''))
   );
 $$;
 

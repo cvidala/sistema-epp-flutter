@@ -65,8 +65,9 @@ class _RutFormatter extends TextInputFormatter {
   }
 }
 
-// ── Validador dígito verificador ───────────────────────────────────
-bool _validarDv(String rut) {
+// ── Validador de formato RUT (sin verificar dígito verificador) ────
+// Solo comprueba estructura: cuerpo 1-8 dígitos + DV dígito o K
+bool _validarFormato(String rut) {
   final clean = rut
       .replaceAll('.', '')
       .replaceAll('-', '')
@@ -74,21 +75,14 @@ bool _validarDv(String rut) {
       .toUpperCase();
   if (clean.length < 2) return false;
   final body = clean.substring(0, clean.length - 1);
-  final dv = clean[clean.length - 1];
-  if (!RegExp(r'^\d+$').hasMatch(body)) return false;
-
-  int sum = 0, factor = 2;
-  for (int i = body.length - 1; i >= 0; i--) {
-    sum += int.parse(body[i]) * factor;
-    factor = factor == 7 ? 2 : factor + 1;
-  }
-  final rem = 11 - (sum % 11);
-  final expected = rem == 11 ? '0' : rem == 10 ? 'K' : rem.toString();
-  return dv == expected;
+  final dv   = clean[clean.length - 1];
+  return RegExp(r'^\d{1,8}$').hasMatch(body) && RegExp(r'^[\dK]$').hasMatch(dv);
 }
 
+// Normaliza RUT para enviar a la BD: sin puntos, sin espacios, sin guión, mayúsculas
+// Así coincide con cualquier formato que esté guardado en la BD
 String _rutLimpio(String rut) =>
-    rut.replaceAll('.', '').replaceAll(' ', '').toUpperCase();
+    rut.replaceAll('.', '').replaceAll('-', '').replaceAll(' ', '').toUpperCase();
 
 // ── Screen ─────────────────────────────────────────────────────────
 class RutInputScreen extends StatefulWidget {
@@ -155,15 +149,9 @@ class _RutInputScreenState extends State<RutInputScreen> {
     final rutTexto = _rutController.text.trim();
     final rut = _rutLimpio(rutTexto);
 
-    // Validar formato
-    if (rut.length < 4 || !rut.contains('-')) {
-      setState(() => _rutError = 'Ingresa un RUT válido');
-      return;
-    }
-
-    // Validar dígito verificador
-    if (!_validarDv(rut)) {
-      setState(() => _rutError = 'RUT inválido — verifica el dígito verificador');
+    // Validar formato (estructura solamente, sin verificar DV)
+    if (!_validarFormato(rutTexto)) {
+      setState(() => _rutError = 'Formato inválido — debe ser 12.345.678-9');
       return;
     }
 
