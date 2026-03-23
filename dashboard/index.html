@@ -3833,6 +3833,13 @@ function exportAsistenciaCSV() {
 // ═══════════════════════════════════════════════════════
 let allMantTrab = [];
 
+// Trabajador completo = todos los campos obligatorios + foto
+function trabCompleto(t) {
+  return !!(t.nombre && t.apellido && t.rut && t.email &&
+            t.telefono && t.fecha_nacimiento && t.cargo &&
+            t.fecha_ingreso && t.tipo_contrato && t.foto_rostro_url);
+}
+
 const MANT_SELECT = `trabajador_id, nombre, apellido, rut, datos_completos, foto_rostro_url,
   cargo, telefono, email, fecha_nacimiento, nacionalidad,
   fecha_ingreso, tipo_contrato, afp, sistema_salud,
@@ -3877,9 +3884,8 @@ function filterMant() {
   const filtered = allMantTrab.filter(t => {
     const fullN = [t.nombre, t.apellido].filter(Boolean).join(' ').toLowerCase();
     if (q && !fullN.includes(q) && !t.rut.toLowerCase().includes(q)) return false;
-    const completo = t.foto_rostro_url && t.datos_completos !== false;
-    if (estado === 'incompleto' && completo)  return false;
-    if (estado === 'completo'   && !completo) return false;
+    if (estado === 'incompleto' &&  trabCompleto(t)) return false;
+    if (estado === 'completo'   && !trabCompleto(t)) return false;
     if (centro !== 'all') {
       const ct = (t.trabajador_obras || []).map(to => to.obras?.nombre);
       if (!ct.includes(centro)) return false;
@@ -3902,9 +3908,7 @@ function renderMantPage(list) {
       ? `<img src="${t.foto_rostro_url}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--green)" onclick="window.open('${t.foto_rostro_url}','_blank')" title="Ver foto">`
       : `<span style="color:var(--muted);font-size:12px">Sin foto</span>`;
 
-    // Completo solo si tiene foto (cubre trabajadores antiguos sin foto pero con datos_completos=true)
-    const esCompleto = t.foto_rostro_url && t.datos_completos !== false;
-    const datosHtml = esCompleto
+    const datosHtml = trabCompleto(t)
       ? '<span class="badge ok">✅ Completo</span>'
       : '<span class="badge warn">⚠️ Incompleto</span>';
 
