@@ -996,7 +996,7 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Fecha de nacimiento</label>
+          <label class="form-label">Fecha de nacimiento <span style="color:var(--red)">*</span></label>
           <input class="form-input" type="date" id="mantFechaNac">
         </div>
         <div class="form-group">
@@ -1010,7 +1010,7 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Teléfono</label>
+          <label class="form-label">Teléfono <span style="color:var(--red)">*</span></label>
           <input class="form-input" id="mantTelefono" placeholder="+56 9 1234 5678">
         </div>
         <div class="form-group">
@@ -1023,17 +1023,17 @@
       <div class="modal-section-title" style="margin-top:8px">Datos Laborales</div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Cargo</label>
+          <label class="form-label">Cargo <span style="color:var(--red)">*</span></label>
           <input class="form-input" id="mantCargo" placeholder="Operario, Capataz...">
         </div>
         <div class="form-group">
-          <label class="form-label">Fecha de ingreso</label>
+          <label class="form-label">Fecha de ingreso <span style="color:var(--red)">*</span></label>
           <input class="form-input" type="date" id="mantFechaIngreso">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Tipo de contrato</label>
+          <label class="form-label">Tipo de contrato <span style="color:var(--red)">*</span></label>
           <select class="form-select" id="mantTipoContrato">
             <option value="">Seleccionar...</option>
             <option value="Indefinido">Indefinido</option>
@@ -1780,11 +1780,18 @@ let allCentros = [];
 
 // ── VALIDADOR RUT CHILENO ─────────────────────────────────────────
 function validarRut(rut) {
-  const clean = rut.replace(/[.\-\s]/g, '').toUpperCase();
-  if (clean.length < 2) return false;
-  const body = clean.slice(0, -1);
-  const dv   = clean.slice(-1);
-  if (!/^\d+$/.test(body)) return false;
+  // Debe contener exactamente un guión que separa cuerpo y DV
+  const lastDash = rut.lastIndexOf('-');
+  if (lastDash === -1) return false;
+
+  // Cuerpo: todo antes del guión, sin puntos ni espacios
+  const body = rut.slice(0, lastDash).replace(/[.\s]/g, '');
+  // DV: exactamente un carácter después del guión
+  const dv   = rut.slice(lastDash + 1).trim().toUpperCase();
+
+  if (!/^\d+$/.test(body) || body.length === 0) return false;
+  if (dv.length !== 1 || !/^[\dK]$/.test(dv)) return false;
+
   let sum = 0, factor = 2;
   for (let i = body.length - 1; i >= 0; i--) {
     sum += parseInt(body[i]) * factor;
@@ -3885,6 +3892,21 @@ async function saveMantNuevo() {
 
   if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
   if (!validarRut(rut)) { errEl.textContent = 'RUT inválido — verifica el dígito verificador'; errEl.style.display='block'; return; }
+
+  // Campos adicionales obligatorios solo al crear desde dashboard (editId vacío)
+  if (!editId) {
+    const faltantes = [];
+    if (!fecha_nacimiento)                        faltantes.push('Fecha de nacimiento');
+    if (!telefono)                                faltantes.push('Teléfono');
+    if (!cargo)                                   faltantes.push('Cargo');
+    if (!fecha_ingreso)                           faltantes.push('Fecha de ingreso');
+    if (!tipo_contrato)                           faltantes.push('Tipo de contrato');
+    if (faltantes.length) {
+      errEl.textContent = 'Campos obligatorios faltantes: ' + faltantes.join(', ');
+      errEl.style.display = 'block';
+      return;
+    }
+  }
 
   const payload = {
     nombre, rut,
