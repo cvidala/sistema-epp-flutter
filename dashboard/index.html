@@ -984,21 +984,27 @@
       <div class="modal-section-title">Datos Personales</div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Nombre completo *</label>
-          <input class="form-input" id="mantNombre" placeholder="Juan Pérez">
+          <label class="form-label">Nombre(s) *</label>
+          <input class="form-input" id="mantNombre" placeholder="Juan Andrés">
         </div>
         <div class="form-group">
-          <label class="form-label">RUT *</label>
-          <input class="form-input" id="mantRut" placeholder="12.345.678-9"
-            oninput="mostrarErrorRut('mantRut','mantRutError',this.value)">
-          <div id="mantRutError" class="form-error" style="margin-top:4px;padding:6px 10px;font-size:11px;display:none"></div>
+          <label class="form-label">Apellido(s) *</label>
+          <input class="form-input" id="mantApellido" placeholder="Pérez González">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
+          <label class="form-label">RUT *</label>
+          <input class="form-input" id="mantRut" placeholder="12.345.678-9" maxlength="12"
+            oninput="formatearRut(this);mostrarErrorRut('mantRut','mantRutError',this.value)">
+          <div id="mantRutError" class="form-error" style="margin-top:4px;padding:6px 10px;font-size:11px;display:none"></div>
+        </div>
+        <div class="form-group">
           <label class="form-label">Fecha de nacimiento <span style="color:var(--red)">*</span></label>
           <input class="form-input" type="date" id="mantFechaNac">
         </div>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label class="form-label">Nacionalidad</label>
           <input class="form-input" id="mantNacionalidad" placeholder="Chilena" value="Chilena">
@@ -1019,7 +1025,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Email</label>
+          <label class="form-label">Email *</label>
           <input class="form-input" type="email" id="mantEmail" placeholder="trabajador@email.com"
             oninput="mostrarErrorEmail('mantEmailError',this.value)">
           <div id="mantEmailError" class="form-error" style="margin-top:4px;padding:6px 10px;font-size:11px;display:none"></div>
@@ -1851,6 +1857,21 @@ let allAlertas = [];
 let allCentros = [];
 
 // ── VALIDADORES ───────────────────────────────────────────────────
+// Formatea RUT mientras se escribe: 12.345.678-9 (igual que la app Flutter)
+function formatearRut(input) {
+  const raw = input.value.replace(/[.\-\s]/g, '').toUpperCase();
+  if (!raw) { input.value = ''; return; }
+  if (raw.length === 1) { input.value = raw; return; }
+  const dv   = raw.slice(-1);
+  const body = raw.slice(0, -1);
+  let fmt = '';
+  for (let i = 0; i < body.length; i++) {
+    if (i > 0 && (body.length - i) % 3 === 0) fmt += '.';
+    fmt += body[i];
+  }
+  input.value = fmt + '-' + dv;
+}
+
 // RUT: idéntico al de la app Flutter (elimina separadores, último char = DV)
 function validarRut(rut) {
   const clean = rut.replace(/[.\-\s]/g, '').toUpperCase();
@@ -1858,6 +1879,7 @@ function validarRut(rut) {
   const body = clean.slice(0, -1);
   const dv   = clean.slice(-1);
   if (!/^\d+$/.test(body)) return false;
+  if (body.length > 8) return false;   // RUT chileno: máx 8 dígitos en cuerpo
   let sum = 0, factor = 2;
   for (let i = body.length - 1; i >= 0; i--) {
     sum += parseInt(body[i]) * factor;
@@ -3805,7 +3827,7 @@ function exportAsistenciaCSV() {
 // ═══════════════════════════════════════════════════════
 let allMantTrab = [];
 
-const MANT_SELECT = `trabajador_id, nombre, rut, datos_completos, foto_rostro_url,
+const MANT_SELECT = `trabajador_id, nombre, apellido, rut, datos_completos, foto_rostro_url,
   cargo, telefono, email, fecha_nacimiento, nacionalidad,
   fecha_ingreso, tipo_contrato, afp, sistema_salud,
   direccion, emergencia_nombre, emergencia_telefono,
@@ -3847,7 +3869,8 @@ function filterMant() {
   const estado = document.getElementById('mantEstadoFilter').value;
   const centro = document.getElementById('mantCentroFilter').value;
   const filtered = allMantTrab.filter(t => {
-    if (q && !t.nombre.toLowerCase().includes(q) && !t.rut.toLowerCase().includes(q)) return false;
+    const fullN = [t.nombre, t.apellido].filter(Boolean).join(' ').toLowerCase();
+    if (q && !fullN.includes(q) && !t.rut.toLowerCase().includes(q)) return false;
     if (estado === 'incompleto' && t.datos_completos !== false) return false;
     if (estado === 'completo'   && t.datos_completos === false) return false;
     if (centro !== 'all') {
@@ -3876,12 +3899,13 @@ function renderMantPage(list) {
       ? '<span class="badge warn">⚠️ Incompleto</span>'
       : '<span class="badge ok">✅ Completo</span>';
 
-    const n       = t.nombre.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const fullName = [t.nombre, t.apellido].filter(Boolean).join(' ');
+    const n       = fullName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const fotoUrl = (t.foto_rostro_url || '').replace(/'/g,"\\'");
     const id      = t.trabajador_id;
     return `<tr>
       <td>
-        <div class="worker-name">${t.nombre}</div>
+        <div class="worker-name">${fullName}</div>
         ${t.cargo ? `<div style="font-size:11px;color:var(--muted)">${t.cargo}</div>` : ''}
       </td>
       <td>
@@ -3903,7 +3927,7 @@ function renderMantPage(list) {
 // ── CREATE ────────────────────────────────────────────────────
 async function openMantNuevo() {
   // Limpiar todos los campos del formulario
-  ['mantNombre','mantRut','mantCargo','mantTelefono','mantEmail',
+  ['mantNombre','mantApellido','mantRut','mantCargo','mantTelefono','mantEmail',
    'mantFechaNac','mantNacionalidad','mantDireccion',
    'mantFechaIngreso','mantTipoContrato','mantAfp','mantSistemaSalud',
    'mantEmerNombre','mantEmerTel'].forEach(id => {
@@ -3931,6 +3955,7 @@ async function openMantEditar(trabId) {
   document.getElementById('modalMantNuevoTitle').textContent = 'Editar Trabajador';
   document.getElementById('mantNombre').dataset.editId = trabId;
   document.getElementById('mantNombre').value           = t.nombre || '';
+  document.getElementById('mantApellido').value         = t.apellido || '';
   document.getElementById('mantRut').value              = t.rut || '';
   document.getElementById('mantCargo').value            = t.cargo || '';
   document.getElementById('mantTelefono').value         = (t.telefono || '').replace(/^\+56\s?/, '');
@@ -3958,6 +3983,7 @@ async function saveMantNuevo() {
   errEl.style.display = 'none';
 
   const nombre          = document.getElementById('mantNombre').value.trim();
+  const apellido        = document.getElementById('mantApellido').value.trim();
   const rut             = document.getElementById('mantRut').value.trim();
   const cargo           = document.getElementById('mantCargo').value.trim();
   const telRaw          = document.getElementById('mantTelefono').value.trim();
@@ -3974,9 +4000,9 @@ async function saveMantNuevo() {
   const emerTelRaw          = document.getElementById('mantEmerTel').value.trim();
   const emergencia_telefono = emerTelRaw ? (emerTelRaw.startsWith('+56') ? emerTelRaw : '+56 ' + emerTelRaw) : '';
 
-  if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
+  if (!nombre || !apellido || !rut || !email) { errEl.textContent = 'Nombre, apellido, RUT y email son obligatorios'; errEl.style.display='block'; return; }
   if (!validarRut(rut)) { errEl.textContent = 'RUT inválido — verifica el dígito verificador'; errEl.style.display='block'; return; }
-  if (email && !validarEmail(email)) { errEl.textContent = 'El email ingresado no es válido'; errEl.style.display='block'; return; }
+  if (!validarEmail(email)) { errEl.textContent = 'El email ingresado no es válido'; errEl.style.display='block'; return; }
 
   // Campos adicionales obligatorios solo al crear desde dashboard (editId vacío)
   if (!editId) {
@@ -3994,7 +4020,7 @@ async function saveMantNuevo() {
   }
 
   const payload = {
-    nombre, rut,
+    nombre, apellido, rut,
     cargo: cargo || null, telefono: telefono || null, email: email || null,
     fecha_nacimiento, nacionalidad: nacionalidad || null, direccion: direccion || null,
     fecha_ingreso, tipo_contrato: tipo_contrato || null,
