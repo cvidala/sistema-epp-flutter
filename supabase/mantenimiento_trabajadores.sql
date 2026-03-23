@@ -12,6 +12,9 @@ ALTER TABLE trabajadores
 
 -- ── 2. DATOS PERSONALES ─────────────────────────────────────
 ALTER TABLE trabajadores
+  ADD COLUMN IF NOT EXISTS apellido TEXT;              -- apellido(s) separado del nombre
+
+ALTER TABLE trabajadores
   ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE;
 
 ALTER TABLE trabajadores
