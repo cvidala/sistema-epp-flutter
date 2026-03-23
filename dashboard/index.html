@@ -1013,7 +1013,9 @@
           <label class="form-label">Teléfono <span style="color:var(--red)">*</span></label>
           <div style="display:flex;align-items:center;gap:0">
             <span style="padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-right:none;border-radius:10px 0 0 10px;font-size:13px;color:var(--navy);font-weight:500;white-space:nowrap">+56</span>
-            <input class="form-input" id="mantTelefono" placeholder="9 1234 5678" style="border-radius:0 10px 10px 0;border-left:none">
+            <input class="form-input" id="mantTelefono" placeholder="9 1234 5678" maxlength="9"
+              style="border-radius:0 10px 10px 0;border-left:none"
+              oninput="this.value=this.value.replace(/\D/g,'').slice(0,9)">
           </div>
         </div>
         <div class="form-group">
@@ -1101,7 +1103,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">Teléfono contacto</label>
-          <input class="form-input" id="mantEmerTel" placeholder="+56 9 8765 4321">
+          <div style="display:flex;align-items:center;gap:0">
+            <span style="padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-right:none;border-radius:10px 0 0 10px;font-size:13px;color:var(--navy);font-weight:500;white-space:nowrap">+56</span>
+            <input class="form-input" id="mantEmerTel" placeholder="9 8765 4321" maxlength="9"
+              style="border-radius:0 10px 10px 0;border-left:none"
+              oninput="this.value=this.value.replace(/\D/g,'').slice(0,9)">
+          </div>
         </div>
       </div>
 
@@ -1125,29 +1132,58 @@
 
 <!-- ═══ MODAL: MANTENIMIENTO — FOTO ROSTRO ═══ -->
 <div class="modal-bg" id="modalMantFoto">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:460px">
     <div class="modal-header">
       <div>
         <div class="modal-title">Foto de Rostro</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px" id="modalMantFotoNombre"></div>
       </div>
-      <button class="modal-close" onclick="closeModal('modalMantFoto')">✕</button>
+      <button class="modal-close" onclick="cerrarModalFoto()">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="mantFotoTrabId">
+
+      <!-- Foto actual -->
       <div id="mantFotoPreviewWrap" style="text-align:center;margin-bottom:16px;display:none">
         <img id="mantFotoPreview" style="width:140px;height:140px;object-fit:cover;border-radius:12px;border:2px solid var(--border);" alt="Foto actual">
         <div style="font-size:11px;color:var(--muted);margin-top:6px">Foto actual</div>
       </div>
-      <div id="mantFotoNoFoto" style="text-align:center;padding:24px;background:var(--bg);border-radius:12px;margin-bottom:16px;color:var(--muted);font-size:13px;">Sin foto cargada</div>
-      <div class="form-group" style="margin-bottom:0">
-        <label class="form-label">Subir nueva foto (JPG/PNG, max 2MB)</label>
-        <input type="file" id="mantFotoFile" accept="image/jpeg,image/png" style="width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;">
+      <div id="mantFotoNoFoto" style="text-align:center;padding:20px;background:var(--bg);border-radius:12px;margin-bottom:16px;color:var(--muted);font-size:13px;">Sin foto cargada</div>
+
+      <!-- Tabs: Archivo / Cámara -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="tabFotoArchivo" class="btn btn-primary btn-sm" onclick="setFotoTab('archivo')" style="flex:1">📁 Subir archivo</button>
+        <button id="tabFotoCamara" class="btn btn-secondary btn-sm" onclick="setFotoTab('camara')" style="flex:1">📷 Usar cámara</button>
       </div>
+
+      <!-- Modo archivo -->
+      <div id="fotoModoArchivo">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Seleccionar imagen (JPG/PNG, max 2MB)</label>
+          <input type="file" id="mantFotoFile" accept="image/jpeg,image/png"
+            style="width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;"
+            onchange="previewFotoArchivo(this)">
+        </div>
+        <img id="fotoArchivoPreview" style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:10px;">
+      </div>
+
+      <!-- Modo cámara -->
+      <div id="fotoModoCamara" style="display:none">
+        <video id="fotoVideo" autoplay playsinline
+          style="width:100%;border-radius:10px;background:#000;max-height:240px;object-fit:cover;display:none"></video>
+        <canvas id="fotoCanvas" style="display:none"></canvas>
+        <img id="fotoCapturaPreview" style="display:none;width:100%;max-height:240px;object-fit:cover;border-radius:10px;">
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button id="btnIniciarCamara" class="btn btn-secondary" style="flex:1" onclick="iniciarCamara()">▶ Iniciar cámara</button>
+          <button id="btnCapturar" class="btn btn-primary" style="flex:1;display:none" onclick="capturarFoto()">📸 Capturar</button>
+          <button id="btnRetomar" class="btn btn-secondary btn-sm" style="display:none" onclick="retomarCamara()">↩ Retomar</button>
+        </div>
+      </div>
+
       <div id="mantFotoError" class="form-error" style="margin-top:10px"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modalMantFoto')">Cerrar</button>
+      <button class="btn btn-secondary" onclick="cerrarModalFoto()">Cerrar</button>
       <button class="btn btn-primary" onclick="saveMantFoto()">Guardar Foto</button>
     </div>
   </div>
@@ -3907,7 +3943,7 @@ async function openMantEditar(trabId) {
   document.getElementById('mantAfp').value              = t.afp || '';
   document.getElementById('mantSistemaSalud').value     = t.sistema_salud || '';
   document.getElementById('mantEmerNombre').value       = t.emergencia_nombre || '';
-  document.getElementById('mantEmerTel').value          = t.emergencia_telefono || '';
+  document.getElementById('mantEmerTel').value          = (t.emergencia_telefono || '').replace(/^\+56\s?/, '');
   document.getElementById('mantNuevoError').style.display = 'none';
   // Ocultar selector de centro (ya tiene centros asignados)
   const selObraWrap = document.getElementById('mantCentroInicialWrap');
@@ -3935,7 +3971,8 @@ async function saveMantNuevo() {
   const afp             = document.getElementById('mantAfp').value.trim();
   const sistema_salud   = document.getElementById('mantSistemaSalud').value.trim();
   const emergencia_nombre   = document.getElementById('mantEmerNombre').value.trim();
-  const emergencia_telefono = document.getElementById('mantEmerTel').value.trim();
+  const emerTelRaw          = document.getElementById('mantEmerTel').value.trim();
+  const emergencia_telefono = emerTelRaw ? (emerTelRaw.startsWith('+56') ? emerTelRaw : '+56 ' + emerTelRaw) : '';
 
   if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
   if (!validarRut(rut)) { errEl.textContent = 'RUT inválido — verifica el dígito verificador'; errEl.style.display='block'; return; }
@@ -3974,7 +4011,7 @@ async function saveMantNuevo() {
     // CREATE — verificar RUT duplicado
     const { data: dup } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
     if (dup) { errEl.textContent = `El RUT ya está registrado como ${dup.nombre}`; errEl.style.display='block'; return; }
-    payload.datos_completos = true;
+    payload.datos_completos = false; // se marca true solo al subir la foto
     const { data: trab, error } = await sb.from('trabajadores').insert(payload).select().single();
     if (error) { errEl.textContent = 'Error: ' + error.message; errEl.style.display='block'; return; }
     const obraId = document.getElementById('mantCentroInicial').value;
@@ -3989,10 +4026,25 @@ async function saveMantNuevo() {
 }
 
 function openMantFoto(trabId, nombre, fotoUrl) {
+  // Detener cámara previa si quedó activa
+  _camaraStream?.getTracks().forEach(t => t.stop());
+  _camaraStream = null;
+  _fotoBlob = null;
+
   document.getElementById('mantFotoTrabId').value = trabId;
   document.getElementById('modalMantFotoNombre').textContent = nombre;
   document.getElementById('mantFotoFile').value = '';
   document.getElementById('mantFotoError').style.display = 'none';
+  document.getElementById('fotoArchivoPreview').style.display = 'none';
+  document.getElementById('fotoCapturaPreview').style.display = 'none';
+  document.getElementById('fotoVideo').style.display = 'none';
+  document.getElementById('btnIniciarCamara').style.display = 'inline-flex';
+  document.getElementById('btnCapturar').style.display = 'none';
+  document.getElementById('btnRetomar').style.display = 'none';
+
+  // Siempre abrir en tab "archivo"
+  setFotoTab('archivo');
+
   if (fotoUrl) {
     document.getElementById('mantFotoPreview').src = fotoUrl;
     document.getElementById('mantFotoPreviewWrap').style.display = 'block';
@@ -4004,26 +4056,124 @@ function openMantFoto(trabId, nombre, fotoUrl) {
   document.getElementById('modalMantFoto').classList.add('open');
 }
 
-async function saveMantFoto() {
-  const trabId = document.getElementById('mantFotoTrabId').value;
-  const fileInput = document.getElementById('mantFotoFile');
+// ── Webcam helpers ────────────────────────────────────────────────
+let _camaraStream = null;
+let _fotoBlob     = null; // blob capturado por cámara
+
+function setFotoTab(tab) {
+  const esArchivo = tab === 'archivo';
+  document.getElementById('fotoModoArchivo').style.display = esArchivo ? 'block' : 'none';
+  document.getElementById('fotoModoCamara').style.display  = esArchivo ? 'none'  : 'block';
+  document.getElementById('tabFotoArchivo').className = 'btn btn-sm ' + (esArchivo ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('tabFotoCamara').className  = 'btn btn-sm ' + (esArchivo ? 'btn-secondary' : 'btn-primary');
+  if (!esArchivo) {
+    // Limpiar captura previa al cambiar a cámara
+    _fotoBlob = null;
+    document.getElementById('fotoCapturaPreview').style.display = 'none';
+    document.getElementById('fotoVideo').style.display = 'none';
+    document.getElementById('btnCapturar').style.display = 'none';
+    document.getElementById('btnRetomar').style.display = 'none';
+    document.getElementById('btnIniciarCamara').style.display = 'inline-flex';
+  }
+}
+
+async function iniciarCamara() {
   const errEl = document.getElementById('mantFotoError');
   errEl.style.display = 'none';
-  if (!fileInput.files.length) { errEl.textContent = 'Selecciona una imagen'; errEl.style.display='block'; return; }
-  const file = fileInput.files[0];
-  if (file.size > 2 * 1024 * 1024) { errEl.textContent = 'La imagen no debe superar 2 MB'; errEl.style.display='block'; return; }
-  const ext = file.name.split('.').pop().toLowerCase();
+  try {
+    _camaraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const video = document.getElementById('fotoVideo');
+    video.srcObject = _camaraStream;
+    video.style.display = 'block';
+    document.getElementById('btnIniciarCamara').style.display = 'none';
+    document.getElementById('btnCapturar').style.display = 'inline-flex';
+    document.getElementById('fotoCapturaPreview').style.display = 'none';
+    document.getElementById('btnRetomar').style.display = 'none';
+    _fotoBlob = null;
+  } catch(e) {
+    errEl.textContent = 'No se pudo acceder a la cámara: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function capturarFoto() {
+  const video  = document.getElementById('fotoVideo');
+  const canvas = document.getElementById('fotoCanvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    _fotoBlob = blob;
+    const preview = document.getElementById('fotoCapturaPreview');
+    preview.src = URL.createObjectURL(blob);
+    preview.style.display = 'block';
+  }, 'image/jpeg', 0.92);
+  // Detener stream y mostrar retomar
+  _camaraStream?.getTracks().forEach(t => t.stop());
+  _camaraStream = null;
+  video.style.display = 'none';
+  document.getElementById('btnCapturar').style.display = 'none';
+  document.getElementById('btnRetomar').style.display = 'inline-flex';
+}
+
+function retomarCamara() {
+  _fotoBlob = null;
+  document.getElementById('fotoCapturaPreview').style.display = 'none';
+  document.getElementById('btnRetomar').style.display = 'none';
+  iniciarCamara();
+}
+
+function previewFotoArchivo(input) {
+  if (!input.files.length) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('fotoArchivoPreview');
+    img.src = e.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function cerrarModalFoto() {
+  _camaraStream?.getTracks().forEach(t => t.stop());
+  _camaraStream = null;
+  _fotoBlob = null;
+  closeModal('modalMantFoto');
+}
+
+async function saveMantFoto() {
+  const trabId = document.getElementById('mantFotoTrabId').value;
+  const errEl  = document.getElementById('mantFotoError');
+  errEl.style.display = 'none';
+
+  // Determinar fuente: archivo o cámara
+  const fileInput = document.getElementById('mantFotoFile');
+  const modoArchivo = document.getElementById('fotoModoArchivo').style.display !== 'none';
+  let blob, ext;
+
+  if (modoArchivo) {
+    if (!fileInput.files.length) { errEl.textContent = 'Selecciona una imagen'; errEl.style.display='block'; return; }
+    const file = fileInput.files[0];
+    if (file.size > 2 * 1024 * 1024) { errEl.textContent = 'La imagen no debe superar 2 MB'; errEl.style.display='block'; return; }
+    blob = file;
+    ext  = file.name.split('.').pop().toLowerCase();
+  } else {
+    if (!_fotoBlob) { errEl.textContent = 'Captura una foto primero'; errEl.style.display='block'; return; }
+    blob = _fotoBlob;
+    ext  = 'jpg';
+  }
+
   const path = `rostros/${trabId}.${ext}`;
   showLoading(true);
   try {
-    const { error: upErr } = await sb.storage.from('fotos-rostro').upload(path, file, { upsert: true });
+    const { error: upErr } = await sb.storage.from('fotos-rostro').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
     if (upErr) throw upErr;
     const { data: urlData } = sb.storage.from('fotos-rostro').getPublicUrl(path);
     const { error: dbErr } = await sb.from('trabajadores')
       .update({ foto_rostro_url: urlData.publicUrl, datos_completos: true })
       .eq('trabajador_id', trabId);
     if (dbErr) throw dbErr;
-    closeModal('modalMantFoto');
+    cerrarModalFoto();
     await loadPageMantenimiento();
   } catch(e) {
     errEl.textContent = 'Error al subir foto: ' + e.message;
