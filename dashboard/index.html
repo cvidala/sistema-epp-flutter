@@ -1011,11 +1011,16 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Teléfono <span style="color:var(--red)">*</span></label>
-          <input class="form-input" id="mantTelefono" placeholder="+56 9 1234 5678">
+          <div style="display:flex;align-items:center;gap:0">
+            <span style="padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-right:none;border-radius:10px 0 0 10px;font-size:13px;color:var(--navy);font-weight:500;white-space:nowrap">+56</span>
+            <input class="form-input" id="mantTelefono" placeholder="9 1234 5678" style="border-radius:0 10px 10px 0;border-left:none">
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>
-          <input class="form-input" type="email" id="mantEmail" placeholder="trabajador@email.com">
+          <input class="form-input" type="email" id="mantEmail" placeholder="trabajador@email.com"
+            oninput="mostrarErrorEmail('mantEmailError',this.value)">
+          <div id="mantEmailError" class="form-error" style="margin-top:4px;padding:6px 10px;font-size:11px;display:none"></div>
         </div>
       </div>
 
@@ -1024,7 +1029,26 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Cargo <span style="color:var(--red)">*</span></label>
-          <input class="form-input" id="mantCargo" placeholder="Operario, Capataz...">
+          <select class="form-select" id="mantCargo">
+            <option value="">Seleccionar cargo...</option>
+            <option>Administrador de Obra</option>
+            <option>Ayudante</option>
+            <option>Capataz</option>
+            <option>Conductor / Chofer</option>
+            <option>Electricista</option>
+            <option>Enfermero/a</option>
+            <option>Gasfíter</option>
+            <option>Ingeniero/a</option>
+            <option>Jefe de Obra</option>
+            <option>Maestro</option>
+            <option>Mecánico</option>
+            <option>Operador de Maquinaria</option>
+            <option>Operario</option>
+            <option>Prevencionista de Riesgos</option>
+            <option>Soldador</option>
+            <option>Técnico</option>
+            <option>Otro</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Fecha de ingreso <span style="color:var(--red)">*</span></label>
@@ -1053,7 +1077,19 @@
       </div>
       <div class="form-group">
         <label class="form-label">Sistema de salud</label>
-        <input class="form-input" id="mantSistemaSalud" placeholder="Fonasa | Isapre Banmédica...">
+        <select class="form-select" id="mantSistemaSalud">
+          <option value="">Seleccionar...</option>
+          <option>Fonasa</option>
+          <option>Isapre Banmédica</option>
+          <option>Isapre Colmena</option>
+          <option>Isapre Cruz Blanca</option>
+          <option>Isapre Cruz del Norte</option>
+          <option>Isapre Más Vida</option>
+          <option>Isapre Nueva Masvida</option>
+          <option>Isapre San Lorenzo</option>
+          <option>Isapre Vida Tres</option>
+          <option>Otro</option>
+        </select>
       </div>
 
       <!-- Contacto emergencia -->
@@ -1778,20 +1814,14 @@ let allEntregas = [];
 let allAlertas = [];
 let allCentros = [];
 
-// ── VALIDADOR RUT CHILENO ─────────────────────────────────────────
+// ── VALIDADORES ───────────────────────────────────────────────────
+// RUT: idéntico al de la app Flutter (elimina separadores, último char = DV)
 function validarRut(rut) {
-  // Debe contener exactamente un guión que separa cuerpo y DV
-  const lastDash = rut.lastIndexOf('-');
-  if (lastDash === -1) return false;
-
-  // Cuerpo: todo antes del guión, sin puntos ni espacios
-  const body = rut.slice(0, lastDash).replace(/[.\s]/g, '');
-  // DV: exactamente un carácter después del guión
-  const dv   = rut.slice(lastDash + 1).trim().toUpperCase();
-
-  if (!/^\d+$/.test(body) || body.length === 0) return false;
-  if (dv.length !== 1 || !/^[\dK]$/.test(dv)) return false;
-
+  const clean = rut.replace(/[.\-\s]/g, '').toUpperCase();
+  if (clean.length < 2) return false;
+  const body = clean.slice(0, -1);
+  const dv   = clean.slice(-1);
+  if (!/^\d+$/.test(body)) return false;
   let sum = 0, factor = 2;
   for (let i = body.length - 1; i >= 0; i--) {
     sum += parseInt(body[i]) * factor;
@@ -1800,6 +1830,22 @@ function validarRut(rut) {
   const rem      = 11 - (sum % 11);
   const expected = rem === 11 ? '0' : rem === 10 ? 'K' : String(rem);
   return dv === expected;
+}
+
+function validarEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function mostrarErrorEmail(errorId, email) {
+  const errEl = document.getElementById(errorId);
+  if (!errEl) return;
+  if (!email) { errEl.style.display = 'none'; return; }
+  if (!validarEmail(email)) {
+    errEl.textContent = 'Email inválido';
+    errEl.style.display = 'block';
+  } else {
+    errEl.style.display = 'none';
+  }
 }
 
 function mostrarErrorRut(inputId, errorId, rut) {
@@ -3851,7 +3897,7 @@ async function openMantEditar(trabId) {
   document.getElementById('mantNombre').value           = t.nombre || '';
   document.getElementById('mantRut').value              = t.rut || '';
   document.getElementById('mantCargo').value            = t.cargo || '';
-  document.getElementById('mantTelefono').value         = t.telefono || '';
+  document.getElementById('mantTelefono').value         = (t.telefono || '').replace(/^\+56\s?/, '');
   document.getElementById('mantEmail').value            = t.email || '';
   document.getElementById('mantFechaNac').value         = t.fecha_nacimiento || '';
   document.getElementById('mantNacionalidad').value     = t.nacionalidad || 'Chilena';
@@ -3878,7 +3924,8 @@ async function saveMantNuevo() {
   const nombre          = document.getElementById('mantNombre').value.trim();
   const rut             = document.getElementById('mantRut').value.trim();
   const cargo           = document.getElementById('mantCargo').value.trim();
-  const telefono        = document.getElementById('mantTelefono').value.trim();
+  const telRaw          = document.getElementById('mantTelefono').value.trim();
+  const telefono        = telRaw ? (telRaw.startsWith('+56') ? telRaw : '+56 ' + telRaw) : '';
   const email           = document.getElementById('mantEmail').value.trim();
   const fecha_nacimiento= document.getElementById('mantFechaNac').value || null;
   const nacionalidad    = document.getElementById('mantNacionalidad').value.trim();
@@ -3892,6 +3939,7 @@ async function saveMantNuevo() {
 
   if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
   if (!validarRut(rut)) { errEl.textContent = 'RUT inválido — verifica el dígito verificador'; errEl.style.display='block'; return; }
+  if (email && !validarEmail(email)) { errEl.textContent = 'El email ingresado no es válido'; errEl.style.display='block'; return; }
 
   // Campos adicionales obligatorios solo al crear desde dashboard (editId vacío)
   if (!editId) {
