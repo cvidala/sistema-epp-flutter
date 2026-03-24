@@ -18,6 +18,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraDescription? _frontCamera;
   bool _isProcessing = false;
   bool _captured = false;
+  bool _showManualButton = false;
+  int _secondsLeft = 15;
+  Timer? _countdownTimer;
   String _statusText = 'Posiciona tu rostro en el óvalo';
 
   final FaceDetector _faceDetector = FaceDetector(
@@ -38,9 +41,27 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _controller?.dispose();
     _faceDetector.close();
     super.dispose();
+  }
+
+  void _iniciarContador() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted || _captured) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _secondsLeft--;
+        if (_secondsLeft <= 0) {
+          t.cancel();
+          _showManualButton = true;
+          _statusText = 'No se detectó el rostro automáticamente';
+        }
+      });
+    });
   }
 
   Future<void> _iniciarCamara() async {
@@ -60,6 +81,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       if (!mounted) return;
       setState(() {});
       _controller!.startImageStream(_procesarFrame);
+      _iniciarContador();
     } catch (e) {
       if (mounted) setState(() => _statusText = 'Error de cámara: $e');
     }
@@ -74,6 +96,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isNotEmpty && mounted && !_captured) {
         _captured = true;
+        _countdownTimer?.cancel();
         if (mounted) setState(() => _statusText = '✓ Rostro detectado...');
         await _controller!.stopImageStream();
         await _capturar();
@@ -106,6 +129,17 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     );
   }
 
+  Future<void> _capturarManual() async {
+    if (_captured) return;
+    _captured = true;
+    _countdownTimer?.cancel();
+    setState(() => _statusText = 'Capturando...');
+    try {
+      await _controller!.stopImageStream();
+    } catch (_) {}
+    await _capturar();
+  }
+
   Future<void> _capturar() async {
     try {
       final xfile = await _controller!.takePicture();
@@ -116,7 +150,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       debugPrint('[Camera] Error capturando: $e');
       if (mounted) {
         _captured = false;
-        setState(() => _statusText = 'Error al capturar. Inténtalo de nuevo.');
+        setState(() {
+          _statusText = 'Error al capturar. Inténtalo de nuevo.';
+          _showManualButton = true;
+        });
         await _controller!.startImageStream(_procesarFrame);
       }
     }
@@ -164,11 +201,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           // Óvalo guía + overlay oscuro
           CustomPaint(painter: _FaceOvalPainter()),
 
-          // Texto de estado
+          // Texto de estado + contador + botón manual
           Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
+            bottom: 50,
+            left: 16,
+            right: 16,
             child: Column(
               children: [
                 Text(
@@ -182,11 +219,28 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'La captura es automática al detectar tu rostro',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
-                ),
+                if (!_showManualButton)
+                  Text(
+                    _secondsLeft > 0
+                        ? 'Captura automática en $_secondsLeft s'
+                        : 'La captura es automática al detectar tu rostro',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                if (_showManualButton) ...[
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _captured ? null : _capturarManual,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('Capturar manualmente'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

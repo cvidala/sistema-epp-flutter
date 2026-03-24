@@ -8,8 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
 import 'new_delivery_page.dart';
+import 'solicitudes_epp_page.dart';
 import 'services/cache_service.dart';
 import 'services/offline_queue_service.dart';
+import 'services/auth_service.dart';
 
 class WorkerDetailPage extends StatefulWidget {
   final String obraId;
@@ -477,6 +479,23 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
     _loadAll();
   }
 
+  Future<void> _goSolicitudEpp() async {
+    final perfil = AuthService.instance.perfil;
+    final supervisorNombre = perfil?.nombre ?? 'Supervisor';
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SolicitudEppPage(
+          obraId: widget.obraId,
+          obraNombre: widget.obraNombre,
+          trabajadorId: widget.trabajadorId,
+          trabajadorNombre: widget.trabajadorNombre,
+          trabajadorRut: widget.trabajadorRut,
+          supervisorNombre: supervisorNombre,
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────────────
   // BUILD
   // ─────────────────────────────────────────────────────
@@ -506,10 +525,25 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
         ],
       ),
       floatingActionButton: (widget.canWrite && widget.moduloEpp)
-          ? FloatingActionButton.extended(
-              onPressed: _goNewDelivery,
-              icon: const Icon(Icons.add),
-              label: const Text('Nueva entrega'),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'fab_solicitud',
+                  onPressed: _goSolicitudEpp,
+                  icon: const Icon(Icons.inbox),
+                  label: const Text('Solicitar a bodega'),
+                  backgroundColor: Colors.orange.shade700,
+                ),
+                const SizedBox(height: 10),
+                FloatingActionButton.extended(
+                  heroTag: 'fab_entrega',
+                  onPressed: _goNewDelivery,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Nueva entrega'),
+                ),
+              ],
             )
           : null,
       body: Column(
