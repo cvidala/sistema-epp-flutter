@@ -864,12 +864,15 @@
 
       <!-- PAGE: USUARIOS (ADMIN ONLY) -->
       <div class="page" id="page-usuarios">
-        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">
           <div>
             <div class="page-title">👤 Usuarios</div>
             <div class="page-sub">Gestión de accesos al sistema</div>
           </div>
-          <button class="btn btn-primary" onclick="openNuevoUsuario()">+ Nuevo Usuario</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="openConfigurarPin()">🔑 PIN de Validación</button>
+            <button class="btn btn-primary" onclick="openNuevoUsuario()">+ Nuevo Usuario</button>
+          </div>
         </div>
         <div class="card">
           <div class="table-wrap">
@@ -886,6 +889,44 @@
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app-shell -->
+
+<!-- MODAL CONFIGURAR PIN DE VALIDACIÓN -->
+<div class="modal-bg" id="modalConfigurarPin">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeModal('modalConfigurarPin')">✕</button>
+    <div class="modal-title">🔑 PIN de Validación</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">El PIN protege la validación manual de asistencias. Debe tener entre 4 y 8 dígitos numéricos.</p>
+    <div id="pinActualWrap" style="display:none;margin-bottom:14px;">
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">PIN actual</label>
+      <div style="position:relative;">
+        <input type="password" id="pinActualInput" inputmode="numeric" maxlength="8" placeholder="••••"
+          style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;letter-spacing:4px;box-sizing:border-box;">
+        <button type="button" onclick="togglePinVis('pinActualInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">👁</button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Nuevo PIN</label>
+      <div style="position:relative;">
+        <input type="password" id="pinNuevoInput" inputmode="numeric" maxlength="8" placeholder="••••"
+          style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;letter-spacing:4px;box-sizing:border-box;">
+        <button type="button" onclick="togglePinVis('pinNuevoInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">👁</button>
+      </div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Confirmar nuevo PIN</label>
+      <div style="position:relative;">
+        <input type="password" id="pinConfirmarInput" inputmode="numeric" maxlength="8" placeholder="••••"
+          style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;letter-spacing:4px;box-sizing:border-box;">
+        <button type="button" onclick="togglePinVis('pinConfirmarInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">👁</button>
+      </div>
+    </div>
+    <div id="pinError" style="display:none;color:var(--red);font-size:13px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modalConfigurarPin')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarPin" onclick="guardarPin()">Guardar PIN</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL FOTO ASISTENCIA -->
 <div class="modal-bg" id="modalFotoAsist" onclick="if(event.target===this)closeFotoAsistModal()">
@@ -917,10 +958,44 @@
       </div>
     </div>
 
-    <!-- Footer con score de credibilidad -->
-    <div style="padding:16px 24px 20px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <div id="fotoAsistScore"></div>
-      <button onclick="closeFotoAsistModal()" style="padding:8px 20px;background:#f1f5f9;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;color:#475569;">Cerrar</button>
+    <!-- Footer con score + validación manual -->
+    <div style="padding:16px 24px 20px;border-top:1px solid #f1f5f9;">
+      <!-- Fila 1: credibilidad + botones -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div id="fotoAsistScore"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="btnAbrirValidacion" onclick="toggleFormValidacion()" style="padding:8px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;color:#166534;font-weight:600;">✍️ Validar manualmente</button>
+          <button onclick="closeFotoAsistModal()" style="padding:8px 20px;background:#f1f5f9;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;color:#475569;">Cerrar</button>
+        </div>
+      </div>
+
+      <!-- Fila 2: formulario de validación (oculto por defecto) -->
+      <div id="formValidacionManual" style="display:none;margin-top:16px;padding:16px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
+        <p style="font-size:13px;font-weight:600;color:#1e293b;margin:0 0 12px;">Validación manual de asistencia</p>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Motivo de validación <span style="color:var(--red)">*</span></label>
+            <input type="text" id="validacionMotivo" placeholder="Ej: Trabajador sin foto de perfil registrada"
+              style="width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Sora',sans-serif;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">PIN <span style="color:var(--red)">*</span></label>
+            <div style="position:relative;">
+              <input type="password" id="validacionPin" inputmode="numeric" maxlength="8" placeholder="••••"
+                style="width:100px;padding:9px 34px 9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:15px;letter-spacing:3px;font-family:'Sora',sans-serif;">
+              <button type="button" onclick="togglePinVis('validacionPin',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:13px;">👁</button>
+            </div>
+          </div>
+        </div>
+        <div id="validacionError" style="display:none;color:var(--red);font-size:12px;margin-top:8px;"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+          <button onclick="toggleFormValidacion()" style="padding:7px 16px;background:white;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Sora',sans-serif;">Cancelar</button>
+          <button id="btnConfirmarValidacion" onclick="confirmarValidacion()" style="padding:7px 16px;background:#16a34a;color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;font-family:'Sora',sans-serif;">Confirmar</button>
+        </div>
+      </div>
+
+      <!-- Fila 3: info si ya está validado manualmente -->
+      <div id="fotoAsistValidado" style="display:none;margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;font-size:13px;color:#166534;"></div>
     </div>
   </div>
 </div>
@@ -3951,8 +4026,11 @@ function renderAsistenciaPage(rows) {
     const estadoBadge = r.sync_status === 'synced'
       ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">Sync</span>'
       : '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">Online</span>';
+    const fotoLabel = r.validacion_manual
+      ? `<span style="color:#16a34a;font-weight:700;font-size:12px;">✅ Ver foto</span>`
+      : `<span style="color:var(--orange);font-weight:600;font-size:12px;">Ver foto</span>`;
     const foto = r.foto_path
-      ? `<a href="#" onclick="viewFotoAsist('${r.id}');return false;" style="color:var(--orange);font-weight:600;font-size:12px;">Ver foto</a>`
+      ? `<a href="#" onclick="viewFotoAsist('${r.id}');return false;">${fotoLabel}</a>`
       : '<span style="color:var(--muted);font-size:12px;">—</span>';
 
     // Validación geográfica
@@ -4210,6 +4288,7 @@ async function viewFotoAsist(asistenciaId) {
   if (!r) return;
 
   const modal = document.getElementById('modalFotoAsist');
+  _validandoAsistenciaId = asistenciaId;
   const dt    = r.captured_at ? new Date(r.captured_at) : null;
   const hora  = dt ? dt.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}) : '—';
   const fecha = dt ? dt.toLocaleDateString('es-CL', {day:'2-digit', month:'short', year:'numeric'}) : '—';
@@ -4252,6 +4331,32 @@ async function viewFotoAsist(asistenciaId) {
   document.getElementById('fotoAsistImgAsist').innerHTML = spinnerHtml;
   document.getElementById('fotoAsistImgPerfil').innerHTML = spinnerHtml;
 
+  // Resetear form de validación
+  document.getElementById('formValidacionManual').style.display = 'none';
+  document.getElementById('validacionMotivo').value = '';
+  document.getElementById('validacionPin').value = '';
+  document.getElementById('validacionError').style.display = 'none';
+
+  // Mostrar estado de validación si ya existe
+  const validadoDiv = document.getElementById('fotoAsistValidado');
+  const btnVal = document.getElementById('btnAbrirValidacion');
+  if (r.validacion_manual) {
+    const fechaVal = r.validado_at ? new Date(r.validado_at).toLocaleString('es-CL') : '';
+    validadoDiv.innerHTML = `✅ Validado manualmente por <strong>${r.validado_por || '—'}</strong> · ${fechaVal}<br>
+      <span style="color:#15803d;font-size:12px;">Motivo: ${r.validacion_motivo || '—'}</span>`;
+    validadoDiv.style.display = 'block';
+    btnVal.textContent = '✏️ Revalidar';
+    btnVal.style.background = '#fefce8';
+    btnVal.style.borderColor = '#fde047';
+    btnVal.style.color = '#713f12';
+  } else {
+    validadoDiv.style.display = 'none';
+    btnVal.textContent = '✍️ Validar manualmente';
+    btnVal.style.background = '#f0fdf4';
+    btnVal.style.borderColor = '#bbf7d0';
+    btnVal.style.color = '#166534';
+  }
+
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
@@ -4287,6 +4392,117 @@ async function viewFotoAsist(asistenciaId) {
 function closeFotoAsistModal() {
   document.getElementById('modalFotoAsist').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function toggleFormValidacion() {
+  const form = document.getElementById('formValidacionManual');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  if (form.style.display === 'block') document.getElementById('validacionMotivo').focus();
+}
+
+let _validandoAsistenciaId = null;
+
+async function confirmarValidacion() {
+  const motivo = document.getElementById('validacionMotivo').value.trim();
+  const pin    = document.getElementById('validacionPin').value.trim();
+  const errDiv = document.getElementById('validacionError');
+  const btn    = document.getElementById('btnConfirmarValidacion');
+
+  errDiv.style.display = 'none';
+  if (!motivo) { errDiv.textContent = 'El motivo es obligatorio'; errDiv.style.display = 'block'; return; }
+  if (!pin)    { errDiv.textContent = 'Ingresa el PIN'; errDiv.style.display = 'block'; return; }
+  if (!_validandoAsistenciaId) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+
+  try {
+    const { data, error } = await sb.rpc('validar_asistencia_manual', {
+      p_asistencia_id: _validandoAsistenciaId,
+      p_pin:           pin,
+      p_motivo:        motivo,
+    });
+
+    if (error) throw error;
+    if (!data.ok) { errDiv.textContent = data.error; errDiv.style.display = 'block'; return; }
+
+    // Actualizar registro local
+    const idx = allAsistencia.findIndex(r => r.id === _validandoAsistenciaId);
+    if (idx >= 0) {
+      allAsistencia[idx].validacion_manual  = true;
+      allAsistencia[idx].validado_por       = data.validado_por;
+      allAsistencia[idx].validado_at        = new Date().toISOString();
+      allAsistencia[idx].validacion_motivo  = motivo;
+    }
+
+    // Actualizar badge en modal
+    const validadoDiv = document.getElementById('fotoAsistValidado');
+    validadoDiv.innerHTML = `✅ Validado manualmente por <strong>${data.validado_por}</strong> · ahora<br>
+      <span style="color:#15803d;font-size:12px;">Motivo: ${motivo}</span>`;
+    validadoDiv.style.display = 'block';
+    document.getElementById('formValidacionManual').style.display = 'none';
+    const btnVal = document.getElementById('btnAbrirValidacion');
+    btnVal.textContent = '✏️ Revalidar';
+    btnVal.style.background = '#fefce8'; btnVal.style.borderColor = '#fde047'; btnVal.style.color = '#713f12';
+
+    renderAsistenciaPage(allAsistencia);  // refrescar tabla con nuevo badge
+
+  } catch(e) {
+    errDiv.textContent = e.message || 'Error al validar';
+    errDiv.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
+    document.getElementById('validacionPin').value = '';
+  }
+}
+
+// ── PIN de Validación (admin) ────────────────────────────────
+async function openConfigurarPin() {
+  // Verificar si ya hay PIN configurado
+  const { data: org } = await sb.from('organizaciones').select('pin_validacion_hash').limit(1).single();
+  const tienePinActual = !!org?.pin_validacion_hash;
+  document.getElementById('pinActualWrap').style.display = tienePinActual ? 'block' : 'none';
+  document.getElementById('pinActualInput').value  = '';
+  document.getElementById('pinNuevoInput').value   = '';
+  document.getElementById('pinConfirmarInput').value = '';
+  document.getElementById('pinError').style.display = 'none';
+  document.getElementById('modalConfigurarPin').classList.add('open');
+}
+
+async function guardarPin() {
+  const actual    = document.getElementById('pinActualInput').value.trim();
+  const nuevo     = document.getElementById('pinNuevoInput').value.trim();
+  const confirmar = document.getElementById('pinConfirmarInput').value.trim();
+  const errDiv    = document.getElementById('pinError');
+  const btn       = document.getElementById('btnGuardarPin');
+
+  errDiv.style.display = 'none';
+  if (nuevo !== confirmar) { errDiv.textContent = 'Los PINs no coinciden'; errDiv.style.display = 'block'; return; }
+  if (!/^\d{4,8}$/.test(nuevo)) { errDiv.textContent = 'El PIN debe tener 4–8 dígitos numéricos'; errDiv.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const { data, error } = await sb.rpc('configurar_pin_validacion', {
+      p_pin_nuevo:  nuevo,
+      p_pin_actual: actual || null,
+    });
+    if (error) throw error;
+    if (!data.ok) { errDiv.textContent = data.error; errDiv.style.display = 'block'; return; }
+    closeModal('modalConfigurarPin');
+    alert('✅ PIN configurado correctamente');
+  } catch(e) {
+    errDiv.textContent = e.message || 'Error al guardar';
+    errDiv.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar PIN';
+  }
+}
+
+function togglePinVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
 }
 
 function exportAsistenciaCSV() {
