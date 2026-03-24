@@ -36,7 +36,7 @@ DECLARE
 BEGIN
   -- Nombre del usuario autenticado (no viene del cliente)
   SELECT nombre INTO v_nombre
-  FROM usuarios
+  FROM perfiles
   WHERE user_id = auth.uid();
 
   IF v_nombre IS NULL THEN
@@ -46,7 +46,7 @@ BEGIN
   -- Hash del PIN de la organización del usuario
   SELECT o.pin_validacion_hash INTO v_hash
   FROM organizaciones o
-  JOIN usuarios u ON u.org_id = o.org_id
+  JOIN perfiles u ON u.org_id = o.org_id
   WHERE u.user_id = auth.uid();
 
   IF v_hash IS NULL THEN
@@ -94,7 +94,7 @@ DECLARE
 BEGIN
   -- Solo administradores
   SELECT rol, org_id INTO v_rol, v_org_id
-  FROM usuarios WHERE user_id = auth.uid();
+  FROM perfiles WHERE user_id = auth.uid();
 
   IF v_rol != 'ADMIN' THEN
     RETURN jsonb_build_object('ok', false, 'error', 'Solo los administradores pueden configurar el PIN');
