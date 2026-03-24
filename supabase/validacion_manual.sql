@@ -100,9 +100,9 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Solo los administradores pueden configurar el PIN');
   END IF;
 
-  -- Validar formato: 4–8 dígitos
-  IF p_pin_nuevo !~ '^\d{4,8}$' THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'El PIN debe tener entre 4 y 8 dígitos numéricos');
+  -- Validar formato: exactamente 4 dígitos
+  IF p_pin_nuevo !~ '^\d{4}$' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'El PIN debe tener exactamente 4 dígitos numéricos');
   END IF;
 
   -- Si ya existe PIN, verificar el actual antes de cambiar

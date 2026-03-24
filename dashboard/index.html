@@ -899,7 +899,7 @@
     <div id="pinActualWrap" style="display:none;margin-bottom:14px;">
       <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">PIN actual</label>
       <div style="position:relative;">
-        <input type="password" id="pinActualInput" inputmode="numeric" maxlength="8" placeholder="••••"
+        <input type="password" id="pinActualInput" inputmode="numeric" maxlength="4" placeholder="••••"
           style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;letter-spacing:4px;box-sizing:border-box;">
         <button type="button" onclick="togglePinVis('pinActualInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">👁</button>
       </div>
@@ -907,7 +907,7 @@
     <div style="margin-bottom:14px;">
       <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Nuevo PIN</label>
       <div style="position:relative;">
-        <input type="password" id="pinNuevoInput" inputmode="numeric" maxlength="8" placeholder="••••"
+        <input type="password" id="pinNuevoInput" inputmode="numeric" maxlength="4" placeholder="••••"
           style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;letter-spacing:4px;box-sizing:border-box;">
         <button type="button" onclick="togglePinVis('pinNuevoInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">👁</button>
       </div>
@@ -915,7 +915,7 @@
     <div style="margin-bottom:20px;">
       <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Confirmar nuevo PIN</label>
       <div style="position:relative;">
-        <input type="password" id="pinConfirmarInput" inputmode="numeric" maxlength="8" placeholder="••••"
+        <input type="password" id="pinConfirmarInput" inputmode="numeric" maxlength="4" placeholder="••••"
           style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;letter-spacing:4px;box-sizing:border-box;">
         <button type="button" onclick="togglePinVis('pinConfirmarInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">👁</button>
       </div>
@@ -981,7 +981,7 @@
           <div>
             <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">PIN <span style="color:var(--red)">*</span></label>
             <div style="position:relative;">
-              <input type="password" id="validacionPin" inputmode="numeric" maxlength="8" placeholder="••••"
+              <input type="password" id="validacionPin" inputmode="numeric" maxlength="4" placeholder="••••"
                 style="width:100px;padding:9px 34px 9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:15px;letter-spacing:3px;font-family:'Sora',sans-serif;">
               <button type="button" onclick="togglePinVis('validacionPin',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:13px;">👁</button>
             </div>
@@ -4479,7 +4479,7 @@ async function guardarPin() {
 
   errDiv.style.display = 'none';
   if (nuevo !== confirmar) { errDiv.textContent = 'Los PINs no coinciden'; errDiv.style.display = 'block'; return; }
-  if (!/^\d{4,8}$/.test(nuevo)) { errDiv.textContent = 'El PIN debe tener 4–8 dígitos numéricos'; errDiv.style.display = 'block'; return; }
+  if (!/^\d{4}$/.test(nuevo)) { errDiv.textContent = 'El PIN debe tener exactamente 4 dígitos'; errDiv.style.display = 'block'; return; }
 
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
