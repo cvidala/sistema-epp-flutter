@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
 <style>
   :root {
     --navy:#0D2148;--navy2:#162d5e;--orange:#E87722;--orange2:#ff8c3a;
@@ -339,6 +340,10 @@
       <div class="nav-item" data-page="stock" onclick="navTo('stock')"><span class="nav-icon">📦</span> Stock EPP</div>
       <div class="nav-item" data-page="entregas" onclick="navTo('entregas')"><span class="nav-icon">📋</span> Entregas</div>
       <div class="nav-item" data-page="asistencia" onclick="navTo('asistencia')"><span class="nav-icon">🕐</span> Asistencia</div>
+      <div class="nav-item" data-page="solicitudes" onclick="navTo('solicitudes')">
+        <span class="nav-icon">📥</span> Solicitudes EPP
+        <span class="nav-badge" id="solicitudesBadge" style="display:none">0</span>
+      </div>
       <div class="nav-item" data-page="reportes" onclick="navTo('reportes')"><span class="nav-icon">📊</span> Reportes</div>
     </div>
     <div class="sidebar-section">
@@ -609,6 +614,7 @@
             </select>
             <button onclick="loadPageAsistencia()" style="padding:8px 16px;background:var(--orange);color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Buscar</button>
             <button onclick="exportAsistenciaCSV()" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;">⬇ CSV</button>
+            <button id="btnRecalcularLote" onclick="recalcularCredibilidadLote()" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;" title="Recalcular credibilidad de los registros sin score">🔄 Credibilidad</button>
           </div>
         </div>
         <!-- KPIs Asistencia -->
@@ -621,9 +627,9 @@
         <div class="table-card">
           <table class="data-table">
             <thead><tr>
-              <th>RUT</th><th>Tipo de Marcaje</th><th>Hora</th><th>Fecha</th><th>Dispositivo</th><th>Estado</th><th>Ubicación</th><th>Foto</th>
+              <th>RUT</th><th>Tipo de Marcaje</th><th>Hora</th><th>Fecha</th><th>Dispositivo</th><th>Estado</th><th>Ubicación</th><th>Foto</th><th>Credibilidad</th>
             </tr></thead>
-            <tbody id="asistTable"><tr><td colspan="8" class="empty-state">Selecciona una fecha y presiona Buscar</td></tr></tbody>
+            <tbody id="asistTable"><tr><td colspan="9" class="empty-state">Selecciona una fecha y presiona Buscar</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -659,6 +665,26 @@
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- PAGE: SOLICITUDES EPP -->
+      <div class="page" id="page-solicitudes">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="page-title">📥 Solicitudes EPP a Bodega</div>
+            <div class="page-sub">Solicitudes registradas por supervisores desde la app</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="filtroEstadoSolicitud" onchange="renderSolicitudesPage()" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="atendida">Atendidas</option>
+              <option value="rechazada">Rechazadas</option>
+            </select>
+            <button class="btn btn-secondary" onclick="loadPageSolicitudes()">🔄 Actualizar</button>
+          </div>
+        </div>
+        <div id="solicitudesContent" style="margin-top:16px;"></div>
       </div>
 
       <!-- PAGE: REPORTES -->
@@ -1496,6 +1522,14 @@ async function initApp() {
 
   await loadDashboard();
 
+  // Cargar badge de solicitudes en background
+  sb.from('solicitudes_epp').select('id,estado').eq('estado','pendiente')
+    .then(({ data }) => {
+      const count = (data || []).length;
+      const badge = document.getElementById('solicitudesBadge');
+      if (badge && count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+    }).catch(() => {});
+
   // Restaurar pestaña activa del localStorage
   const savedPage = localStorage.getItem('trazapp_page');
   if (savedPage && savedPage !== 'resumen') navTo(savedPage);
@@ -1952,6 +1986,7 @@ const PAGE_TITLES = {
   stock: '📦 Stock EPP',
   entregas: '📋 Historial de Entregas',
   asistencia: '🕐 Asistencia Diaria',
+  solicitudes: '📥 Solicitudes EPP a Bodega',
   mantenimiento: '🔧 Mantenimiento de Trabajadores',
   alertas: '⚠️ Alertas EPP',
   centros: '🏗️ Centros de Costo',
@@ -1988,6 +2023,7 @@ function navTo(page) {
   if (page === 'reglas')      initPageReglas();
   if (page === 'asistencia')    initPageAsistencia();
   if (page === 'mantenimiento') loadPageMantenimiento();
+  if (page === 'solicitudes')   loadPageSolicitudes();
 
   // Re-populate if switching back
   if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);
@@ -3793,7 +3829,7 @@ function initPageAsistencia() {
 
 async function loadPageAsistencia() {
   document.getElementById('asistTable').innerHTML =
-    '<tr><td colspan="8" class="empty-state">Cargando...</td></tr>';
+    '<tr><td colspan="9" class="empty-state">Cargando...</td></tr>';
 
   const fecha = document.getElementById('asistFecha').value;
   const tipo  = document.getElementById('asistTipoFiltro').value;
@@ -3819,7 +3855,7 @@ async function loadPageAsistencia() {
 
   if (error) {
     document.getElementById('asistTable').innerHTML =
-      `<tr><td colspan="8" class="empty-state">Error: ${error.message}</td></tr>`;
+      `<tr><td colspan="9" class="empty-state">Error: ${error.message}</td></tr>`;
     return;
   }
 
@@ -3836,6 +3872,9 @@ async function loadPageAsistencia() {
 
   allAsistencia = data || [];
   renderAsistenciaPage(allAsistencia);
+
+  // Procesar credibilidad pendiente en background (sin bloquear la UI)
+  setTimeout(() => _autoProcesarCredibilidadBackground(), 1500);
 }
 
 function renderAsistenciaPage(rows) {
@@ -3850,7 +3889,7 @@ function renderAsistenciaPage(rows) {
 
   if (rows.length === 0) {
     document.getElementById('asistTable').innerHTML =
-      '<tr><td colspan="8" class="empty-state">Sin registros para los filtros seleccionados</td></tr>';
+      '<tr><td colspan="9" class="empty-state">Sin registros para los filtros seleccionados</td></tr>';
     return;
   }
 
@@ -3903,6 +3942,30 @@ function renderAsistenciaPage(rows) {
       geoHtml = '<span style="background:#fef9c3;color:#713f12;padding:2px 8px;border-radius:20px;font-size:11px;">Sin GPS</span>';
     }
 
+    // Badge de credibilidad
+    let credHtml;
+    if (r.credibilidad_score != null) {
+      const s = r.credibilidad_score;
+      const cfg = s >= 80
+        ? { bg:'#dcfce7', color:'#166534', icon:'✅' }
+        : s >= 60
+        ? { bg:'#fef9c3', color:'#713f12', icon:'⚠️' }
+        : { bg:'#fee2e2', color:'#991b1b', icon:'❌' };
+      credHtml = `<span style="background:${cfg.bg};color:${cfg.color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;" title="${r.credibilidad_status}">${cfg.icon} ${s}%</span>
+        <button onclick="recalcularCredibilidadIndividual('${r.id}')" title="Recalcular" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);margin-left:2px">↺</button>`;
+    } else if (r.credibilidad_status === 'sin_foto') {
+      credHtml = '<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:20px;font-size:11px;">Sin foto perfil</span>';
+    } else if (r.credibilidad_status === 'sin_rostro') {
+      credHtml = '<span style="background:#ffedd5;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;">Sin rostro</span>';
+    } else if (r.credibilidad_status === 'error') {
+      credHtml = `<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-size:11px;">Error</span>
+        <button onclick="recalcularCredibilidadIndividual('${r.id}')" title="Reintentar" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);">↺</button>`;
+    } else if (!r.foto_path) {
+      credHtml = '<span style="color:var(--muted);font-size:11px;">—</span>';
+    } else {
+      credHtml = `<button onclick="recalcularCredibilidadIndividual('${r.id}')" style="padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;">Calcular</button>`;
+    }
+
     return `<tr>
       <td><span style="font-family:monospace;font-weight:600;">${r.rut || '—'}</span></td>
       <td><span style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;${bs}">${r.tipo || '—'}</span></td>
@@ -3912,8 +3975,196 @@ function renderAsistenciaPage(rows) {
       <td>${estadoBadge}</td>
       <td>${geoHtml}</td>
       <td>${foto}</td>
+      <td style="white-space:nowrap;">${credHtml}</td>
     </tr>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CREDIBILIDAD FACIAL — face-api.js (browser, sin APIs externas)
+// ═══════════════════════════════════════════════════════════════
+const FACE_MODELS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model';
+let _faceApiReady   = false;
+let _faceApiLoading = false;
+
+async function _iniciarFaceApi() {
+  if (_faceApiReady) return;
+  if (_faceApiLoading) {
+    while (_faceApiLoading) await new Promise(r => setTimeout(r, 200));
+    return;
+  }
+  _faceApiLoading = true;
+  await Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS_URL),
+    faceapi.nets.faceLandmark68TinyNet.loadFromUri(FACE_MODELS_URL),
+    faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS_URL),
+  ]);
+  _faceApiReady   = true;
+  _faceApiLoading = false;
+}
+
+// Carga una imagen desde URL como HTMLImageElement (maneja CORS vía blob)
+async function _cargarImagen(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} al cargar imagen`);
+  const blob = await resp.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(blobUrl); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(new Error('No se pudo cargar la imagen')); };
+    img.src = blobUrl;
+  });
+}
+
+// Extrae el descriptor facial (128D) de una imagen
+async function _getDescriptor(img) {
+  const det = await faceapi
+    .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.4 }))
+    .withFaceLandmarks(true)
+    .withFaceDescriptor();
+  return det?.descriptor ?? null;
+}
+
+// Distancia euclidiana → score 0-100
+// face-api.js: distancia < 0.4 ≈ misma persona, > 0.6 ≈ diferente
+// Mapeamos: dist 0 → 100%, dist 0.4 → 60%, dist 0.6+ → baja
+function _distanciaAScore(dist) {
+  return Math.round(Math.max(0, Math.min(100, (1 - dist) * 100)));
+}
+
+// Procesa un único registro de asistencia
+async function _procesarCredibilidadRegistro(registro) {
+  try {
+    // Foto de perfil del trabajador
+    const { data: fotoPerfilUrl } = await sb
+      .rpc('get_foto_perfil_por_rut', { p_rut: registro.rut });
+
+    if (!fotoPerfilUrl) {
+      await sb.from('asistencias')
+        .update({ credibilidad_status: 'sin_foto' })
+        .eq('id', registro.id);
+      return { status: 'sin_foto' };
+    }
+
+    // URL firmada para la foto de asistencia (bucket privado)
+    const { data: signed } = await sb.storage
+      .from('asistencias-fotos')
+      .createSignedUrl(registro.foto_path, 120);
+
+    if (!signed?.signedUrl) throw new Error('No se pudo generar URL firmada');
+
+    // Cargar ambas imágenes en paralelo
+    const [imgAsist, imgPerfil] = await Promise.all([
+      _cargarImagen(signed.signedUrl),
+      _cargarImagen(fotoPerfilUrl),
+    ]);
+
+    // Extraer descriptores faciales en paralelo
+    const [descAsist, descPerfil] = await Promise.all([
+      _getDescriptor(imgAsist),
+      _getDescriptor(imgPerfil),
+    ]);
+
+    if (!descAsist) {
+      await sb.from('asistencias')
+        .update({ credibilidad_status: 'sin_rostro' })
+        .eq('id', registro.id);
+      return { status: 'sin_rostro' };
+    }
+    if (!descPerfil) {
+      await sb.from('asistencias')
+        .update({ credibilidad_status: 'sin_foto' })
+        .eq('id', registro.id);
+      return { status: 'sin_foto' };
+    }
+
+    const distancia = faceapi.euclideanDistance(descAsist, descPerfil);
+    const score     = _distanciaAScore(distancia);
+    const status    = score >= 80 ? 'alta' : score >= 60 ? 'media' : 'baja';
+
+    await sb.from('asistencias')
+      .update({ credibilidad_score: score, credibilidad_status: status })
+      .eq('id', registro.id);
+
+    return { score, status };
+
+  } catch(e) {
+    console.error('[credibilidad] Error en', registro.id, e.message);
+    await sb.from('asistencias')
+      .update({ credibilidad_status: 'error' })
+      .eq('id', registro.id);
+    return { status: 'error' };
+  }
+}
+
+async function recalcularCredibilidadLote() {
+  const btn = document.getElementById('btnRecalcularLote');
+  btn.disabled = true;
+  btn.textContent = '⏳ Cargando modelos...';
+
+  try {
+    await _iniciarFaceApi();
+
+    const pendientes = allAsistencia.filter(r =>
+      r.foto_path && r.credibilidad_score == null &&
+      r.credibilidad_status !== 'sin_foto' && r.credibilidad_status !== 'sin_rostro'
+    );
+
+    if (!pendientes.length) {
+      btn.textContent = '✅ Sin pendientes';
+      setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 Credibilidad'; }, 2000);
+      return;
+    }
+
+    let procesados = 0;
+    for (const r of pendientes) {
+      btn.textContent = `⏳ ${procesados}/${pendientes.length}`;
+      await _procesarCredibilidadRegistro(r);
+      procesados++;
+    }
+
+    btn.textContent = `✅ ${procesados} procesados`;
+    await loadPageAsistencia();
+
+  } catch(e) {
+    console.error('[credibilidad] Error lote:', e);
+    btn.textContent = '❌ Error';
+    alert('Error al calcular credibilidad:\n' + e.message);
+  } finally {
+    setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 Credibilidad'; }, 3000);
+  }
+}
+
+async function recalcularCredibilidadIndividual(asistenciaId) {
+  const registro = allAsistencia.find(r => r.id === asistenciaId);
+  if (!registro) return;
+  try {
+    await _iniciarFaceApi();
+    await _procesarCredibilidadRegistro(registro);
+    await loadPageAsistencia();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+// Procesa en background los registros sin score al cargar la página
+async function _autoProcesarCredibilidadBackground() {
+  const pendientes = allAsistencia.filter(r =>
+    r.foto_path && r.credibilidad_score == null &&
+    r.credibilidad_status !== 'sin_foto' && r.credibilidad_status !== 'sin_rostro'
+  );
+  if (!pendientes.length) return;
+  try {
+    await _iniciarFaceApi();
+    for (const r of pendientes) {
+      await _procesarCredibilidadRegistro(r);
+    }
+    // Refrescar silenciosamente la tabla con los nuevos scores
+    await loadPageAsistencia();
+  } catch(e) {
+    console.warn('[credibilidad] Auto-proceso interrumpido:', e.message);
+  }
 }
 
 async function viewFotoAsist(path) {
@@ -3991,6 +4242,112 @@ async function loadPageMantenimiento() {
     document.getElementById('mantTable').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--red)">Error: ${e.message}</td></tr>`;
   } finally {
     showLoading(false);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SOLICITUDES EPP
+// ═══════════════════════════════════════════════════════════════
+let allSolicitudes = [];
+
+async function loadPageSolicitudes() {
+  document.getElementById('solicitudesContent').innerHTML =
+    '<p style="color:var(--muted);padding:16px">Cargando...</p>';
+  try {
+    const { data, error } = await sb
+      .from('solicitudes_epp')
+      .select('*, obras(nombre)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    allSolicitudes = data || [];
+    _actualizarBadgeSolicitudes();
+    renderSolicitudesPage();
+  } catch (e) {
+    document.getElementById('solicitudesContent').innerHTML =
+      `<p style="color:red;padding:16px">Error: ${e.message}</p>`;
+  }
+}
+
+function _actualizarBadgeSolicitudes() {
+  const pendientes = allSolicitudes.filter(s => s.estado === 'pendiente').length;
+  const badge = document.getElementById('solicitudesBadge');
+  if (pendientes > 0) {
+    badge.textContent = pendientes;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderSolicitudesPage() {
+  const filtroEstado = document.getElementById('filtroEstadoSolicitud')?.value || '';
+  const lista = filtroEstado
+    ? allSolicitudes.filter(s => s.estado === filtroEstado)
+    : allSolicitudes;
+
+  const cont = document.getElementById('solicitudesContent');
+  if (!lista.length) {
+    cont.innerHTML = '<p style="color:var(--muted);padding:16px">No hay solicitudes' +
+      (filtroEstado ? ` con estado "${filtroEstado}"` : '') + '.</p>';
+    return;
+  }
+
+  const rows = lista.map(s => {
+    const items = (s.items || []).map(i =>
+      `<span style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;margin-right:4px">${i.nombre} ×${i.cantidad}</span>`
+    ).join('');
+    const estadoBadge = {
+      pendiente:  '<span style="background:#FFF3CD;color:#856404;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600">⏳ Pendiente</span>',
+      atendida:   '<span style="background:#D1FAE5;color:#065F46;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600">✅ Atendida</span>',
+      rechazada:  '<span style="background:#FEE2E2;color:#991B1B;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600">❌ Rechazada</span>',
+    }[s.estado] || s.estado;
+    const fecha = s.created_at ? new Date(s.created_at).toLocaleString('es-CL') : '—';
+    const obra = s.obras?.nombre || s.obra_id || '—';
+    const obs = s.observacion ? `<br><span style="color:var(--muted);font-size:12px">💬 ${s.observacion}</span>` : '';
+    const acciones = s.estado === 'pendiente'
+      ? `<button onclick="cambiarEstadoSolicitud('${s.id}','atendida')" style="padding:4px 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-right:4px">✅ Atendida</button>
+         <button onclick="cambiarEstadoSolicitud('${s.id}','rechazada')" style="padding:4px 10px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">❌ Rechazar</button>`
+      : '—';
+    return `<tr>
+      <td style="font-size:12px;color:var(--muted)">${fecha}</td>
+      <td><strong>${s.trabajador_nombre || '—'}</strong><br><span style="font-size:12px;color:var(--muted)">${s.trabajador_rut || ''}</span></td>
+      <td style="font-size:13px">${obra}</td>
+      <td style="font-size:13px">${s.supervisor_nombre || '—'}</td>
+      <td>${items}${obs}</td>
+      <td>${estadoBadge}</td>
+      <td>${acciones}</td>
+    </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="card" style="overflow:auto">
+      <table class="table" style="min-width:900px">
+        <thead><tr>
+          <th>Fecha</th><th>Trabajador</th><th>Centro</th><th>Supervisor</th>
+          <th>Ítems solicitados</th><th>Estado</th><th>Acciones</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+async function cambiarEstadoSolicitud(id, nuevoEstado) {
+  try {
+    const { error } = await sb
+      .from('solicitudes_epp')
+      .update({ estado: nuevoEstado, atendida_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    // Update local data
+    const idx = allSolicitudes.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      allSolicitudes[idx].estado = nuevoEstado;
+      allSolicitudes[idx].atendida_at = new Date().toISOString();
+    }
+    _actualizarBadgeSolicitudes();
+    renderSolicitudesPage();
+  } catch (e) {
+    alert('Error al actualizar: ' + e.message);
   }
 }
 
