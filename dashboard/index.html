@@ -601,11 +601,11 @@
 
       <!-- PAGE: ASISTENCIA -->
       <div class="page" id="page-asistencia">
-        <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
           <div class="page-title">🕐 Asistencia Diaria</div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="date" id="asistFecha" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
-            <select id="asistTipoFiltro" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
+            <select id="asistTipoFiltro" onchange="filtrarAsistencia()" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
               <option value="">Todos los tipos</option>
               <option value="Entrada">Entrada</option>
               <option value="Salida">Salida</option>
@@ -613,17 +613,33 @@
               <option value="Entrada de Colación">Entrada de Colación</option>
               <option value="Permiso Especial">Permiso Especial</option>
             </select>
+            <select id="asistCentroFiltro" onchange="filtrarAsistencia()" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
+              <option value="">Todos los centros</option>
+            </select>
+            <select id="asistCredFiltro" onchange="filtrarAsistencia()" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);">
+              <option value="">Toda credibilidad</option>
+              <option value="alta">✅ Alta (≥80%)</option>
+              <option value="media">⚠️ Media (60–79%)</option>
+              <option value="baja">❌ Baja (&lt;60%)</option>
+              <option value="sin_calcular">⬜ Sin calcular</option>
+              <option value="validado">✍️ Validado manual</option>
+            </select>
             <button onclick="loadPageAsistencia()" style="padding:8px 16px;background:var(--orange);color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Buscar</button>
             <button onclick="exportAsistenciaCSV()" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;">⬇ CSV</button>
-            <button id="btnRecalcularLote" onclick="recalcularCredibilidadLote()" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;" title="Recalcular credibilidad de los registros sin score">🔄 Credibilidad</button>
+            <button id="btnRecalcularLote" onclick="recalcularCredibilidadLote()" style="padding:8px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;" title="Recalcular credibilidad pendiente">🔄 Credibilidad</button>
           </div>
         </div>
         <!-- KPIs Asistencia -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;" id="asistKpis">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;" id="asistKpis">
           <div class="kpi-card green"><div class="kpi-icon" style="background:#dcfce7;">🟢</div><div class="kpi-value" id="asistKpiEntradas">—</div><div class="kpi-label">Entradas</div></div>
           <div class="kpi-card red"><div class="kpi-icon" style="background:#fee2e2;">🔴</div><div class="kpi-value" id="asistKpiSalidas">—</div><div class="kpi-label">Salidas</div></div>
           <div class="kpi-card orange"><div class="kpi-icon" style="background:#ffedd5;">🟡</div><div class="kpi-value" id="asistKpiColacion">—</div><div class="kpi-label">Colaciones</div></div>
           <div class="kpi-card navy"><div class="kpi-icon" style="background:#e0e7ff;">🔵</div><div class="kpi-value" id="asistKpiTotal">—</div><div class="kpi-label">Total del día</div></div>
+          <div class="kpi-card red" id="asistKpiBajaCard" style="cursor:pointer;" onclick="document.getElementById('asistCredFiltro').value='baja';filtrarAsistencia();" title="Click para filtrar">
+            <div class="kpi-icon" style="background:#fee2e2;">❌</div>
+            <div class="kpi-value" id="asistKpiBaja">—</div>
+            <div class="kpi-label">Baja credibilidad</div>
+          </div>
         </div>
         <div class="table-card">
           <table class="data-table">
@@ -3960,7 +3976,7 @@ async function loadPageAsistencia() {
   }
   if (tipo) query = query.eq('tipo', tipo);
 
-  const [{ data, error }, { data: trabObras }] = await Promise.all([
+  const [{ data, error }, { data: trabObras }] = await Promise.all([ // trabObras usado abajo para dropdown centros
     query,
     sb.from('trabajador_obras')
       .select('obra_id, trabajadores(rut), obras(gps_lat, gps_lng, geo_radio_m, nombre)')
@@ -3985,21 +4001,75 @@ async function loadPageAsistencia() {
   }
 
   allAsistencia = data || [];
-  renderAsistenciaPage(allAsistencia);
+
+  // Poblar dropdown de centros de costo con los que tienen registros hoy
+  const centroSel = document.getElementById('asistCentroFiltro');
+  const centroActual = centroSel.value;
+  const centrosEnDatos = new Set();
+  for (const ruts of Object.values(rutObrasGeoMap)) {
+    for (const obra of ruts) {
+      if (obra.nombre) centrosEnDatos.add(obra.nombre);
+    }
+  }
+  // También agregar centros de todos los trabajadores con asistencia (aunque no tengan GPS)
+  const todosLosCentros = new Set([...centrosEnDatos]);
+  (trabObras || []).forEach(row => { if (row.obras?.nombre) todosLosCentros.add(row.obras.nombre); });
+
+  centroSel.innerHTML = '<option value="">Todos los centros</option>' +
+    [...todosLosCentros].sort().map(n => `<option value="${n}"${centroActual===n?' selected':''}>${n}</option>`).join('');
+
+  filtrarAsistencia();
 
   // Procesar credibilidad pendiente en background (sin bloquear la UI)
   setTimeout(() => _autoProcesarCredibilidadBackground(), 1500);
 }
 
+function filtrarAsistencia() {
+  const tipo    = document.getElementById('asistTipoFiltro').value;
+  const centro  = document.getElementById('asistCentroFiltro').value;
+  const cred    = document.getElementById('asistCredFiltro').value;
+
+  let rows = allAsistencia;
+
+  if (tipo) rows = rows.filter(r => r.tipo === tipo);
+
+  if (centro) {
+    // Obtener RUTs que pertenecen a ese centro
+    const rutsDelCentro = new Set();
+    for (const [rut, obras] of Object.entries(rutObrasGeoMap)) {
+      if (obras.some(o => o.nombre === centro)) rutsDelCentro.add(rut);
+    }
+    rows = rows.filter(r => {
+      const k = (r.rut || '').replace(/[.\-\s]/g,'').toUpperCase();
+      return rutsDelCentro.has(k);
+    });
+  }
+
+  if (cred === 'alta')        rows = rows.filter(r => r.credibilidad_score >= 80);
+  else if (cred === 'media')  rows = rows.filter(r => r.credibilidad_score >= 60 && r.credibilidad_score < 80);
+  else if (cred === 'baja')   rows = rows.filter(r => r.credibilidad_score != null && r.credibilidad_score < 60);
+  else if (cred === 'sin_calcular') rows = rows.filter(r => r.credibilidad_score == null && !r.validacion_manual);
+  else if (cred === 'validado')     rows = rows.filter(r => r.validacion_manual === true);
+
+  renderAsistenciaPage(rows);
+}
+
 function renderAsistenciaPage(rows) {
-  // KPIs
+  // KPIs sobre el total sin filtrar de credibilidad (sólo fecha+tipo+centro)
   const entradas = rows.filter(r => r.tipo === 'Entrada').length;
   const salidas  = rows.filter(r => r.tipo === 'Salida').length;
   const colacion = rows.filter(r => r.tipo?.includes('Colación')).length;
+  const bajaCred = allAsistencia.filter(r =>
+    r.credibilidad_score != null && r.credibilidad_score < 60 && !r.validacion_manual
+  ).length;
   document.getElementById('asistKpiEntradas').textContent = entradas;
   document.getElementById('asistKpiSalidas').textContent  = salidas;
   document.getElementById('asistKpiColacion').textContent = colacion;
   document.getElementById('asistKpiTotal').textContent    = rows.length;
+  document.getElementById('asistKpiBaja').textContent     = bajaCred;
+  // Destacar KPI si hay registros con baja credibilidad
+  document.getElementById('asistKpiBajaCard').style.outline =
+    bajaCred > 0 ? '2px solid #ef4444' : 'none';
 
   if (rows.length === 0) {
     document.getElementById('asistTable').innerHTML =
@@ -4445,7 +4515,7 @@ async function confirmarValidacion() {
     btnVal.textContent = '✏️ Revalidar';
     btnVal.style.background = '#fefce8'; btnVal.style.borderColor = '#fde047'; btnVal.style.color = '#713f12';
 
-    renderAsistenciaPage(allAsistencia);  // refrescar tabla con nuevo badge
+    filtrarAsistencia();  // refrescar tabla respetando filtros activos
 
   } catch(e) {
     errDiv.textContent = e.message || 'Error al validar';
