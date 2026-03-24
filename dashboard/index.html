@@ -4152,6 +4152,11 @@ function renderAsistenciaPage(rows) {
       credHtml = `<button onclick="recalcularCredibilidadIndividual('${r.id}')" style="padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;">Calcular</button>`;
     }
 
+    // Badge validación manual (se agrega debajo del score si aplica)
+    if (r.validacion_manual) {
+      credHtml += `<br><span style="background:#f0fdf4;color:#16a34a;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid #bbf7d0;" title="Validado por ${r.validado_por || ''}">✍️ ${r.validado_por || 'Validado'}</span>`;
+    }
+
     return `<tr>
       <td><span style="font-family:monospace;font-weight:600;">${r.rut || '—'}</span></td>
       <td><span style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;${bs}">${r.tipo || '—'}</span></td>
