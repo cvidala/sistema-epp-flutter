@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION public.validar_asistencia_manual(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_hash  TEXT;
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION public.configurar_pin_validacion(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_rol        TEXT;
