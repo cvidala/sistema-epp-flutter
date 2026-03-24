@@ -641,6 +641,14 @@
             <div class="kpi-label">Baja credibilidad</div>
           </div>
         </div>
+        <!-- Leyenda credibilidad -->
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:white;border-radius:12px;border:1px solid var(--border);font-size:12px;">
+          <span style="color:var(--muted);font-weight:600;">Credibilidad facial:</span>
+          <span><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-weight:700;">✅ Alta</span> &nbsp;≥ 80%</span>
+          <span><span style="background:#fef9c3;color:#713f12;padding:2px 8px;border-radius:20px;font-weight:700;">⚠️ Media</span> &nbsp;60–79%</span>
+          <span><span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-weight:700;">❌ Baja</span> &nbsp;&lt; 60% — requiere revisión</span>
+          <span><span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid #bbf7d0;">✍️ Validado</span> &nbsp;Confirmado con PIN</span>
+        </div>
         <div class="table-card">
           <table class="data-table">
             <thead><tr>
@@ -3937,7 +3945,8 @@ async function saveAsignarTrabExistente() {
 
 // ── PAGE: ASISTENCIA ──────────────────────────────────────────────
 let allAsistencia = [];
-let rutObrasGeoMap = {}; // rut_normalizado → [{gps_lat, gps_lng, geo_radio_m, nombre}]
+let rutObrasGeoMap  = {}; // rut_normalizado → [{gps_lat, gps_lng, geo_radio_m, nombre}]
+let rutObrasAllMap  = {}; // rut_normalizado → [nombre_obra] — todas las obras (con y sin GPS)
 
 // Distancia en metros entre dos coordenadas GPS (fórmula Haversine)
 function haversineM(lat1, lng1, lat2, lng2) {
@@ -3979,8 +3988,7 @@ async function loadPageAsistencia() {
   const [{ data, error }, { data: trabObras }] = await Promise.all([ // trabObras usado abajo para dropdown centros
     query,
     sb.from('trabajador_obras')
-      .select('obra_id, trabajadores(rut), obras(gps_lat, gps_lng, geo_radio_m, nombre)')
-      .not('obras.gps_lat', 'is', null),
+      .select('obra_id, trabajadores(rut), obras(gps_lat, gps_lng, geo_radio_m, nombre)'),
   ]);
 
   if (error) {
@@ -3989,34 +3997,33 @@ async function loadPageAsistencia() {
     return;
   }
 
-  // Construir mapa rut_normalizado → obras con GPS configurado
+  // Construir mapas rut → obras
   rutObrasGeoMap = {};
+  rutObrasAllMap = {};
   for (const row of (trabObras || [])) {
     const rut = row.trabajadores?.rut;
     const obra = row.obras;
-    if (!rut || !obra?.gps_lat) continue;
+    if (!rut || !obra?.nombre) continue;
     const key = rut.replace(/[.\-\s]/g,'').toUpperCase();
+    // Mapa completo (para filtro de centro)
+    if (!rutObrasAllMap[key]) rutObrasAllMap[key] = [];
+    if (!rutObrasAllMap[key].includes(obra.nombre)) rutObrasAllMap[key].push(obra.nombre);
+    // Mapa GPS (para validación geográfica)
+    if (!obra.gps_lat) continue;
     if (!rutObrasGeoMap[key]) rutObrasGeoMap[key] = [];
     rutObrasGeoMap[key].push(obra);
   }
 
   allAsistencia = data || [];
 
-  // Poblar dropdown de centros de costo con los que tienen registros hoy
+  // Poblar dropdown de centros — usa obrasAccesibles (lista completa, sin filtro GPS)
   const centroSel = document.getElementById('asistCentroFiltro');
   const centroActual = centroSel.value;
-  const centrosEnDatos = new Set();
-  for (const ruts of Object.values(rutObrasGeoMap)) {
-    for (const obra of ruts) {
-      if (obra.nombre) centrosEnDatos.add(obra.nombre);
-    }
-  }
-  // También agregar centros de todos los trabajadores con asistencia (aunque no tengan GPS)
-  const todosLosCentros = new Set([...centrosEnDatos]);
-  (trabObras || []).forEach(row => { if (row.obras?.nombre) todosLosCentros.add(row.obras.nombre); });
-
   centroSel.innerHTML = '<option value="">Todos los centros</option>' +
-    [...todosLosCentros].sort().map(n => `<option value="${n}"${centroActual===n?' selected':''}>${n}</option>`).join('');
+    obrasAccesibles
+      .slice().sort((a,b) => a.nombre.localeCompare(b.nombre))
+      .map(o => `<option value="${o.nombre}"${centroActual===o.nombre?' selected':''}>${o.nombre}</option>`)
+      .join('');
 
   filtrarAsistencia();
 
@@ -4034,10 +4041,10 @@ function filtrarAsistencia() {
   if (tipo) rows = rows.filter(r => r.tipo === tipo);
 
   if (centro) {
-    // Obtener RUTs que pertenecen a ese centro
+    // Obtener RUTs que pertenecen a ese centro (usa mapa completo, sin filtro GPS)
     const rutsDelCentro = new Set();
-    for (const [rut, obras] of Object.entries(rutObrasGeoMap)) {
-      if (obras.some(o => o.nombre === centro)) rutsDelCentro.add(rut);
+    for (const [rut, obras] of Object.entries(rutObrasAllMap)) {
+      if (obras.includes(centro)) rutsDelCentro.add(rut);
     }
     rows = rows.filter(r => {
       const k = (r.rut || '').replace(/[.\-\s]/g,'').toUpperCase();
