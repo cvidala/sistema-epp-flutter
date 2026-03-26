@@ -972,7 +972,7 @@
           <div class="table-wrap">
             <table class="full-table">
               <thead><tr>
-                <th>Nombre</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th>
+                <th>Nombre</th><th>Rol</th><th>Estado</th><th>Notificaciones</th><th>Creado</th><th>Acciones</th>
               </tr></thead>
               <tbody id="usuariosTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
             </table>
@@ -983,6 +983,33 @@
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app-shell -->
+
+<!-- MODAL NOTIFICACIONES DE USUARIO -->
+<div class="modal-bg" id="modalNotifUsuario">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeModal('modalNotifUsuario')">✕</button>
+    <div class="modal-title">🔔 Notificaciones — <span id="notifNombre"></span></div>
+    <input type="hidden" id="notifUserId">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">
+      Este usuario recibirá un email diario cuando algún EPP esté próximo a vencer.
+    </p>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Email para notificaciones</label>
+      <input type="email" id="notifEmail" placeholder="supervisor@empresa.cl"
+        style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;box-sizing:border-box;">
+      <p style="font-size:11px;color:var(--muted);margin-top:4px;">Puede ser distinto al email de login.</p>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;margin-bottom:20px;">
+      <input type="checkbox" id="notifActiva" style="width:16px;height:16px;accent-color:var(--orange);">
+      Activar notificaciones de vencimiento
+    </label>
+    <div id="notifError" style="display:none;color:var(--red);font-size:13px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modalNotifUsuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNotifUsuario()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CONFIGURAR PIN DE VALIDACIÓN -->
 <div class="modal-bg" id="modalConfigurarPin">
@@ -1468,6 +1495,18 @@
       <div class="form-group">
         <label class="form-label">Vida útil (días)</label>
         <input class="form-input" type="number" id="eppVidaUtil" placeholder="365">
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0 12px;">
+      <p style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">🔔 Notificaciones de vencimiento</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">1ª alerta (días antes)</label>
+          <input class="form-input" type="number" id="eppNotif1" placeholder="30" min="1">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">2ª alerta (días antes)</label>
+          <input class="form-input" type="number" id="eppNotif2" placeholder="7" min="1">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2898,7 +2937,7 @@ async function desasignarCentro(trabId, obraId) {
 // STOCK EPP — CRUD
 // ═══════════════════════════════════════════════════════
 async function openNuevoEpp() {
-  ['eppNombre','eppCodigo','eppCategoria','eppVidaUtil'].forEach(id => document.getElementById(id).value = '');
+  ['eppNombre','eppCodigo','eppCategoria','eppVidaUtil','eppNotif1','eppNotif2'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('eppFormError').style.display = 'none';
   document.getElementById('modalNuevoEpp').classList.add('open');
 }
@@ -2908,9 +2947,17 @@ async function saveNuevoEpp() {
   const codigo    = document.getElementById('eppCodigo').value.trim().toUpperCase();
   const categoria = document.getElementById('eppCategoria').value.trim();
   const vidaUtil  = parseInt(document.getElementById('eppVidaUtil').value) || null;
+  const notif1    = parseInt(document.getElementById('eppNotif1').value) || 30;
+  const notif2    = parseInt(document.getElementById('eppNotif2').value) || 7;
   const errEl     = document.getElementById('eppFormError');
   if (!nombre || !codigo) { errEl.textContent = 'Nombre y código son obligatorios'; errEl.style.display='block'; return; }
-  const { error } = await sb.from('catalogo_epp').insert({ nombre, codigo, categoria, vida_util_dias: vidaUtil, activo: true });
+  const { error } = await sb.from('catalogo_epp').insert({
+    nombre, codigo, categoria,
+    vida_util_dias: vidaUtil,
+    notif_dias_1: notif1,
+    notif_dias_2: notif2,
+    activo: true
+  });
   if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
   closeModal('modalNuevoEpp');
   await loadPageStock();
@@ -3138,7 +3185,9 @@ function filtrarAuditoria() {
 // ═══════════════════════════════════════════════════════
 async function loadPageUsuarios() {
   document.getElementById('usuariosTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
-  const { data, error } = await sb.from('perfiles').select('user_id, nombre, rol, activo, created_at').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('perfiles')
+    .select('user_id, nombre, rol, activo, created_at, email_notif, recibe_notif_venc')
+    .order('created_at', { ascending: false });
   if (error) { document.getElementById('usuariosTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${error.message}</td></tr>`; return; }
 
   const rows = (data||[]).map(u => {
@@ -3146,26 +3195,64 @@ async function loadPageUsuarios() {
     const estado   = u.activo !== false ? '<span class="badge ok">Activo</span>' : '<span class="badge danger">Inactivo</span>';
     const fecha    = u.created_at ? new Date(u.created_at).toLocaleDateString('es-CL') : '—';
     const esSelf   = u.user_id === currentPerfil?.userId;
+    const notifBadge = u.recibe_notif_venc
+      ? `<span style="font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-weight:600;">🔔 ${u.email_notif || 'sin email'}</span>`
+      : `<span style="font-size:11px;color:var(--muted)">—</span>`;
+    const emailSafe = (u.email_notif||'').replace(/'/g,"\'");
+    const nombreSafe = (u.nombre||'').replace(/'/g,"\'");
     return `<tr>
       <td><div class="worker-name">${u.nombre||'—'}${esSelf ? ' <span style="font-size:10px;color:var(--orange)">(tú)</span>' : ''}</div></td>
       <td>${rolLabel}</td>
       <td>${estado}</td>
+      <td>${notifBadge}</td>
       <td style="font-size:12px;color:var(--muted)">${fecha}</td>
       <td>
         <div class="action-btns">
+          <button class="btn btn-secondary btn-sm" onclick="openNotifUsuario('${u.user_id}','${nombreSafe}','${emailSafe}',${!!u.recibe_notif_venc})">🔔</button>
           ${!esSelf ? `
             ${u.activo !== false
-              ? `<button class="btn btn-danger btn-sm" onclick="suspenderUsuario('${u.user_id}','${(u.nombre||'').replace(/'/g,"\'")}')">🚫 Suspender</button>`
-              : `<button class="btn btn-success btn-sm" onclick="reactivarUsuario('${u.user_id}','${(u.nombre||'').replace(/'/g,"\'")}')">✅ Reactivar</button>`
+              ? `<button class="btn btn-danger btn-sm" onclick="suspenderUsuario('${u.user_id}','${nombreSafe}')">🚫 Suspender</button>`
+              : `<button class="btn btn-success btn-sm" onclick="reactivarUsuario('${u.user_id}','${nombreSafe}')">✅ Reactivar</button>`
             }
-            <button class="btn btn-danger btn-sm" onclick="eliminarUsuario('${u.user_id}','${(u.nombre||'').replace(/'/g,"\'")}')">🗑️</button>
+            <button class="btn btn-danger btn-sm" onclick="eliminarUsuario('${u.user_id}','${nombreSafe}')">🗑️</button>
           ` : '<span style="font-size:11px;color:var(--muted)">—</span>'}
         </div>
       </td>
     </tr>`;
   }).join('');
 
-  document.getElementById('usuariosTable').innerHTML = rows || '<tr><td colspan="5" class="empty-state">Sin usuarios</td></tr>';
+  document.getElementById('usuariosTable').innerHTML = rows || '<tr><td colspan="6" class="empty-state">Sin usuarios</td></tr>';
+}
+
+function openNotifUsuario(userId, nombre, emailNotif, recibeNotif) {
+  document.getElementById('notifUserId').value    = userId;
+  document.getElementById('notifNombre').textContent = nombre;
+  document.getElementById('notifEmail').value     = emailNotif || '';
+  document.getElementById('notifActiva').checked  = recibeNotif;
+  document.getElementById('notifError').style.display = 'none';
+  document.getElementById('modalNotifUsuario').classList.add('open');
+}
+
+async function saveNotifUsuario() {
+  const userId     = document.getElementById('notifUserId').value;
+  const emailNotif = document.getElementById('notifEmail').value.trim().toLowerCase();
+  const activa     = document.getElementById('notifActiva').checked;
+  const errEl      = document.getElementById('notifError');
+
+  if (activa && (!emailNotif || !emailNotif.includes('@'))) {
+    errEl.textContent = 'Ingresa un email válido para activar las notificaciones';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const { error } = await sb.from('perfiles')
+    .update({ email_notif: emailNotif || null, recibe_notif_venc: activa })
+    .eq('user_id', userId);
+
+  if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  closeModal('modalNotifUsuario');
+  await loadPageUsuarios();
 }
 
 async function openNuevoUsuario() {
