@@ -361,6 +361,7 @@
     <div class="sidebar-section" id="adminSection" style="display:none">
       <div class="sidebar-label">Administración</div>
       <div class="nav-item" data-page="usuarios" onclick="navTo('usuarios')"><span class="nav-icon">👤</span> Usuarios</div>
+      <div class="nav-item" data-page="auditoria" onclick="navTo('auditoria')"><span class="nav-icon">🔍</span> Auditoría</div>
     </div>
     <div class="sidebar-bottom">
       <div class="user-chip">
@@ -883,6 +884,75 @@
           <div style="font-size:48px;margin-bottom:16px">⚙️</div>
           <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:8px">Selecciona un centro de costo</div>
           <div style="font-size:13px">Podrás definir qué EPP son obligatorios, de advertencia o no aplican</div>
+        </div>
+      </div>
+
+      <!-- PAGE: AUDITORÍA (ADMIN ONLY) -->
+      <div class="page" id="page-auditoria">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="page-title">🔍 Auditoría</div>
+            <div class="page-sub">Registro de todas las acciones realizadas en el sistema</div>
+          </div>
+          <button class="btn btn-secondary" onclick="loadPageAuditoria()">🔄 Actualizar</button>
+        </div>
+        <!-- Filtros -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">TABLA</label>
+              <select id="auditTablaFiltro" onchange="filtrarAuditoria()" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;background:var(--bg);">
+                <option value="">Todas</option>
+                <option value="entregas_epp">Entregas EPP</option>
+                <option value="trabajadores">Trabajadores</option>
+                <option value="asistencias">Asistencias</option>
+                <option value="solicitudes_epp">Solicitudes EPP</option>
+                <option value="stock_movimientos">Stock</option>
+                <option value="obras">Centros de Costo</option>
+                <option value="organizaciones">Organización</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">OPERACIÓN</label>
+              <select id="auditOpFiltro" onchange="filtrarAuditoria()" style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;background:var(--bg);">
+                <option value="">Todas</option>
+                <option value="INSERT">INSERT</option>
+                <option value="UPDATE">UPDATE</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">USUARIO</label>
+              <input type="text" id="auditUsuarioFiltro" placeholder="Buscar usuario..." oninput="filtrarAuditoria()"
+                style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;background:var(--bg);width:180px;">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">DESDE</label>
+              <input type="date" id="auditDesdeFiltro" onchange="filtrarAuditoria()"
+                style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;background:var(--bg);">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">HASTA</label>
+              <input type="date" id="auditHastaFiltro" onchange="filtrarAuditoria()"
+                style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead><tr>
+                <th>Fecha/Hora</th>
+                <th>Tabla</th>
+                <th>Operación</th>
+                <th>Usuario</th>
+                <th>Registro ID</th>
+                <th>Detalle</th>
+              </tr></thead>
+              <tbody id="auditoriaTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+          <div id="auditoriaCount" style="padding:12px 0 0;font-size:12px;color:var(--muted);text-align:right;"></div>
         </div>
       </div>
 
@@ -2170,6 +2240,7 @@ function navTo(page) {
   if (page === 'alertas'      && allAlertas.length > 0)      renderAlertasPage(allAlertas);
   if (page === 'centros'      && allCentros.length > 0)      renderCentrosPage(allCentros);
   if (page === 'usuarios')    loadPageUsuarios();
+  if (page === 'auditoria')   loadPageAuditoria();
 }
 
 function onCentroChange() { loadDashboard(); }
@@ -2976,6 +3047,91 @@ async function desasignarTrabajadorDeCentro(obraId, trabId) {
   renderTrabAsignados(data||[], obraId);
 }
 
+
+// ═══════════════════════════════════════════════════════
+// AUDITORÍA (ADMIN ONLY)
+// ═══════════════════════════════════════════════════════
+let _allAuditRows = [];
+
+async function loadPageAuditoria() {
+  document.getElementById('auditoriaTable').innerHTML =
+    '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  try {
+    const { data, error } = await sb
+      .from('audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    _allAuditRows = data || [];
+    filtrarAuditoria();
+  } catch(e) {
+    document.getElementById('auditoriaTable').innerHTML =
+      `<tr><td colspan="6" class="empty-state">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function filtrarAuditoria() {
+  const tabla   = document.getElementById('auditTablaFiltro')?.value   || '';
+  const op      = document.getElementById('auditOpFiltro')?.value      || '';
+  const usuario = (document.getElementById('auditUsuarioFiltro')?.value || '').toLowerCase();
+  const desde   = document.getElementById('auditDesdeFiltro')?.value   || '';
+  const hasta   = document.getElementById('auditHastaFiltro')?.value   || '';
+
+  const rows = _allAuditRows.filter(r => {
+    if (tabla   && r.tabla      !== tabla)                   return false;
+    if (op      && r.operacion  !== op)                      return false;
+    if (usuario && !(r.usuario_nombre||'').toLowerCase().includes(usuario)) return false;
+    if (desde   && r.created_at < desde)                     return false;
+    if (hasta   && r.created_at > hasta + 'T23:59:59')       return false;
+    return true;
+  });
+
+  const opColor = { INSERT:'var(--green)', UPDATE:'var(--orange)', DELETE:'var(--red)' };
+  const tbody = document.getElementById('auditoriaTable');
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin registros para los filtros seleccionados</td></tr>';
+    document.getElementById('auditoriaCount').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const dt  = new Date(r.created_at);
+    const fecha = dt.toLocaleDateString('es-CL') + ' ' +
+                  dt.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const idCorto = r.registro_id ? r.registro_id.substring(0,8) + '…' : '—';
+    const color   = opColor[r.operacion] || 'var(--muted)';
+
+    // Construir resumen del detalle
+    let detalle = '';
+    if (r.operacion === 'UPDATE' && r.datos_anteriores && r.datos_nuevos) {
+      const ant = r.datos_anteriores;
+      const nue = r.datos_nuevos;
+      const cambios = Object.keys(nue).filter(k => JSON.stringify(ant[k]) !== JSON.stringify(nue[k]));
+      detalle = cambios.slice(0,3).map(k =>
+        `<span style="font-size:11px;background:var(--bg);padding:1px 6px;border-radius:4px;margin-right:3px;">${k}</span>`
+      ).join('') + (cambios.length > 3 ? `<span style="font-size:11px;color:var(--muted)">+${cambios.length-3} más</span>` : '');
+    } else if (r.operacion === 'INSERT' && r.datos_nuevos) {
+      const campos = Object.keys(r.datos_nuevos).length;
+      detalle = `<span style="font-size:11px;color:var(--muted)">${campos} campos registrados</span>`;
+    } else if (r.operacion === 'DELETE') {
+      detalle = '<span style="font-size:11px;color:var(--red)">Registro eliminado</span>';
+    }
+
+    return `<tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;white-space:nowrap;">${fecha}</td>
+      <td><span style="font-size:12px;background:var(--bg);padding:2px 8px;border-radius:6px;font-weight:500;">${r.tabla}</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:${color};padding:2px 8px;border:1px solid ${color};border-radius:6px;">${r.operacion}</span></td>
+      <td style="font-size:13px;">${r.usuario_nombre || '<span style="color:var(--muted)">anon/kiosko</span>'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);" title="${r.registro_id||''}">${idCorto}</td>
+      <td>${detalle}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('auditoriaCount').textContent =
+    `Mostrando ${rows.length} de ${_allAuditRows.length} registros`;
+}
 
 // ═══════════════════════════════════════════════════════
 // USUARIOS — CRUD (ADMIN ONLY)
