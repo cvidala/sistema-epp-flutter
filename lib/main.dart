@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'config/supabase_config.dart';
 import 'obras_page.dart';
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
@@ -21,9 +22,8 @@ Future<void> main() async {
   await OfflineCacheService.init();
 
   await Supabase.initialize(
-    url: 'https://ppltpmmtdnprgauwnytf.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbHRwbW10ZG5wcmdhdXdueXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNTM0NzIsImV4cCI6MjA4NTgyOTQ3Mn0.WsRKOEYNzU-tRrL3p6I_ip-AAQmNCgfVKEdockq_gE8',
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
   );
 
   runApp(const MyApp());
