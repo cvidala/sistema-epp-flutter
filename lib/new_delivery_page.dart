@@ -10,6 +10,7 @@ import 'dart:async';
 import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
 import 'services/forensic_service.dart';
+import 'services/stock_calculator.dart';
 
 class NewDeliveryPage extends StatefulWidget {
   final String obraId;
@@ -178,13 +179,9 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
           .select('epp_id, tipo, cantidad')
           .eq('bodega_id', bId)
           .timeout(const Duration(seconds: 12));
-      final Map<String, int> mapa = {};
-      for (final r in rows as List) {
-        final id = r['epp_id'] as String;
-        final tipo = r['tipo'] as String;
-        final qty = (r['cantidad'] as num).toInt();
-        mapa[id] = (mapa[id] ?? 0) + (tipo == 'ENTRADA' ? qty : -qty);
-      }
+      final mapa = StockCalculator.computeStock(
+        (rows as List).cast<Map<String, dynamic>>(),
+      );
       if (mounted) setState(() => stockDisponible = mapa);
     } catch (_) {
       // No crítico — entrega puede continuar, pero no muestra disponible
@@ -971,17 +968,17 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
     // Validar stock disponible antes de guardar
     if (!modoOffline && stockDisponible.isNotEmpty) {
-      for (final item in items) {
-        final eppId = item['epp_id'] as String;
-        final cantidad = (item['cantidad'] as num).toInt();
-        final disponible = stockDisponible[eppId] ?? 0;
-        if (cantidad > disponible) {
-          final nombre = epps
-              .cast<Map<String, dynamic>>()
-              .firstWhere((e) => e['epp_id'] == eppId, orElse: () => {'nombre': eppId})['nombre'];
-          setState(() => error = 'Stock insuficiente: "$nombre" tiene $disponible unidad(es) disponible(s) en bodega.');
-          return;
-        }
+      final itemsMap = {
+        for (final item in items)
+          item['epp_id'] as String: (item['cantidad'] as num).toInt(),
+      };
+      final eppId = StockCalculator.validateCart(itemsMap, stockDisponible);
+      if (eppId != null) {
+        final nombre = epps
+            .cast<Map<String, dynamic>>()
+            .firstWhere((e) => e['epp_id'] == eppId, orElse: () => {'nombre': eppId})['nombre'];
+        setState(() => error = 'Stock insuficiente: "$nombre" tiene ${stockDisponible[eppId] ?? 0} unidad(es) disponible(s) en bodega.');
+        return;
       }
     }
 
