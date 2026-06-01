@@ -1,15 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_test/hive_test.dart';
 import 'package:epp_app/services/offline_queue_service.dart';
 
 OfflineEntrega _entrega({
+  String localEventId = 'evt-test-001',
+  String createdAt = '2026-06-01T10:00:00.000Z',
   String status = 'PENDING',
   int attempts = 0,
   int maxAttempts = 5,
   String? nextRetryAt,
 }) =>
     OfflineEntrega(
-      localEventId: 'evt-test-001',
-      createdAtClientIso: '2026-06-01T10:00:00.000Z',
+      localEventId: localEventId,
+      createdAtClientIso: createdAt,
       scope: 'EPP',
       obraId: 'obra-001',
       trabajadorId: 'trab-001',
@@ -79,6 +82,69 @@ void main() {
       expect(r.items, isA<List>());
       expect(r.items.first['epp_id'], equals('epp-001'));
       expect(r.items.first['cantidad'], equals(2));
+    });
+  });
+
+  group('OfflineQueueService.listPending — backoff filter (UTL-04)', () {
+    setUp(() async {
+      await setUpTestHive();
+      await OfflineQueueService.init();
+    });
+
+    tearDown(() async {
+      await tearDownTestHive();
+    });
+
+    test('ERROR con nextRetryAt futuro es excluido', () async {
+      final futureRetry =
+          DateTime.now().add(const Duration(hours: 1)).toIso8601String();
+      await OfflineQueueService.enqueue(
+        _entrega(status: 'ERROR', nextRetryAt: futureRetry),
+      );
+      expect(OfflineQueueService.listPending(), isEmpty);
+    });
+
+    test('ERROR con nextRetryAt pasado aparece en listPending', () async {
+      final pastRetry =
+          DateTime.now().subtract(const Duration(hours: 1)).toIso8601String();
+      await OfflineQueueService.enqueue(
+        _entrega(status: 'ERROR', nextRetryAt: pastRetry),
+      );
+      expect(OfflineQueueService.listPending(), hasLength(1));
+    });
+
+    test('PENDING sin nextRetryAt aparece en listPending', () async {
+      await OfflineQueueService.enqueue(_entrega(status: 'PENDING'));
+      expect(OfflineQueueService.listPending(), hasLength(1));
+    });
+  });
+
+  group('OfflineQueueService.listPending — orden cronológico (UTL-05)', () {
+    setUp(() async {
+      await setUpTestHive();
+      await OfflineQueueService.init();
+    });
+
+    tearDown(() async {
+      await tearDownTestHive();
+    });
+
+    test('ordena por createdAtClientIso ascendente', () async {
+      await OfflineQueueService.enqueue(
+        _entrega(
+          localEventId: 'evt-B',
+          createdAt: '2026-06-01T12:00:00.000Z',
+        ),
+      );
+      await OfflineQueueService.enqueue(
+        _entrega(
+          localEventId: 'evt-A',
+          createdAt: '2026-06-01T10:00:00.000Z',
+        ),
+      );
+      final pending = OfflineQueueService.listPending();
+      expect(pending[0].localEventId, equals('evt-A'));
+      expect(pending[1].localEventId, equals('evt-B'));
     });
   });
 }
