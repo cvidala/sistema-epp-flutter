@@ -28,7 +28,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Una entrega con prev_hash incorrecto hace fallar el test de hash chain
   3. El cálculo de stock disponible (ENTRADA - SALIDA) es correcto para el caso base y el caso de bloqueo por cantidad insuficiente
   4. `OfflineQueueService.listPending` excluye entregas en backoff (nextRetryAt futuro) y devuelve las restantes ordenadas cronológicamente
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 01-01-PLAN.md — Extract StockCalculator, write hash chain / stock / offline queue unit tests (UTL-01 through UTL-05)
 
 ### Phase 2: Supabase Tests
 **Goal**: RLS por rol, triggers de inmutabilidad/audit y RPCs críticas están verificados contra la base de datos real de Supabase, detectando cualquier cambio de seguridad o comportamiento
@@ -73,7 +75,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Unit Tests | 0/TBD | Not started | - |
+| 1. Unit Tests | 0/1 | Not started | - |
 | 2. Supabase Tests | 0/TBD | Not started | - |
 | 3. E2E Tests | 0/TBD | Not started | - |
 | 4. CI/CD Pipeline | 0/TBD | Not started | - |
