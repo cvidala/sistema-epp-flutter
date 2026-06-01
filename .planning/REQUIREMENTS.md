@@ -9,11 +9,11 @@
 
 ### Unit Tests (UTL)
 
-- [ ] **UTL-01**: Tests de hash chain — verificar que `prev_hash` se encadena correctamente entre entregas consecutivas
-- [ ] **UTL-02**: Tests de validación de stock — `_cargarStock` calcula correctamente ENTRADA - SALIDA por bodega+EPP
-- [ ] **UTL-03**: Tests de validación de stock — bloqueo cuando cantidad > disponible
-- [ ] **UTL-04**: Tests de `OfflineQueueService.listPending` — filtrado por backoff (ERROR con nextRetryAt futuro excluido)
-- [ ] **UTL-05**: Tests de `OfflineQueueService.listPending` — ordenado cronológico por createdAt
+- [x] **UTL-01**: Tests de hash chain — verificar que `prev_hash` se encadena correctamente entre entregas consecutivas
+- [x] **UTL-02**: Tests de validación de stock — `_cargarStock` calcula correctamente ENTRADA - SALIDA por bodega+EPP
+- [x] **UTL-03**: Tests de validación de stock — bloqueo cuando cantidad > disponible
+- [x] **UTL-04**: Tests de `OfflineQueueService.listPending` — filtrado por backoff (ERROR con nextRetryAt futuro excluido)
+- [x] **UTL-05**: Tests de `OfflineQueueService.listPending` — ordenado cronológico por createdAt
 
 ### Tests Supabase — RLS (RLS)
 
@@ -72,11 +72,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UTL-01 | Phase 1: Unit Tests | Pending |
-| UTL-02 | Phase 1: Unit Tests | Pending |
-| UTL-03 | Phase 1: Unit Tests | Pending |
-| UTL-04 | Phase 1: Unit Tests | Pending |
-| UTL-05 | Phase 1: Unit Tests | Pending |
+| UTL-01 | Phase 1: Unit Tests | Complete |
+| UTL-02 | Phase 1: Unit Tests | Complete |
+| UTL-03 | Phase 1: Unit Tests | Complete |
+| UTL-04 | Phase 1: Unit Tests | Complete |
+| UTL-05 | Phase 1: Unit Tests | Complete |
 | RLS-01 | Phase 2: Supabase Tests | Pending |
 | RLS-02 | Phase 2: Supabase Tests | Pending |
 | RLS-03 | Phase 2: Supabase Tests | Pending |

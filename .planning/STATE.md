@@ -1,12 +1,17 @@
 ---
-gsd_state_version: '1.0'
-status: planning
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in-progress
+stopped_at: "Phase 1 Plan 01-01 complete — 50 unit tests green, UTL-01 through UTL-05 satisfied"
+last_updated: "2026-06-01T19:27:16Z"
+last_activity: "2026-06-01 — Phase 1 Plan 01-01 executed: StockCalculator extracted, 16 new tests added"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 1
+  completed_plans: 1
+  percent: 10
 ---
 
 # Project State
@@ -21,27 +26,29 @@ See: .planning/PROJECT.md (updated 2026-06-01)
 ## Current Position
 
 Phase: 1 of 4 (Unit Tests)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-06-01 — Roadmap creado, proyecto inicializado
+Plan: 1 of 1 in current phase — COMPLETE
+Status: In progress
+Last activity: 2026-06-01 — Phase 1 Plan 01-01 executed (StockCalculator + 5 UTL requirements)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+
+- Total plans completed: 1
+- Average duration: 2 min
+- Total execution time: 0.03 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-unit-tests | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: -
+
+- Last 5 plans: 01-01 (2 min)
 - Trend: -
 
 *Updated after each plan completion*
@@ -55,6 +62,10 @@ Recent decisions affecting current work:
 
 - Init: Tests Supabase contra DB real (no mocks) — hubo incidentes por divergencia mock/prod
 - Init: QA dentro del mismo repo sistema-epp-flutter — comparte contexto de código
+- Phase 1 Plan 01: StockCalculator placed in lib/services/ (not lib/utils/) — no utils/ directory exists in project
+- Phase 1 Plan 01: Hash chain tests reimplement _canonicalJson inline to avoid exposing SyncService internals
+- Phase 1 Plan 01: validateCart returns failing epp_id (not error string) — UI formatting stays in new_delivery_page.dart
+- Phase 1 Plan 01: hive_test 1.0.1 used for Hive lifecycle; each test group gets own setUp/tearDown for isolation
 
 ### Pending Todos
 
@@ -75,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-01
-Stopped at: Roadmap y STATE inicializados — listo para `/gsd-plan-phase 1`
+Last session: 2026-06-01T19:27:16Z
+Stopped at: "Completed Phase 1 Plan 01-01 — 50 tests green, UTL-01 through UTL-05 satisfied"
 Resume file: None
