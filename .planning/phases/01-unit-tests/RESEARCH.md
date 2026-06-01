@@ -474,7 +474,7 @@ final eventHash = EvidenceService.hashString(toHash);
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `StockCalculator` live in `lib/services/` or `lib/utils/`?**
    - What we know: The project has a `lib/services/` directory with domain logic; no `utils/` directory exists.
