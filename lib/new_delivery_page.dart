@@ -56,6 +56,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   List<dynamic> epps = [];
 
   final Map<String, int> carrito = {};
+  Map<String, int> stockDisponible = {};
 
   Uint8List? evidenciaBytes;
   String? evidenciaNombre;
@@ -130,6 +131,8 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
         modoOffline = false;
       });
 
+      await _cargarStock(bodegaId);
+
       debugPrint('[_loadInit] FIN OK');
 
       // ✅ Semáforo inicial solo cuando hay conexión, DESPUÉS de confirmar modoOffline=false
@@ -164,6 +167,27 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
         setState(() => loading = false);
         debugPrint('[_loadInit] loading=false');
       }
+    }
+  }
+
+  Future<void> _cargarStock(String? bId) async {
+    if (bId == null || modoOffline) return;
+    try {
+      final rows = await supabase
+          .from('stock_movimientos')
+          .select('epp_id, tipo, cantidad')
+          .eq('bodega_id', bId)
+          .timeout(const Duration(seconds: 12));
+      final Map<String, int> mapa = {};
+      for (final r in rows as List) {
+        final id = r['epp_id'] as String;
+        final tipo = r['tipo'] as String;
+        final qty = (r['cantidad'] as num).toInt();
+        mapa[id] = (mapa[id] ?? 0) + (tipo == 'ENTRADA' ? qty : -qty);
+      }
+      if (mounted) setState(() => stockDisponible = mapa);
+    } catch (_) {
+      // No crítico — entrega puede continuar, pero no muestra disponible
     }
   }
 
@@ -945,6 +969,22 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       return;
     }
 
+    // Validar stock disponible antes de guardar
+    if (!modoOffline && stockDisponible.isNotEmpty) {
+      for (final item in items) {
+        final eppId = item['epp_id'] as String;
+        final cantidad = (item['cantidad'] as num).toInt();
+        final disponible = stockDisponible[eppId] ?? 0;
+        if (cantidad > disponible) {
+          final nombre = epps
+              .cast<Map<String, dynamic>>()
+              .firstWhere((e) => e['epp_id'] == eppId, orElse: () => {'nombre': eppId})['nombre'];
+          setState(() => error = 'Stock insuficiente: "$nombre" tiene $disponible unidad(es) disponible(s) en bodega.');
+          return;
+        }
+      }
+    }
+
     if (evidenciaBytes == null) {
       setState(() =>
           error = 'Debes agregar evidencia (imagen) antes de guardar.');
@@ -1118,6 +1158,9 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     final selected = qty > 0;
     final eppId = e['epp_id'].toString();
     final sev = soloPendientes ? _severidadPendientePorEppId(eppId) : null;
+    final disponible = stockDisponible.isEmpty ? null : (stockDisponible[id] ?? 0);
+    final sinStock = disponible != null && disponible <= 0;
+    final enLimite = disponible != null && qty >= disponible;
 
     return ListTile(
       title: Row(
@@ -1129,6 +1172,19 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
           ],
         ],
       ),
+      subtitle: disponible != null
+          ? Text(
+              sinStock ? 'Sin stock' : '$disponible disponible(s)',
+              style: TextStyle(
+                fontSize: 11,
+                color: sinStock
+                    ? Colors.red.shade700
+                    : disponible <= 3
+                        ? Colors.orange.shade700
+                        : Colors.green.shade700,
+              ),
+            )
+          : null,
       trailing: selected
           ? Row(
               mainAxisSize: MainAxisSize.min,
@@ -1150,8 +1206,9 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                 Text(qty.toString(),
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () {
+                  icon: Icon(Icons.add_circle_outline,
+                      color: enLimite ? Colors.grey.shade400 : null),
+                  onPressed: enLimite ? null : () {
                     setState(() => carrito[id] = (carrito[id] ?? 0) + 1);
                     _programarEvaluacionSemaforo();
                   },
@@ -1258,7 +1315,8 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                         )
                         .toList(),
                     onChanged: (v) {
-                      setState(() => bodegaId = v);
+                      setState(() { bodegaId = v; stockDisponible = {}; });
+                      _cargarStock(v);
                       _programarEvaluacionSemaforo();
                     },
                     decoration: const InputDecoration(
