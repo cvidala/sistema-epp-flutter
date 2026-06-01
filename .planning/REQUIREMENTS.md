@@ -70,10 +70,32 @@
 
 ## Traceability
 
-| Requirement | Phase |
-|---|---|
-| UTL-01..05 | Phase 1 |
-| RLS-01..06 | Phase 2 |
-| TRG-01..07 | Phase 2 |
-| E2E-01..05 | Phase 3 |
-| CI-01..04  | Phase 4 |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| UTL-01 | Phase 1: Unit Tests | Pending |
+| UTL-02 | Phase 1: Unit Tests | Pending |
+| UTL-03 | Phase 1: Unit Tests | Pending |
+| UTL-04 | Phase 1: Unit Tests | Pending |
+| UTL-05 | Phase 1: Unit Tests | Pending |
+| RLS-01 | Phase 2: Supabase Tests | Pending |
+| RLS-02 | Phase 2: Supabase Tests | Pending |
+| RLS-03 | Phase 2: Supabase Tests | Pending |
+| RLS-04 | Phase 2: Supabase Tests | Pending |
+| RLS-05 | Phase 2: Supabase Tests | Pending |
+| RLS-06 | Phase 2: Supabase Tests | Pending |
+| TRG-01 | Phase 2: Supabase Tests | Pending |
+| TRG-02 | Phase 2: Supabase Tests | Pending |
+| TRG-03 | Phase 2: Supabase Tests | Pending |
+| TRG-04 | Phase 2: Supabase Tests | Pending |
+| TRG-05 | Phase 2: Supabase Tests | Pending |
+| TRG-06 | Phase 2: Supabase Tests | Pending |
+| TRG-07 | Phase 2: Supabase Tests | Pending |
+| E2E-01 | Phase 3: E2E Tests | Pending |
+| E2E-02 | Phase 3: E2E Tests | Pending |
+| E2E-03 | Phase 3: E2E Tests | Pending |
+| E2E-04 | Phase 3: E2E Tests | Pending |
+| E2E-05 | Phase 3: E2E Tests | Pending |
+| CI-01 | Phase 4: CI/CD Pipeline | Pending |
+| CI-02 | Phase 4: CI/CD Pipeline | Pending |
+| CI-03 | Phase 4: CI/CD Pipeline | Pending |
+| CI-04 | Phase 4: CI/CD Pipeline | Pending |
