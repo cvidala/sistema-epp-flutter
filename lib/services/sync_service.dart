@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -118,8 +117,8 @@ class SyncService {
           'evidencia_hash':    e.evidenciaHash,
           'created_at_client': e.createdAtClientIso,
           'evidencia_path':    remotePath,
-          if (firmaHash != null)    'firma_hash':  firmaHash,
-          if (firmaRemotePath != null) 'firma_path': firmaRemotePath,
+          'firma_hash': ?firmaHash,
+          'firma_path': ?firmaRemotePath,
           if (e.forensics != null) 'forensics_gps_lat': e.forensics!['gps_lat'],
           if (e.forensics != null) 'forensics_gps_lng': e.forensics!['gps_lng'],
         };

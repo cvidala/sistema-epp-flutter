@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui' show FontFeature;
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -362,7 +360,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             alignment: Alignment.centerLeft,
             child: Text('Tipo de marcaje',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5)),
@@ -373,7 +371,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _tipos.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (_, i) {
                 final t = _tipos[i];
                 final sel = _tipoIndex == i;
@@ -388,7 +386,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: sel
-                            ? t.textColor.withOpacity(0.4)
+                            ? t.textColor.withValues(alpha: 0.4)
                             : Colors.transparent,
                         width: 1.5,
                       ),
@@ -415,7 +413,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             alignment: Alignment.centerLeft,
             child: Text('RUT del trabajador',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5)),
@@ -436,7 +434,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             decoration: InputDecoration(
               hintText: '12.345.678-9',
               hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.2), fontSize: 22),
+                  color: Colors.white.withValues(alpha: 0.2), fontSize: 22),
               filled: true,
               fillColor: _rutError != null
                   ? const Color(0xFF4a1a1a)
@@ -508,7 +506,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF0a1a3a),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Column(
               children: [
@@ -526,7 +524,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
                 Text(
                   _fechaActual,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.45),
+                    color: Colors.white.withValues(alpha: 0.45),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -535,7 +533,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
                 Text(
                   'Hora de marcado',
                   style: TextStyle(
-                    color: const Color(0xFFE87722).withOpacity(0.8),
+                    color: const Color(0xFFE87722).withValues(alpha: 0.8),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.5,
@@ -550,7 +548,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
           Text(
             'Solo personal autorizado — RUT debe estar registrado en el sistema',
             style: TextStyle(
-                color: Colors.white.withOpacity(0.25), fontSize: 10),
+                color: Colors.white.withValues(alpha: 0.25), fontSize: 10),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -563,7 +561,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
     final isOk = _resultStatus == _ResultStatus.ok;
     final tipo = _tipos[_tipoIndex];
     return Container(
-      color: Colors.black.withOpacity(0.92),
+      color: Colors.black.withValues(alpha: 0.92),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -611,7 +609,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             Text(
               _fechaActual,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 13,
               ),
             ),
@@ -624,14 +622,14 @@ class _RutInputScreenState extends State<RutInputScreen> {
                     : 'Sin conexión. Se sincronizará automáticamente.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.55), fontSize: 13),
+                    color: Colors.white.withValues(alpha: 0.55), fontSize: 13),
               ),
             ),
             const SizedBox(height: 28),
             Text(
               'Siguiente trabajador en $_countdown...',
               style: TextStyle(
-                  color: Colors.white.withOpacity(0.4), fontSize: 14),
+                  color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
             ),
           ],
         ),

@@ -191,7 +191,7 @@ class _SolicitudEppPageState extends State<SolicitudEppPage> {
                       : ListView.separated(
                           padding: const EdgeInsets.only(bottom: 8),
                           itemCount: _catalogo.length,
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (_, _) =>
                               const Divider(height: 1),
                           itemBuilder: (context, i) {
                             final item = _catalogo[i];
@@ -245,7 +245,7 @@ class _SolicitudEppPageState extends State<SolicitudEppPage> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 6,
                         offset: const Offset(0, -2),
                       ),

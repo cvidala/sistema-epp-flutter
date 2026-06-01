@@ -218,7 +218,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
     String? evidenciaLocalPath,
     String? firmaLocalPath,
   }) {
-    final shortId = eventId.length > 16 ? eventId.substring(0, 16) + '…' : eventId;
+    final shortId = eventId.length > 16 ? '${eventId.substring(0, 16)}…' : eventId;
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -270,7 +270,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                       child: Image.network(url,
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          errorBuilder: (_, __, ___) =>
+                          errorBuilder: (_, _, _) =>
                               const Center(child: Text('No se pudo cargar'))),
                     )
                   else
@@ -322,7 +322,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                         borderRadius: BorderRadius.circular(7),
                         child: Image.network(firmaUrl,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 const Center(child: Text('No se pudo cargar'))),
                       ),
                     )

@@ -151,9 +151,9 @@ class _ObrasPageState extends State<ObrasPage> {
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Text(
                 '${p.nombre.split(' ').first} · $rolLabel',
@@ -187,7 +187,7 @@ class _ObrasPageState extends State<ObrasPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFFE87722).withOpacity(0.15),
+              color: const Color(0xFFE87722).withValues(alpha: 0.15),
               child: Row(
                 children: [
                   const Icon(Icons.cloud_off, size: 16, color: Color(0xFFE87722)),
@@ -233,7 +233,7 @@ class _ObrasPageState extends State<ObrasPage> {
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0D2148).withOpacity(0.08),
+                              color: const Color(0xFF0D2148).withValues(alpha: 0.08),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.location_off,
@@ -273,7 +273,7 @@ class _ObrasPageState extends State<ObrasPage> {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -287,7 +287,7 @@ class _ObrasPageState extends State<ObrasPage> {
                                 height: 46,
                                 decoration: BoxDecoration(
                                   color: activa
-                                      ? const Color(0xFF0D2148).withOpacity(0.1)
+                                      ? const Color(0xFF0D2148).withValues(alpha: 0.1)
                                       : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
                                 ),

@@ -294,12 +294,12 @@ class _FaceOvalPainter extends CustomPainter {
       ..fillType = PathFillType.evenOdd;
 
     canvas.drawPath(
-        overlayPath, Paint()..color = Colors.black.withOpacity(0.55));
+        overlayPath, Paint()..color = Colors.black.withValues(alpha: 0.55));
 
     // Borde base del óvalo
     final borderColor = faceDetected
-        ? const Color(0xFF4ADE80).withOpacity(0.5)
-        : Colors.white.withOpacity(0.85);
+        ? const Color(0xFF4ADE80).withValues(alpha: 0.5)
+        : Colors.white.withValues(alpha: 0.85);
 
     canvas.drawOval(
       ovalRect,

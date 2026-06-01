@@ -44,7 +44,6 @@ class MyApp extends StatelessWidget {
           primary: const Color(0xFF0D2148),
           secondary: const Color(0xFFE87722),
           surface: Colors.white,
-          background: const Color(0xFFF4F6FA),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF0D2148),
@@ -296,7 +295,7 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -340,14 +339,14 @@ class _LoginPageState extends State<LoginPage> {
                     labelStyle: const TextStyle(color: Colors.white60),
                     prefixIcon: const Icon(Icons.email_outlined, color: Colors.white60),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -377,14 +376,14 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () => setState(() => _verPass = !_verPass),
                     ),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -399,9 +398,9 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.15),
+                      color: Colors.red.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.red.withOpacity(0.4)),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
                     ),
                     child: Text(
                       error!,

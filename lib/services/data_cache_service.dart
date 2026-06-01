@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'offline_cache_service.dart';
 
@@ -80,11 +81,11 @@ class DataCacheService {
       // Marcar timestamp de última sync exitosa
       await OfflineCacheService.marcarSync();
 
-      print('[SyncService] ✅ Sincronización completa: '
+      debugPrint('[SyncService] ✅ Sincronización completa: '
           '${obras.length} obras, ${catRes.length} EPPs');
     } catch (e) {
       // Sync fallida — no interrumpir el flujo de la app
-      print('[SyncService] ⚠️ Error en sincronización: $e');
+      debugPrint('[SyncService] ⚠️ Error en sincronización: $e');
     }
   }
 
@@ -110,7 +111,7 @@ class DataCacheService {
 
       await OfflineCacheService.marcarSync();
     } catch (e) {
-      print('[SyncService] ⚠️ Error sync catálogo: $e');
+      debugPrint('[SyncService] ⚠️ Error sync catálogo: $e');
     }
   }
 }

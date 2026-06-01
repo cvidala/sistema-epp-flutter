@@ -157,6 +157,7 @@ class _StockEntryPageState extends State<StockEntryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
                     value: bodegaId,
                     items: bodegas
                         .map<DropdownMenuItem<String>>(

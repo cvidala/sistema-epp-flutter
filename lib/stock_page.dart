@@ -138,8 +138,8 @@ class _StockPageState extends State<StockPage> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: criticos > 0
-            ? Colors.red.withOpacity(0.08)
-            : Colors.orange.withOpacity(0.08),
+            ? Colors.red.withValues(alpha: 0.08)
+            : Colors.orange.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: criticos > 0 ? Colors.red : Colors.orange,
@@ -347,6 +347,7 @@ class _StockPageState extends State<StockPage> {
                 children: [
                   // Selector de bodega
                   DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
                     value: bodegaId,
                     items: bodegas
                         .map<DropdownMenuItem<String>>(
@@ -489,7 +490,7 @@ class _StockPageState extends State<StockPage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: color.withOpacity(0.12),
+                                      color: color.withValues(alpha: 0.12),
                                       borderRadius:
                                           BorderRadius.circular(8),
                                       border: Border.all(color: color),

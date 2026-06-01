@@ -425,7 +425,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 2),
       ),
@@ -480,7 +480,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color),
       ),
@@ -643,7 +643,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(color: color),
                     ),
@@ -1304,6 +1304,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
                     value: bodegaId,
                     items: bodegas
                         .map<DropdownMenuItem<String>>(
@@ -1418,7 +1419,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.12),
+                            color: Colors.red.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(color: Colors.red),
                           ),
@@ -1435,7 +1436,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.12),
+                            color: Colors.orange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(color: Colors.orange),
                           ),
