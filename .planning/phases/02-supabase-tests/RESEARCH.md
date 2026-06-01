@@ -553,7 +553,7 @@ test('TRG-06: trabajador sin EPP retorna estado CRITICO', () async {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **What is the SQL definition of `evaluar_entrega_v2`?**
    - What we know: It accepts `p_trabajador_id`, `p_obra_id`, `p_items` (inferred from Dart call sites). Returns `{estado: String, detalle: Map}`.
