@@ -420,6 +420,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
           ),
           const SizedBox(height: 8),
           TextField(
+            key: const ValueKey('rut_field'),
             controller: _rutController,
             focusNode: _focusNode,
             autofocus: true,
@@ -477,6 +478,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
             width: double.infinity,
             height: 58,
             child: ElevatedButton(
+              key: const ValueKey('rut_submit'),
               onPressed: _cargando ? null : _marcar,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE87722),

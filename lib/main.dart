@@ -329,6 +329,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Email field
                 TextField(
+                  key: const ValueKey('login_email'),
                   controller: emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
@@ -358,6 +359,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Password field
                 TextField(
+                  key: const ValueKey('login_password'),
                   controller: passCtrl,
                   obscureText: !_verPass,
                   autocorrect: false,
@@ -413,6 +415,7 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(
                   height: 52,
                   child: ElevatedButton(
+                    key: const ValueKey('login_button'),
                     onPressed: loading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE87722),
