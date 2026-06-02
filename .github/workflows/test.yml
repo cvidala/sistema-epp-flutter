@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
+          pub-cache-key: 'pub-cache-:os:-:hash:'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Unit & Widget Tests
+        run: flutter test test/unit/ test/widget_test.dart --coverage
+
+      - name: Integration Tests
+        run: flutter test test/integration/supabase/ test/integration/e2e/ --tags integration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          TEST_SUPERVISOR_EMAIL: ${{ secrets.TEST_SUPERVISOR_EMAIL }}
+          TEST_SUPERVISOR_PASSWORD: ${{ secrets.TEST_SUPERVISOR_PASSWORD }}
+          TEST_READONLY_EMAIL: ${{ secrets.TEST_READONLY_EMAIL }}
+          TEST_READONLY_PASSWORD: ${{ secrets.TEST_READONLY_PASSWORD }}
+          TEST_OBRA_ID: ${{ secrets.TEST_OBRA_ID }}
+          TEST_OBRA_ID_NO_ACCESS: ${{ secrets.TEST_OBRA_ID_NO_ACCESS }}
+
+      - name: Upload Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
