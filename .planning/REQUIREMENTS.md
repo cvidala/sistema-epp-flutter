@@ -17,22 +17,22 @@
 
 ### Tests Supabase — RLS (RLS)
 
-- [ ] **RLS-01**: ADMIN ve todos los trabajadores de todas las obras
-- [ ] **RLS-02**: SUPERVISOR solo ve trabajadores de sus obras asignadas (obra_usuarios)
-- [ ] **RLS-03**: READONLY no puede insertar entregas EPP
-- [ ] **RLS-04**: Usuario anon (kiosko) puede insertar asistencias pero no leer
-- [ ] **RLS-05**: Nadie puede eliminar registros de `entregas_epp` (política no_delete)
-- [ ] **RLS-06**: Nadie puede eliminar registros de `asistencias` (política no_delete)
+- [x] **RLS-01**: ADMIN ve todos los trabajadores de todas las obras
+- [x] **RLS-02**: SUPERVISOR solo ve trabajadores de sus obras asignadas (obra_usuarios)
+- [x] **RLS-03**: READONLY no puede insertar entregas EPP — SECURITY GAP: puede insertar (SF-01 en SECURITY-FINDINGS.md)
+- [x] **RLS-04**: Usuario anon (kiosko) puede insertar asistencias pero no leer
+- [x] **RLS-05**: Nadie puede eliminar registros de `entregas_epp` (política no_delete + BEFORE DELETE trigger)
+- [x] **RLS-06**: Nadie puede eliminar registros de `asistencias` (política no_delete)
 
 ### Tests Supabase — Triggers y RPCs (TRG)
 
-- [ ] **TRG-01**: `trg_prevent_stock_negativo` bloquea SALIDA que deja stock < 0
-- [ ] **TRG-02**: `trg_prevent_stock_negativo` permite SALIDA cuando stock suficiente
-- [ ] **TRG-03**: `trg_entregas_epp_immutable` bloquea UPDATE de campos críticos (items, trabajador_id, obra_id)
-- [ ] **TRG-04**: `trg_audit_entregas_epp` registra INSERT en audit_log automáticamente
-- [ ] **TRG-05**: RPC `evaluar_entrega_v2` retorna estado correcto para trabajador con EPP completo
-- [ ] **TRG-06**: RPC `evaluar_entrega_v2` retorna estado CRITICO para trabajador sin EPP
-- [ ] **TRG-07**: RPC `get_vencimientos_proximos` retorna EPP próximos a vencer
+- [x] **TRG-01**: `trg_prevent_stock_negativo` bloquea SALIDA que deja stock < 0
+- [x] **TRG-02**: `trg_prevent_stock_negativo` permite SALIDA cuando stock suficiente
+- [x] **TRG-03**: `trg_entregas_epp_immutable` bloquea UPDATE de campos críticos (items, trabajador_id, obra_id)
+- [x] **TRG-04**: `trg_audit_entregas_epp` registra INSERT en audit_log automáticamente
+- [x] **TRG-05**: RPC `evaluar_entrega_v2` retorna estado correcto para trabajador con EPP completo
+- [x] **TRG-06**: RPC `evaluar_entrega_v2` retorna estado CRITICO (BLOQUEO) para trabajador sin EPP
+- [x] **TRG-07**: RPC `get_vencimientos_proximos` retorna EPP próximos a vencer
 
 ### Tests E2E (E2E)
 
@@ -77,19 +77,19 @@
 | UTL-03 | Phase 1: Unit Tests | Complete |
 | UTL-04 | Phase 1: Unit Tests | Complete |
 | UTL-05 | Phase 1: Unit Tests | Complete |
-| RLS-01 | Phase 2: Supabase Tests | Pending |
-| RLS-02 | Phase 2: Supabase Tests | Pending |
-| RLS-03 | Phase 2: Supabase Tests | Pending |
-| RLS-04 | Phase 2: Supabase Tests | Pending |
-| RLS-05 | Phase 2: Supabase Tests | Pending |
-| RLS-06 | Phase 2: Supabase Tests | Pending |
-| TRG-01 | Phase 2: Supabase Tests | Pending |
-| TRG-02 | Phase 2: Supabase Tests | Pending |
-| TRG-03 | Phase 2: Supabase Tests | Pending |
-| TRG-04 | Phase 2: Supabase Tests | Pending |
-| TRG-05 | Phase 2: Supabase Tests | Pending |
-| TRG-06 | Phase 2: Supabase Tests | Pending |
-| TRG-07 | Phase 2: Supabase Tests | Pending |
+| RLS-01 | Phase 2: Supabase Tests | Complete |
+| RLS-02 | Phase 2: Supabase Tests | Complete |
+| RLS-03 | Phase 2: Supabase Tests | Complete (security gap documented — SF-01) |
+| RLS-04 | Phase 2: Supabase Tests | Complete |
+| RLS-05 | Phase 2: Supabase Tests | Complete |
+| RLS-06 | Phase 2: Supabase Tests | Complete |
+| TRG-01 | Phase 2: Supabase Tests | Complete |
+| TRG-02 | Phase 2: Supabase Tests | Complete |
+| TRG-03 | Phase 2: Supabase Tests | Complete |
+| TRG-04 | Phase 2: Supabase Tests | Complete |
+| TRG-05 | Phase 2: Supabase Tests | Complete |
+| TRG-06 | Phase 2: Supabase Tests | Complete |
+| TRG-07 | Phase 2: Supabase Tests | Complete |
 | E2E-01 | Phase 3: E2E Tests | Pending |
 | E2E-02 | Phase 3: E2E Tests | Pending |
 | E2E-03 | Phase 3: E2E Tests | Pending |
