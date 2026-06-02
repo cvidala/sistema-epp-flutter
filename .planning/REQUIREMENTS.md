@@ -36,11 +36,11 @@
 
 ### Tests E2E (E2E)
 
-- [ ] **E2E-01**: Flujo login → obras → trabajadores carga sin errores de consola
-- [ ] **E2E-02**: Flujo entrega EPP — selección de items, firma, confirmación (modo online)
-- [ ] **E2E-03**: Flujo sync offline — entrega guardada en Hive, sync al recuperar conexión
-- [ ] **E2E-04**: Flujo kiosko asistencia — ingreso RUT, captura foto, registro exitoso
-- [ ] **E2E-05**: Dashboard muestra stock actualizado después de una entrega
+- [x] **E2E-01**: Flujo login → obras → trabajadores carga sin errores de consola
+- [x] **E2E-02**: Flujo entrega EPP — selección de items, firma, confirmación (modo online)
+- [x] **E2E-03**: Flujo sync offline — entrega guardada en Hive, sync al recuperar conexión
+- [x] **E2E-04**: Flujo kiosko asistencia — ingreso RUT, captura foto, registro exitoso
+- [x] **E2E-05**: Dashboard muestra stock actualizado después de una entrega
 
 ### CI/CD (CI)
 
@@ -90,11 +90,11 @@
 | TRG-05 | Phase 2: Supabase Tests | Complete |
 | TRG-06 | Phase 2: Supabase Tests | Complete |
 | TRG-07 | Phase 2: Supabase Tests | Complete |
-| E2E-01 | Phase 3: E2E Tests | Pending |
-| E2E-02 | Phase 3: E2E Tests | Pending |
-| E2E-03 | Phase 3: E2E Tests | Pending |
-| E2E-04 | Phase 3: E2E Tests | Pending |
-| E2E-05 | Phase 3: E2E Tests | Pending |
+| E2E-01 | Phase 3: E2E Tests | Complete |
+| E2E-02 | Phase 3: E2E Tests | Complete |
+| E2E-03 | Phase 3: E2E Tests | Complete |
+| E2E-04 | Phase 3: E2E Tests | Complete |
+| E2E-05 | Phase 3: E2E Tests | Complete |
 | CI-01 | Phase 4: CI/CD Pipeline | Pending |
 | CI-02 | Phase 4: CI/CD Pipeline | Pending |
 | CI-03 | Phase 4: CI/CD Pipeline | Pending |
