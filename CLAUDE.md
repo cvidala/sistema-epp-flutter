@@ -381,3 +381,57 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+## CI/CD
+
+### Ejecutar tests localmente (mismos comandos que CI)
+
+```bash
+# 1. Analyze (sin errores de lint)
+flutter analyze --no-fatal-infos
+
+# 2. Unit + Widget tests con cobertura (sin secrets)
+flutter test test/unit/ test/widget_test.dart --coverage
+
+# 3. Integration tests con Supabase (requiere .env.test con credenciales reales)
+export $(grep -v '^#' .env.test | xargs) && flutter test test/integration/supabase/ test/integration/e2e/ --tags integration
+
+# 4. E2E con Xcode (EXCLUIDO de CI — requiere dispositivo/simulador local)
+flutter test integration_test/ --tags e2e
+```
+
+El archivo `.env.test` está excluido de git (`.gitignore`). Nunca commitear credenciales de test.
+
+### GitHub Secrets requeridos
+
+Configurar en: **GitHub repo > Settings > Secrets and variables > Actions > New repository secret**
+
+| Secret | Descripción | Origen |
+|--------|-------------|--------|
+| `SUPABASE_URL` | URL del proyecto Supabase | Settings > API > Project URL |
+| `SUPABASE_ANON_KEY` | Clave pública anon | Settings > API > anon (public) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave service role (mantener privada) | Settings > API > service_role (secret) |
+| `TEST_ADMIN_EMAIL` | Email usuario ADMIN de test | Creado en Supabase Auth para tests |
+| `TEST_ADMIN_PASSWORD` | Password usuario ADMIN de test | Creado en Supabase Auth para tests |
+| `TEST_SUPERVISOR_EMAIL` | Email usuario SUPERVISOR de test | Creado en Supabase Auth para tests |
+| `TEST_SUPERVISOR_PASSWORD` | Password usuario SUPERVISOR de test | Creado en Supabase Auth para tests |
+| `TEST_READONLY_EMAIL` | Email usuario READONLY de test | Creado en Supabase Auth para tests |
+| `TEST_READONLY_PASSWORD` | Password usuario READONLY de test | Creado en Supabase Auth para tests |
+| `TEST_OBRA_ID` | UUID de obra accesible por el supervisor de test | `SELECT id FROM obras LIMIT 1` |
+| `TEST_OBRA_ID_NO_ACCESS` | UUID de obra sin acceso (para tests RLS negativos) | UUID de obra de otra organización |
+
+### Branch protection (bloquear merge con CI rojo)
+
+1. Ir a **GitHub repo > Settings > Branches > Add rule** para la rama `main`
+2. Activar **"Require status checks to pass before merging"**
+3. Buscar y agregar el check **`test`** (nombre del job en `test.yml`)
+4. Activar **"Require branches to be up to date before merging"**
+5. Guardar la regla
+
+Con esta configuración, un PR con tests fallidos no puede mergearse — el botón "Merge" queda bloqueado (CI-02).
+
+### Ver estado del CI
+
+- **En cada PR:** pestaña "Checks" o el semáforo junto al último commit
+- **En main:** https://github.com/cvidala/sistema-epp-flutter/actions/workflows/test.yml
+- **Coverage artifact:** En cada run de CI, descargar **"coverage-report"** desde la sección Artifacts del run
