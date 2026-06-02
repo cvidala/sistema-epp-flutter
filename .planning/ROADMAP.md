@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Unit Tests** - Lógica de negocio crítica cubierta con tests unitarios rápidos (hash chain, stock, offline queue)
 - [ ] **Phase 2: Supabase Tests** - RLS por rol, triggers de inmutabilidad y audit log, y RPCs críticas verificados contra la DB real
 - [x] **Phase 3: E2E Tests** - Flujos críticos del usuario (entrega EPP, asistencia, sync offline) cubiertos end-to-end (completed 2026-06-02)
-- [ ] **Phase 4: CI/CD Pipeline** - GitHub Actions ejecuta toda la suite en cada PR y bloquea merges con regresiones
+- [x] **Phase 4: CI/CD Pipeline** - GitHub Actions ejecuta toda la suite en cada PR y bloquea merges con regresiones (completed 2026-06-02)
 
 ## Phase Details
 
@@ -86,7 +86,10 @@ Plans:
   3. El reporte de cobertura (lcov/html) está disponible como artefacto o comentario en cada PR
   4. El pipeline completo (analyze + test + coverage) termina en menos de 5 minutos en GitHub Actions
 
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+
+- [x] 04-01-PLAN.md — GitHub Actions workflow (analyze + unit/widget + integration + coverage upload), .gitignore update, CLAUDE.md CI/CD section
 
 ## Progress
 
@@ -98,4 +101,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Unit Tests | 0/1 | Not started | - |
 | 2. Supabase Tests | 0/1 | Not started | - |
 | 3. E2E Tests | 1/1 | Complete   | 2026-06-02 |
-| 4. CI/CD Pipeline | 0/TBD | Not started | - |
+| 4. CI/CD Pipeline | 1/1 | Complete   | 2026-06-02 |

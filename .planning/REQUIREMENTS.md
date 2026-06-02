@@ -44,10 +44,10 @@
 
 ### CI/CD (CI)
 
-- [ ] **CI-01**: GitHub Actions ejecuta `flutter test` en cada PR y push a main
-- [ ] **CI-02**: Pipeline falla si algún test falla (bloquea merge)
-- [ ] **CI-03**: `flutter analyze` corre en CI sin warnings
-- [ ] **CI-04**: Reporte de cobertura generado y accesible en PR
+- [x] **CI-01**: GitHub Actions ejecuta `flutter test` en cada PR y push a main
+- [x] **CI-02**: Pipeline falla si algún test falla (bloquea merge)
+- [x] **CI-03**: `flutter analyze` corre en CI sin warnings
+- [x] **CI-04**: Reporte de cobertura generado y accesible en PR
 
 ---
 
@@ -95,7 +95,7 @@
 | E2E-03 | Phase 3: E2E Tests | Complete |
 | E2E-04 | Phase 3: E2E Tests | Complete |
 | E2E-05 | Phase 3: E2E Tests | Complete |
-| CI-01 | Phase 4: CI/CD Pipeline | Pending |
-| CI-02 | Phase 4: CI/CD Pipeline | Pending |
-| CI-03 | Phase 4: CI/CD Pipeline | Pending |
-| CI-04 | Phase 4: CI/CD Pipeline | Pending |
+| CI-01 | Phase 4: CI/CD Pipeline | Complete |
+| CI-02 | Phase 4: CI/CD Pipeline | Complete |
+| CI-03 | Phase 4: CI/CD Pipeline | Complete |
+| CI-04 | Phase 4: CI/CD Pipeline | Complete |
