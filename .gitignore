@@ -33,6 +33,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Coverage reports
+lcov.info
+coverage/html/
+
 # Symbolication related
 app.*.symbols
 
@@ -47,3 +51,4 @@ app.*.map.json
 .claude/
 supabase/.temp/
 skills-lock.json
+.env.test
