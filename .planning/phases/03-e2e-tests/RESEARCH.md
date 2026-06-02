@@ -582,7 +582,7 @@ test('E2E-05: stock atualizado en DB despues de entrega (dashboard refleja esto)
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **ValueKey coverage on LoginPage text fields**
    - What we know: LoginPage uses `TextField` with `emailCtrl`/`passCtrl` but no `ValueKey` identifiers on the widgets
