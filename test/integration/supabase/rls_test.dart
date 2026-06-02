@@ -28,8 +28,6 @@ void main() {
 
   // UUID estable para RLS-05 (entregas_epp)
   final rls05LocalEventId = uuid.v4();
-  // UUID estable para RLS-06 (asistencias)
-  final rls06LocalEventId = uuid.v4();
 
   setUpAll(() async {
     final svc = serviceClient();
@@ -342,32 +340,14 @@ void main() {
   // RLS-06: Nadie puede eliminar registros de asistencias
   // ────────────────────────────────────────────────────────────
   group('RLS-06: Nobody can DELETE asistencias', () {
-    const rls06Rut = 'TEST_QA_rls06_sentinel';
-
-    setUpAll(() async {
-      final svc = serviceClient();
-      // Insertar fila centinela idempotente via service_role.
-      // Verificar primero si ya existe.
-      final existing = await svc
-          .from('asistencias')
-          .select('id')
-          .eq('rut', rls06Rut);
-
-      if (existing.isEmpty) {
-        await svc.from('asistencias').insert({
-          'rut': rls06Rut,
-          'tipo': 'Entrada',
-          'local_event_id': rls06LocalEventId,
-        });
-      }
-      svc.dispose();
-    });
+    // RUT único por run para evitar colisiones con runs anteriores
+    final rls06Rut = '${kTestPrefix}rls06_${DateTime.now().millisecondsSinceEpoch}';
 
     tearDownAll(() async {
       // Limpiar fila centinela via service_role
       final svc = serviceClient();
       try {
-        await svc.from('asistencias').delete().eq('rut', rls06Rut);
+        await svc.from('asistencias').delete().like('rut', '${kTestPrefix}rls06_%');
       } catch (e) {
         print('[RLS-06] Error limpiando centinela asistencias: $e');
       }
@@ -376,6 +356,16 @@ void main() {
 
     test('anon cannot delete asistencias — row persists after attempt',
         () async {
+      // Insertar sentinel aquí (no en setUpAll) para garantizar que existe
+      // justo antes de la verificación, independiente del orden de tearDowns
+      final svc = serviceClient();
+      await svc.from('asistencias').insert({
+        'rut': rls06Rut,
+        'tipo': 'Entrada',
+        'local_event_id': uuid.v4(),
+      });
+      svc.dispose();
+
       final anon = anonClient();
       try {
         try {
@@ -388,12 +378,12 @@ void main() {
         }
 
         // Verificar que la fila persiste via service_role
-        final svc = serviceClient();
-        final remaining = await svc
+        final svc2 = serviceClient();
+        final remaining = await svc2
             .from('asistencias')
             .select('id')
             .eq('rut', rls06Rut);
-        svc.dispose();
+        svc2.dispose();
 
         expect(remaining, isNotEmpty,
             reason:
