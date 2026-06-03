@@ -387,11 +387,16 @@ class _WorkersPageState extends State<WorkersPage> {
     }
   }
 
+  static final _rutRegex = RegExp(r'^\d{1,2}\.?\d{3}\.?\d{3}-[\dKk]$');
+
+  static bool _rutValido(String rut) => _rutRegex.hasMatch(rut.trim());
+
   /// Crea un nuevo trabajador. Solo accesible si _canWriteThisObra.
   Future<void> _crearTrabajador() async {
-    final nombreCtrl = TextEditingController();
-    final rutCtrl    = TextEditingController();
-    final cargoCtrl  = TextEditingController();
+    final nombreCtrl   = TextEditingController();
+    final apellidoCtrl = TextEditingController();
+    final rutCtrl      = TextEditingController();
+    final cargoCtrl    = TextEditingController();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -403,7 +408,16 @@ class _WorkersPageState extends State<WorkersPage> {
               TextField(
                 controller: nombreCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre completo *',
+                  labelText: 'Nombre(s) *',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: apellidoCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Apellido(s) *',
                   border: OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.words,
@@ -441,12 +455,13 @@ class _WorkersPageState extends State<WorkersPage> {
     );
 
     if (confirm != true) return;
-    final nombre = nombreCtrl.text.trim();
-    final rut    = rutCtrl.text.trim();
-    if (nombre.isEmpty) {
+    final nombre   = nombreCtrl.text.trim();
+    final apellido = apellidoCtrl.text.trim();
+    final rut      = rutCtrl.text.trim();
+    if (nombre.isEmpty || apellido.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('El nombre es obligatorio')));
+          const SnackBar(content: Text('Nombre y apellido son obligatorios')));
       }
       return;
     }
@@ -454,6 +469,13 @@ class _WorkersPageState extends State<WorkersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('El RUT es obligatorio')));
+      }
+      return;
+    }
+    if (!_rutValido(rut)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('RUT inválido. Formato: 12.345.678-9')));
       }
       return;
     }
@@ -466,6 +488,7 @@ class _WorkersPageState extends State<WorkersPage> {
       await supabase.from('trabajadores').insert({
         'trabajador_id':   trabajadorId,
         'nombre':          nombre,
+        'apellido':        apellido,
         'rut':             rut,
         'estado':          'ACTIVO',
         'datos_completos': false,
