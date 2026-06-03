@@ -4856,11 +4856,10 @@ function exportAsistenciaCSV() {
 // ═══════════════════════════════════════════════════════
 let allMantTrab = [];
 
-// Trabajador completo = todos los campos obligatorios + foto
+// Trabajador completo = flag calculado por trigger fn_auto_datos_completos en DB
+// (nombre + apellido + rut + cargo + fecha_ingreso + tipo_contrato)
 function trabCompleto(t) {
-  return !!(t.nombre && t.apellido && t.rut && t.email &&
-            t.telefono && t.fecha_nacimiento && t.cargo &&
-            t.fecha_ingreso && t.tipo_contrato && t.foto_rostro_url);
+  return t.datos_completos === true;
 }
 
 const MANT_SELECT = `trabajador_id, nombre, apellido, rut, datos_completos, foto_rostro_url,
@@ -5185,7 +5184,7 @@ async function saveMantNuevo() {
     // CREATE — verificar RUT duplicado
     const { data: dup } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
     if (dup) { showMantError(`El RUT ya está registrado como ${dup.nombre}`); return; }
-    payload.datos_completos = false; // se marca true solo al subir la foto
+    // datos_completos es calculado automáticamente por el trigger fn_auto_datos_completos
     const { data: trab, error } = await sb.from('trabajadores').insert(payload).select().single();
     if (error) { showMantError('Error: ' + error.message); return; }
     const obraId = document.getElementById('mantCentroInicial').value;
@@ -5344,7 +5343,7 @@ async function saveMantFoto() {
     if (upErr) throw upErr;
     const { data: urlData } = sb.storage.from('fotos-rostro').getPublicUrl(path);
     const { error: dbErr } = await sb.from('trabajadores')
-      .update({ foto_rostro_url: urlData.publicUrl, datos_completos: true })
+      .update({ foto_rostro_url: urlData.publicUrl })
       .eq('trabajador_id', trabId);
     if (dbErr) throw dbErr;
     cerrarModalFoto();

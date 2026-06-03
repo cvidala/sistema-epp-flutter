@@ -483,15 +483,13 @@ class _WorkersPageState extends State<WorkersPage> {
     try {
       final trabajadorId = const Uuid().v4();
 
-      // 1) Crear trabajador con UUID generado en cliente
-      // datos_completos: false → supervisor puede crear en campo, web debe completar foto/datos
+      // 1) Crear trabajador — datos_completos calculado automáticamente por trigger DB
       await supabase.from('trabajadores').insert({
-        'trabajador_id':   trabajadorId,
-        'nombre':          nombre,
-        'apellido':        apellido,
-        'rut':             rut,
-        'estado':          'ACTIVO',
-        'datos_completos': false,
+        'trabajador_id': trabajadorId,
+        'nombre':        nombre,
+        'apellido':      apellido,
+        'rut':           rut,
+        'estado':        'ACTIVO',
       });
 
       // 2) Asignar a esta obra
