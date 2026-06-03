@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: "Completed Phase 2 Plan 02-01 — 14 Supabase integration tests green, RLS-01..06 + TRG-01..07 satisfied, SECURITY-FINDINGS.md created"
-last_updated: "2026-06-02T17:28:07.037Z"
-last_activity: 2026-06-02 — Phase 2 Plan 02-01 executed (14 Supabase integration tests, security gap SF-01 documented)
+status: complete
+stopped_at: "Milestone v1.0 complete — 4/4 phases shipped, 27/27 requirements satisfied, CI/CD green"
+last_updated: "2026-06-03T00:00:00.000Z"
+last_activity: 2026-06-03 — Milestone v1.0 completado. Bugs adicionales corregidos (SF-01 RLS READONLY, ISSUE-002 audit registro_id). QA del dashboard y landing page.
 progress:
   total_phases: 4
   completed_phases: 4
@@ -21,40 +21,39 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-01)
 
 **Core value:** Detectar regresiones antes de que lleguen a producción y tener visibilidad en tiempo real del estado del sistema en campo.
-**Current focus:** Phase 2 — Supabase Tests (complete)
+**Current focus:** MILESTONE COMPLETE ✅
 
 ## Current Position
 
-Phase: 2 of 4 (Supabase Tests)
-Plan: 1 of 1 in current phase — COMPLETE
-Status: Phase complete — ready for verification
-Last activity: 2026-06-02 — Phase 2 Plan 02-01 executed (14 Supabase integration tests, security gap SF-01 documented)
+Phase: 4 of 4 — COMPLETE
+Status: Milestone v1.0 shipped
+Last activity: 2026-06-03 — Todos los bugs post-QA corregidos, landing page testeada, CI verde (#4 success)
 
-Progress: [██░░░░░░░░] 20%
+Progress: [██████████] 100%
+
+## Milestone v1.0 Summary
+
+**27/27 requirements satisfied** | **68 tests pasando** | **CI/CD verde**
+
+| Phase | Resultado | Tests |
+|-------|-----------|-------|
+| Phase 1: Unit Tests | ✅ Complete | 50 unit tests (hash chain, stock, offline queue) |
+| Phase 2: Supabase Tests | ✅ Complete | 14 integration tests (RLS, triggers, RPCs) |
+| Phase 3: E2E Tests | ✅ Complete | 3 service-layer E2E + integration_test/ ready |
+| Phase 4: CI/CD Pipeline | ✅ Complete | GitHub Actions verde, 11 secrets configurados |
 
 ## Performance Metrics
 
-**Velocity:**
-
-- Total plans completed: 2
-- Average duration: 46 min
-- Total execution time: 1.53 hours
-
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-unit-tests | 1 | 2 min | 2 min |
-| 02-supabase-tests | 1 | 90 min | 90 min |
+| Phase | Plans | Duration |
+|-------|-------|----------|
+| 01-unit-tests | 1 | ~2 min |
+| 02-supabase-tests | 1 | ~90 min |
+| 03-e2e-tests | 1 | ~45 min |
+| 04-cicd-pipeline | 1 | ~15 min |
 
-**Recent Trend:**
-
-- Last 5 plans: 01-01 (2 min), 02-01 (90 min)
-- Trend: -
-
-*Updated after each plan completion*
-| Phase 03-e2e-tests P01 | 45m | 5 tasks | 8 files |
-| Phase 04-cicd-pipeline P01 | 196 | 3 tasks | 3 files |
+**Total execution:** ~2.5 horas
 
 ## Accumulated Context
 
@@ -80,8 +79,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 2 requiere credenciales de Supabase con roles de test (ADMIN, SUPERVISOR, READONLY, anon) configurados en el entorno CI
-- Phase 3 requiere definir si E2E usa integration_test de Flutter o Maestro
+Ninguno. Todos los blockers anteriores resueltos:
+- ✅ Credenciales de test en CI (11 GitHub Secrets configurados)
+- ✅ E2E usa integration_test SDK de Flutter + service-layer tests contra Supabase real
+- ✅ SF-01 (READONLY insertaba entregas_epp) — política RLS corregida + test actualizado
+- ✅ ISSUE-002 (audit_log registro_id null) — trigger fn_audit_log usa CASE por tabla
 
 ## Deferred Items
 
@@ -93,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-02T17:28:07.032Z
-Stopped at: "Completed Phase 2 Plan 02-01 — 14 Supabase integration tests green, RLS-01..06 + TRG-01..07 satisfied, SECURITY-FINDINGS.md created"
-Resume file: None
+Last session: 2026-06-03
+Status: MILESTONE COMPLETE — no pending work
+Next milestone: v2.0 (when needed — deferred items: load tests, Edge Functions tests, visual snapshot tests)

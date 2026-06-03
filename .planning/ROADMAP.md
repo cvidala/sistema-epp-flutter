@@ -13,8 +13,8 @@ Cuatro capas de calidad construidas incrementalmente: unit tests de lógica de n
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Unit Tests** - Lógica de negocio crítica cubierta con tests unitarios rápidos (hash chain, stock, offline queue)
-- [ ] **Phase 2: Supabase Tests** - RLS por rol, triggers de inmutabilidad y audit log, y RPCs críticas verificados contra la DB real
+- [x] **Phase 1: Unit Tests** - Lógica de negocio crítica cubierta con tests unitarios rápidos (hash chain, stock, offline queue) (completed 2026-06-02)
+- [x] **Phase 2: Supabase Tests** - RLS por rol, triggers de inmutabilidad y audit log, y RPCs críticas verificados contra la DB real (completed 2026-06-02)
 - [x] **Phase 3: E2E Tests** - Flujos críticos del usuario (entrega EPP, asistencia, sync offline) cubiertos end-to-end (completed 2026-06-02)
 - [x] **Phase 4: CI/CD Pipeline** - GitHub Actions ejecuta toda la suite en cada PR y bloquea merges con regresiones (completed 2026-06-02)
 
@@ -98,7 +98,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Unit Tests | 0/1 | Not started | - |
-| 2. Supabase Tests | 0/1 | Not started | - |
-| 3. E2E Tests | 1/1 | Complete   | 2026-06-02 |
-| 4. CI/CD Pipeline | 1/1 | Complete   | 2026-06-02 |
+| 1. Unit Tests | 1/1 | Complete | 2026-06-02 |
+| 2. Supabase Tests | 1/1 | Complete | 2026-06-02 |
+| 3. E2E Tests | 1/1 | Complete | 2026-06-02 |
+| 4. CI/CD Pipeline | 1/1 | Complete | 2026-06-02 |
