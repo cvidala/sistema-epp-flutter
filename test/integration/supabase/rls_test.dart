@@ -154,9 +154,9 @@ void main() {
   });
 
   // ────────────────────────────────────────────────────────────
-  // RLS-03: READONLY puede insertar entregas (security gap)
+  // RLS-03: READONLY NO puede insertar entregas (fix SF-01)
   // ────────────────────────────────────────────────────────────
-  group('RLS-03: READONLY insert behavior (security gap)', () {
+  group('RLS-03: READONLY cannot insert entregas_epp', () {
     late SupabaseClient roClient;
 
     setUp(() async {
@@ -168,17 +168,13 @@ void main() {
     });
 
     test(
-      'READONLY can insert entregas_epp when entregado_por = own uid',
+      'READONLY is blocked by RLS when trying to insert entregas_epp',
       () async {
-        // SECURITY-GAP (RLS-03): READONLY can insert entregas_epp.
-        // Policy insert_own_entregas only checks entregado_por = auth.uid(), NOT role.
-        // See SECURITY-FINDINGS.md for full analysis.
+        // Fix SF-01: insert_own_entregas ahora requiere rol IN ('ADMIN','SUPERVISOR').
+        // READONLY debe recibir error 42501 row-level security policy violation.
         final eventId = TestDataHelper.testId('rls03');
         final localEventId = const Uuid().v4();
 
-        // El insert DEBE tener éxito — esto documenta el gap de seguridad.
-        // Nota: usamos .insert() sin .select() porque el SELECT posterior
-        // puede fallar si el READONLY no tiene política SELECT amplia.
         dynamic insertError;
         try {
           await roClient.from('entregas_epp').insert({
@@ -187,19 +183,18 @@ void main() {
             'obra_id': _kObraAsignadaId,
             'bodega_id': realBodegaId,
             'items': [],
-            'entregado_por': _kReadonlyUserId, // su propio uid
+            'entregado_por': _kReadonlyUserId,
             'local_event_id': localEventId,
           });
-          insertError = null; // Sin excepción = éxito
+          insertError = null;
         } catch (e) {
           insertError = e;
         }
 
-        expect(insertError, isNull,
-            reason:
-                'SECURITY-GAP RLS-03: READONLY puede insertar — '
-                'policy insert_own_entregas no restringe por rol. '
-                'Error encontrado: $insertError');
+        expect(insertError, isNotNull,
+            reason: 'READONLY debe ser bloqueado por RLS al insertar entregas_epp');
+        expect(insertError.toString(), contains('42501'),
+            reason: 'Error esperado: row-level security policy violation');
       },
     );
   });
