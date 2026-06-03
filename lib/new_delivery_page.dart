@@ -102,23 +102,25 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     try {
       debugPrint('[_loadInit] INICIO');
 
-      debugPrint('[_loadInit] consultando bodegas...');
-      final b = await supabase
-          .from('bodegas')
-          .select()
-          .or('obra_id.eq.${widget.obraId},obra_id.is.null')
-          .order('created_at')
-          .timeout(const Duration(seconds: 12));
-      debugPrint('[_loadInit] bodegas OK: ${(b as List).length}');
-
-      debugPrint('[_loadInit] consultando catalogo_epp...');
-      final c = await supabase
-          .from('catalogo_epp')
-          .select()
-          .eq('activo', true)
-          .order('nombre')
-          .timeout(const Duration(seconds: 12));
-      debugPrint('[_loadInit] catalogo OK: ${(c as List).length}');
+      // Ambas queries en paralelo → máximo 12s en offline (antes eran 24s en serie)
+      debugPrint('[_loadInit] consultando bodegas + catalogo en paralelo...');
+      final results = await Future.wait([
+        supabase
+            .from('bodegas')
+            .select()
+            .or('obra_id.eq.${widget.obraId},obra_id.is.null')
+            .order('created_at')
+            .timeout(const Duration(seconds: 12)),
+        supabase
+            .from('catalogo_epp')
+            .select()
+            .eq('activo', true)
+            .order('nombre')
+            .timeout(const Duration(seconds: 12)),
+      ]);
+      final b = results[0] as List;
+      final c = results[1] as List;
+      debugPrint('[_loadInit] bodegas OK: ${b.length} — catalogo OK: ${c.length}');
 
       // ✅ Guardar en cache para uso offline futuro
       await CacheService.setJson('bodegas', b, obraId: widget.obraId);

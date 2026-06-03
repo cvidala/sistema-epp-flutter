@@ -65,29 +65,33 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
     });
 
     try {
-      final catalogo = await supabase
-          .from('catalogo_epp')
-          .select('epp_id,nombre')
-          .eq('activo', true)
-          .timeout(const Duration(seconds: 12));
+      // Ambas queries en paralelo → máximo 12s en offline (antes eran 24s en serie)
+      final results = await Future.wait([
+        supabase
+            .from('catalogo_epp')
+            .select('epp_id,nombre')
+            .eq('activo', true)
+            .timeout(const Duration(seconds: 12)),
+        supabase
+            .from('entregas_epp')
+            .select(
+                'event_id, created_at, items, bodega_id, evidencia_foto_url, evidencia_hash, firma_url')
+            .eq('trabajador_id', widget.trabajadorId)
+            .eq('obra_id', widget.obraId)
+            .order('created_at', ascending: false)
+            .limit(50)
+            .timeout(const Duration(seconds: 12)),
+      ]);
+
+      final catalogo = results[0] as List;
+      final data     = results[1] as List;
 
       eppIdToNombre = {
-        for (final e in catalogo as List)
+        for (final e in catalogo)
           (e['epp_id'] as String): (e['nombre'] as String)
       };
 
       await CacheService.setJson('catalogo_epp_nombres', catalogo);
-
-      final data = await supabase
-          .from('entregas_epp')
-          .select(
-              'event_id, created_at, items, bodega_id, evidencia_foto_url, evidencia_hash, firma_url')
-          .eq('trabajador_id', widget.trabajadorId)
-          .eq('obra_id', widget.obraId)
-          .order('created_at', ascending: false)
-          .limit(50)
-          .timeout(const Duration(seconds: 12));
-
       await CacheService.setJson(_cacheKeyEntregas, data);
 
       setState(() {
