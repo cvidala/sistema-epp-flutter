@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -234,7 +233,7 @@ class _RutInputScreenState extends State<RutInputScreen> {
     await fotoDir.create(recursive: true);
     final fotoPath = '${fotoDir.path}/$id.jpg';
     await File(fotoPath).writeAsBytes(fotoBytes);
-    final hash = sha256.convert(utf8.encode(fotoPath)).toString();
+    final hash = sha256.convert(fotoBytes).toString();
 
     await AsistenciaHiveService.guardar(AsistenciaPendiente(
       id: id,

@@ -15,7 +15,7 @@ class AsistenciaUploadService {
           bytes,
           fileOptions: const FileOptions(
             contentType: 'image/jpeg',
-            upsert: false,
+            upsert: true, // reintento seguro si el upload anterior quedó parcial
           ),
         );
     return path;
