@@ -1796,19 +1796,19 @@ async function initApp() {
 
 
 
-  await loadDashboard();
+  // Restaurar pestaña antes de cargar datos — sin flash de "resumen"
+  const savedPage = localStorage.getItem('trazapp_page');
+  if (savedPage && savedPage !== 'resumen') navTo(savedPage);
 
-  // Cargar badge de solicitudes en background
+  // Cargar resumen y badge en background (no bloquea la pestaña activa)
+  loadDashboard().catch(() => {});
+
   sb.from('solicitudes_epp').select('id,estado').eq('estado','pendiente')
     .then(({ data }) => {
       const count = (data || []).length;
       const badge = document.getElementById('solicitudesBadge');
       if (badge && count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
     }).catch(() => {});
-
-  // Restaurar pestaña activa del localStorage
-  const savedPage = localStorage.getItem('trazapp_page');
-  if (savedPage && savedPage !== 'resumen') navTo(savedPage);
 }
 
 // ── FILTRO CENTRO ─────────────────────────────────────────────────

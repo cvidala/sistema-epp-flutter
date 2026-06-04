@@ -1,0 +1,9 @@
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "icon_asistencia.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0D2148"
+  adaptive_icon_foreground: "icon_asistencia.png"
+  flavors:
+    - asistencia
