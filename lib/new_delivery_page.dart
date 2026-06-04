@@ -1,9 +1,9 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
+import 'package:uuid/uuid.dart';
 import 'evidence_service.dart';
 import 'models/evaluacion_entrega.dart';
 import 'dart:async';
@@ -848,9 +848,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   // ─────────────────────────────────────────────
 
   String _genEventId() {
-    final now = DateTime.now();
-    final rnd = Random().nextInt(9000) + 1000;
-    return 'EPP-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}-$rnd';
+    return 'EPP-${const Uuid().v4()}';
   }
 
   String _declaracionAutomatica() {
