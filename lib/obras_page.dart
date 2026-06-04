@@ -77,7 +77,7 @@ class _ObrasPageState extends State<ObrasPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Nuevo Centro de Costo'),
+        title: const Text('Nuevo Centro de trabajo'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -125,7 +125,7 @@ class _ObrasPageState extends State<ObrasPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear centro de costo: $e')),
+          SnackBar(content: Text('Error al crear centro de trabajo: $e')),
         );
       }
     }
@@ -144,7 +144,7 @@ class _ObrasPageState extends State<ObrasPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Centros de Costo'),
+        title: const Text('Centros de trabajo'),
         actions: [
           if (p != null)
             Container(
@@ -240,7 +240,7 @@ class _ObrasPageState extends State<ObrasPage> {
                                 size: 48, color: Color(0xFF0D2148)),
                           ),
                           const SizedBox(height: 16),
-                          const Text('Sin centros de costo asignados.',
+                          const Text('Sin centros de trabajo asignados.',
                               style: TextStyle(
                                 color: Color(0xFF6B7A99),
                                 fontSize: 15,
@@ -250,7 +250,7 @@ class _ObrasPageState extends State<ObrasPage> {
                             ElevatedButton.icon(
                               onPressed: _crearObra,
                               icon: const Icon(Icons.add),
-                              label: const Text('Crear primer centro de costo'),
+                              label: const Text('Crear primer centro de trabajo'),
                             ),
                           ],
                         ],
@@ -343,7 +343,7 @@ class _ObrasPageState extends State<ObrasPage> {
       floatingActionButton: p?.isAdmin == true
           ? FloatingActionButton(
               onPressed: _crearObra,
-              tooltip: 'Nuevo centro de costo',
+              tooltip: 'Nuevo centro de trabajo',
               child: const Icon(Icons.add),
             )
           : null,
