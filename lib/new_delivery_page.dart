@@ -1,9 +1,9 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
+import 'package:uuid/uuid.dart';
 import 'evidence_service.dart';
 import 'models/evaluacion_entrega.dart';
 import 'dart:async';
@@ -848,9 +848,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   // ─────────────────────────────────────────────
 
   String _genEventId() {
-    final now = DateTime.now();
-    final rnd = Random().nextInt(9000) + 1000;
-    return 'EPP-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}-$rnd';
+    return 'EPP-${const Uuid().v4()}';
   }
 
   String _declaracionAutomatica() {
@@ -881,64 +879,66 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     final confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Firma del trabajador'),
-        content: SizedBox(
-          width: 340,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'El trabajador debe firmar con el dedo en el recuadro.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF0D2148), width: 2),
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Signature(
-                    controller: _firmaCtrl,
-                    height: 180,
-                    backgroundColor: Colors.white,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          _firmaCtrl.addListener(() => setLocal(() {}));
+          return AlertDialog(
+            title: const Text('Firma del trabajador'),
+            content: SizedBox(
+              width: 340,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'El trabajador debe firmar con el dedo en el recuadro.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF0D2148), width: 2),
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Signature(
+                        controller: _firmaCtrl,
+                        height: 180,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Limpiar'),
+                    onPressed: () {
+                      _firmaCtrl.clear();
+                      setLocal(() {});
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Limpiar'),
-                onPressed: () => _firmaCtrl.clear(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: _firmaCtrl.isEmpty
+                    ? null
+                    : () => Navigator.pop(ctx, true),
+                child: const Text('Confirmar firma'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Confirmar firma'),
-          ),
-        ],
+          );
+        },
       ),
     );
 
     if (confirm != true) return;
-    if (_firmaCtrl.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Debes firmar antes de confirmar.')),
-        );
-      }
-      return;
-    }
 
     final png = await _firmaCtrl.toPngBytes();
     if (png != null) {
@@ -1061,7 +1061,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       await supabase.storage.from('evidencias').uploadBinary(
             path,
             evidenciaBytes!,
-            fileOptions: const FileOptions(upsert: false),
+            fileOptions: const FileOptions(upsert: true),
           );
 
       final evidenciaUrl =
@@ -1072,40 +1072,31 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       await supabase.storage.from('evidencias').uploadBinary(
             firmaPath,
             firmaBytes!,
-            fileOptions: const FileOptions(upsert: false),
+            fileOptions: const FileOptions(upsert: true),
           );
       final firmaUrl =
           supabase.storage.from('evidencias').getPublicUrl(firmaPath);
 
-      final payloadEntrega = <String, dynamic>{
-        'event_id': eventId,
-        'trabajador_id': widget.trabajadorId,
-        'obra_id': widget.obraId,
-        'bodega_id': bodegaId,
-        'items': items,
-        'entregado_por': userId,
-        'forensics': _forensicData,
-        'sync_status': 'ENVIADO',
-        'evidencia_foto_url': evidenciaUrl,
-        'evidencia_hash': evidenciaHash,
-        'firma_url': firmaUrl,
-        'evaluacion': evaluacion,
-        'declaracion_text': declaracion,
-        'validacion_tipo': 'FIRMA_DIGITAL',
-      };
+      // RPC atómica: entregas_epp + stock_movimientos en una transacción
+      final ins = await supabase.rpc('insert_entrega_online_v1', params: {
+        'p_event_id':         eventId,
+        'p_obra_id':          widget.obraId,
+        'p_trabajador_id':    widget.trabajadorId,
+        'p_bodega_id':        bodegaId,
+        'p_items':            items,
+        'p_entregado_por':    userId,
+        'p_evidencia_url':    evidenciaUrl,
+        'p_evidencia_hash':   evidenciaHash,
+        'p_firma_url':        firmaUrl,
+        'p_evaluacion':       evaluacion,
+        'p_declaracion_text': declaracion,
+        'p_forensics':        _forensicData,
+      }).timeout(const Duration(seconds: 20));
 
-      await supabase.from('entregas_epp').insert(payloadEntrega);
-
-      for (final it in items) {
-        await supabase.from('stock_movimientos').insert({
-          'bodega_id': bodegaId,
-          'epp_id': it['epp_id'],
-          'tipo': 'SALIDA',
-          'cantidad': it['cantidad'],
-          'referencia_event_id': eventId,
-          'motivo': 'Entrega EPP',
-          'created_by': userId,
-        });
+      final ok = ins is Map ? ins['ok'] == true : false;
+      if (!ok) {
+        final msg = ins is Map ? (ins['error'] ?? 'error desconocido') : ins.toString();
+        throw Exception('RPC insert_entrega_online_v1: $msg');
       }
 
       // ✅ Registrar uso por cada EPP entregado (para control vence_por=USO/AMBOS)
