@@ -64,7 +64,7 @@ class PerfilUsuario {
   /// Puede entregar EPP y manejar stock
   bool get canWrite => rol == 'ADMIN' || rol == 'SUPERVISOR';
 
-  /// Puede crear/editar centros de costo, usuarios y reglas
+  /// Puede crear/editar centros de trabajo, usuarios y reglas
   bool get canManageSystem => rol == 'ADMIN';
 
   /// Shortcuts de módulos
