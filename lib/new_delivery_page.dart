@@ -1061,7 +1061,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       await supabase.storage.from('evidencias').uploadBinary(
             path,
             evidenciaBytes!,
-            fileOptions: const FileOptions(upsert: false),
+            fileOptions: const FileOptions(upsert: true),
           );
 
       final evidenciaUrl =
@@ -1072,7 +1072,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       await supabase.storage.from('evidencias').uploadBinary(
             firmaPath,
             firmaBytes!,
-            fileOptions: const FileOptions(upsert: false),
+            fileOptions: const FileOptions(upsert: true),
           );
       final firmaUrl =
           supabase.storage.from('evidencias').getPublicUrl(firmaPath);
