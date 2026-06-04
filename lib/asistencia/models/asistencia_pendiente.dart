@@ -13,6 +13,14 @@ class AsistenciaPendiente {
   int intentos;
   String? ultimoError;
 
+  // Campos DT — ORD. N°1140/27
+  final String? trabajadorNombre;   // A-2: nombre completo al momento de marcar
+  final String? empleadorRut;       // C-2: snapshot RUT empresa
+  final String? empleadorNombre;    // C-2: snapshot razón social
+  final String? empleadorDomicilio; // C-2: snapshot domicilio completo
+  final String validacionTipo;      // 'BIOMETRICA' | 'ALTERNATIVA_PIN'
+  final String? fallbackMotivo;     // si no fue biométrica: 'face_timeout' | 'face_rejected'
+
   AsistenciaPendiente({
     required this.id,
     required this.rut,
@@ -27,6 +35,12 @@ class AsistenciaPendiente {
     this.status = 'pendiente',
     this.intentos = 0,
     this.ultimoError,
+    this.trabajadorNombre,
+    this.empleadorRut,
+    this.empleadorNombre,
+    this.empleadorDomicilio,
+    this.validacionTipo = 'BIOMETRICA',
+    this.fallbackMotivo,
   });
 
   Map<String, dynamic> toMap() => {
@@ -43,6 +57,12 @@ class AsistenciaPendiente {
         'status': status,
         'intentos': intentos,
         'ultimoError': ultimoError,
+        'trabajadorNombre': trabajadorNombre,
+        'empleadorRut': empleadorRut,
+        'empleadorNombre': empleadorNombre,
+        'empleadorDomicilio': empleadorDomicilio,
+        'validacionTipo': validacionTipo,
+        'fallbackMotivo': fallbackMotivo,
       };
 
   factory AsistenciaPendiente.fromMap(Map<dynamic, dynamic> map) =>
@@ -60,5 +80,11 @@ class AsistenciaPendiente {
         status: map['status'] as String? ?? 'pendiente',
         intentos: map['intentos'] as int? ?? 0,
         ultimoError: map['ultimoError'] as String?,
+        trabajadorNombre: map['trabajadorNombre'] as String?,
+        empleadorRut: map['empleadorRut'] as String?,
+        empleadorNombre: map['empleadorNombre'] as String?,
+        empleadorDomicilio: map['empleadorDomicilio'] as String?,
+        validacionTipo: map['validacionTipo'] as String? ?? 'BIOMETRICA',
+        fallbackMotivo: map['fallbackMotivo'] as String?,
       );
 }

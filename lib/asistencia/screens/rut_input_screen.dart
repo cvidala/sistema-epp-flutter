@@ -13,6 +13,20 @@ import '../services/asistencia_sync_service.dart';
 import '../services/asistencia_upload_service.dart';
 import 'camera_capture_screen.dart';
 
+// ── Datos del empleador cargados una vez en initState ─────────────────────────
+class _DatosEmpleador {
+  final String orgId;
+  final String? rut;
+  final String? nombre;
+  final String? domicilio;
+  const _DatosEmpleador({
+    required this.orgId,
+    this.rut,
+    this.nombre,
+    this.domicilio,
+  });
+}
+
 // ── Tipos de marcaje ───────────────────────────────────────────────
 const _tipos = [
   _TipoMarcaje('Entrada',             '🟢', Color(0xFF166534), Color(0xFFdcfce7)),
@@ -103,6 +117,10 @@ class _RutInputScreenState extends State<RutInputScreen> {
   String _horaActual = '';
   String _fechaActual = '';
 
+  // Datos DT — cargados en initState, usados en cada marcación
+  _DatosEmpleador? _empleador;
+  String? _trabajadorNombreTemp; // nombre del trabajador verificado, limpiado tras marcar
+
   static String _formatHora(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
 
@@ -127,10 +145,45 @@ class _RutInputScreenState extends State<RutInputScreen> {
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _actualizarReloj());
     _online = AsistenciaSyncService.instance.isOnline;
     AsistenciaSyncService.instance.start(onStatusChange: () {
-      if (mounted) {
-        setState(() => _online = AsistenciaSyncService.instance.isOnline);
-      }
+      if (mounted) setState(() => _online = AsistenciaSyncService.instance.isOnline);
     });
+    _cargarDatosEmpleador();
+  }
+
+  /// Carga datos del empleador una vez al iniciar el kiosko.
+  /// Requerido por ORD. N°1140/27 §3.3 — deben estar en cada comprobante/registro.
+  Future<void> _cargarDatosEmpleador() async {
+    try {
+      final sb = Supabase.instance.client;
+      final data = await sb
+          .from('organizaciones')
+          .select('org_id, rut_empresa, razon_social, domicilio_calle, domicilio_numero, domicilio_comuna, domicilio_ciudad, domicilio_region')
+          .limit(1)
+          .single()
+          .timeout(const Duration(seconds: 10));
+
+      final partes = <String>[];
+      if (data['domicilio_calle'] != null) {
+        final num = data['domicilio_numero'] != null ? ' N° ${data['domicilio_numero']}' : '';
+        partes.add('${data['domicilio_calle']}$num');
+      }
+      if (data['domicilio_comuna'] != null) partes.add(data['domicilio_comuna'] as String);
+      if (data['domicilio_ciudad'] != null) partes.add(data['domicilio_ciudad'] as String);
+      if (data['domicilio_region'] != null) partes.add(data['domicilio_region'] as String);
+
+      if (mounted) {
+        setState(() {
+          _empleador = _DatosEmpleador(
+            orgId:     data['org_id'] as String,
+            rut:       data['rut_empresa'] as String?,
+            nombre:    data['razon_social'] as String?,
+            domicilio: partes.isNotEmpty ? partes.join(', ') : null,
+          );
+        });
+      }
+    } catch (_) {
+      // No crítico: el kiosko sigue operando sin datos del empleador
+    }
   }
 
   @override
@@ -189,12 +242,22 @@ class _RutInputScreenState extends State<RutInputScreen> {
     }
   }
 
+  /// Verifica el RUT y además carga el nombre del trabajador (A-2).
   Future<bool> _verificarRutEnBD(String rut) async {
     try {
-      final result = await Supabase.instance.client
-          .rpc('rut_existe', params: {'p_rut': rut})
+      final sb = Supabase.instance.client;
+      // Traer nombre además de verificar existencia
+      final data = await sb
+          .from('trabajadores')
+          .select('nombre, apellido')
+          .eq('rut', rut)
+          .eq('estado', 'ACTIVO')
+          .maybeSingle()
           .timeout(const Duration(seconds: 5));
-      return result as bool? ?? false;
+      if (data == null) return false;
+      final nombre = '${data['nombre'] ?? ''} ${data['apellido'] ?? ''}'.trim();
+      _trabajadorNombreTemp = nombre.isNotEmpty ? nombre : null;
+      return true;
     } catch (_) {
       return true; // Sin conexión → permitir (se guardará offline)
     }
@@ -202,18 +265,35 @@ class _RutInputScreenState extends State<RutInputScreen> {
 
   Future<void> _marcarOnline(String rut, Uint8List fotoBytes,
       Map<String, dynamic>? forensics, String tipo) async {
+    final id   = const Uuid().v4();
+    final hash = sha256.convert(fotoBytes).toString();
     try {
-      final id = const Uuid().v4();
       await AsistenciaUploadService.subirOnline(
-        localEventId: id,
-        rut: rut,
-        fotoBytes: fotoBytes,
-        forensics: forensics,
-        tipo: tipo,
+        localEventId:      id,
+        rut:               rut,
+        fotoBytes:         fotoBytes,
+        fotoHash:          hash,
+        forensics:         forensics,
+        tipo:              tipo,
+        trabajadorNombre:  _trabajadorNombreTemp,
+        empleadorRut:      _empleador?.rut,
+        empleadorNombre:   _empleador?.nombre,
+        empleadorDomicilio: _empleador?.domicilio,
       );
+      _trabajadorNombreTemp = null;
       _mostrarResultado(_ResultStatus.ok);
     } catch (e) {
       debugPrint('[Marcar] Error online, guardando offline: $e');
+      // A-1: registrar error de marcación
+      if (_empleador != null) {
+        await AsistenciaUploadService.registrarErrorMarcacion(
+          orgId:         _empleador!.orgId,
+          rut:           rut,
+          codigoError:   'UPLOAD_FAILED',
+          mensajeError:  e.toString(),
+          forensics:     forensics,
+        );
+      }
       await _guardarOffline(rut, fotoBytes, forensics, tipo);
       _mostrarResultado(_ResultStatus.offline);
     }
@@ -236,17 +316,22 @@ class _RutInputScreenState extends State<RutInputScreen> {
     final hash = sha256.convert(fotoBytes).toString();
 
     await AsistenciaHiveService.guardar(AsistenciaPendiente(
-      id: id,
-      rut: rut,
-      tipo: tipo,
-      fotoLocalPath: fotoPath,
-      fotoHash: hash,
-      gpsLat: (forensics?['gps_lat'] as num?)?.toDouble(),
-      gpsLng: (forensics?['gps_lng'] as num?)?.toDouble(),
-      gpsAccuracy: (forensics?['gps_accuracy_m'] as num?)?.toDouble(),
-      deviceModel: forensics?['device_model'] as String?,
-      capturedAt: DateTime.now().toUtc().toIso8601String(),
+      id:                id,
+      rut:               rut,
+      tipo:              tipo,
+      fotoLocalPath:     fotoPath,
+      fotoHash:          hash,
+      gpsLat:            (forensics?['gps_lat'] as num?)?.toDouble(),
+      gpsLng:            (forensics?['gps_lng'] as num?)?.toDouble(),
+      gpsAccuracy:       (forensics?['gps_accuracy_m'] as num?)?.toDouble(),
+      deviceModel:       forensics?['device_model'] as String?,
+      capturedAt:        DateTime.now().toUtc().toIso8601String(),
+      trabajadorNombre:  _trabajadorNombreTemp,
+      empleadorRut:      _empleador?.rut,
+      empleadorNombre:   _empleador?.nombre,
+      empleadorDomicilio: _empleador?.domicilio,
     ));
+    _trabajadorNombreTemp = null;
   }
 
   void _mostrarResultado(_ResultStatus status) {
