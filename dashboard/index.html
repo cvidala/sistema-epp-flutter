@@ -9,6 +9,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --navy:#0D2148;--navy2:#162d5e;--orange:#E87722;--orange2:#ff8c3a;
@@ -1016,7 +1018,7 @@
   <div class="modal" style="max-width:420px;">
     <button class="modal-close" onclick="closeModal('modalConfigurarPin')">✕</button>
     <div class="modal-title">🔑 PIN de Validación</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">El PIN protege la validación manual de asistencias. Debe tener entre 4 y 8 dígitos numéricos.</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">El PIN protege la validación manual de asistencias. Debe tener exactamente 4 dígitos numéricos.</p>
     <div id="pinActualWrap" style="display:none;margin-bottom:14px;">
       <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">PIN actual</label>
       <div style="position:relative;">
@@ -1584,7 +1586,7 @@
 
 <!-- ═══ MODAL: FORMULARIO CENTRO ═══ -->
 <div class="modal-bg" id="modalCentroForm">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:560px">
     <div class="modal-header">
       <div class="modal-title" id="modalCentroTitle">Centro de Costo</div>
       <button class="modal-close" onclick="closeModal('modalCentroForm')">✕</button>
@@ -1598,7 +1600,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Dirección</label>
-        <input class="form-input" id="centroDireccion" placeholder="Av. Principal 123">
+        <input class="form-input" id="centroDireccion" placeholder="Av. Principal 123, Santiago">
       </div>
       <div class="form-group">
         <label class="form-label">Estado</label>
@@ -1609,25 +1611,52 @@
       </div>
       <!-- Geofencing -->
       <div class="modal-section-title" style="margin-top:8px">📍 Ubicación y Geofencing</div>
-      <div style="background:#f8faff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--muted);margin-bottom:12px;">
-        Configura las coordenadas GPS del centro. Se usarán para verificar que los marcajes de asistencia se realicen desde la ubicación correcta.
-        <a id="centroMapsLink" href="#" target="_blank" style="display:none;color:var(--orange);font-weight:600;margin-left:6px;">Ver en Google Maps ↗</a>
+      <!-- Búsqueda por dirección -->
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Buscar dirección</label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="centroBuscaDireccion" placeholder="Av. Principal 123, Santiago"
+            onkeydown="if(event.key==='Enter'){geocodificarDireccion();event.preventDefault();}">
+          <button class="btn btn-secondary" onclick="geocodificarDireccion()"
+            style="white-space:nowrap;flex-shrink:0;padding:0 14px">Buscar</button>
+        </div>
+        <div id="centroGeocodeError" style="display:none;font-size:11px;color:var(--red);margin-top:4px"></div>
       </div>
+      <!-- Botón GPS + link Maps -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <button class="btn btn-secondary" id="btnMiUbicacion" onclick="capturarMiUbicacion()"
+          style="font-size:12px;padding:6px 12px">📡 Usar mi ubicación</button>
+        <a id="centroMapsLink" href="#" target="_blank"
+          style="display:none;font-size:12px;color:var(--orange);font-weight:600;">Ver en Maps ↗</a>
+      </div>
+      <!-- Mapa Leaflet — clic para mover marcador, arrastrar marcador -->
+      <div id="centroMapa" style="height:220px;border-radius:10px;margin-bottom:12px;
+        border:1px solid var(--border);background:#e5e7eb;overflow:hidden;"></div>
+      <!-- Coords manuales -->
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Latitud</label>
           <input class="form-input" id="centroGpsLat" type="number" step="any" placeholder="-33.4569"
-            oninput="actualizarMapsLink()">
+            oninput="onCoordsInput()">
         </div>
         <div class="form-group">
           <label class="form-label">Longitud</label>
           <input class="form-input" id="centroGpsLng" type="number" step="any" placeholder="-70.6483"
-            oninput="actualizarMapsLink()">
+            oninput="onCoordsInput()">
         </div>
       </div>
+      <!-- Radio slider -->
       <div class="form-group">
-        <label class="form-label">Radio de validación (metros) — por defecto 300 m</label>
-        <input class="form-input" id="centroGeoRadio" type="number" min="50" max="5000" placeholder="300">
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Radio de validación</span>
+          <strong id="centroGeoRadioLabel" style="color:var(--orange)">300 m</strong>
+        </label>
+        <input type="range" id="centroGeoRadio" min="50" max="2000" step="50" value="300"
+          oninput="onRadioSlider(this.value)"
+          style="width:100%;accent-color:var(--orange);cursor:pointer;margin:4px 0">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+          <span>50 m</span><span>500 m</span><span>1 km</span><span>2 km</span>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2781,10 +2810,14 @@ function _geoStatusBadge(o) {
 // ── MODALS ────────────────────────────────────────────────────────
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  if (id === 'modalCentroForm' && _cMap) { _cMap.remove(); _cMap = null; _cMarker = null; _cCircle = null; }
 }
 // Close modal on background click
 document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-bg')) e.target.classList.remove('open');
+  if (e.target.classList.contains('modal-bg')) {
+    e.target.classList.remove('open');
+    if (e.target.id === 'modalCentroForm' && _cMap) { _cMap.remove(); _cMap = null; _cMarker = null; _cCircle = null; }
+  }
 });
 
 
@@ -3348,7 +3381,7 @@ async function eliminarUsuario(userId, nombre) {
 // CENTROS DE COSTO — CRUD (ADMIN ONLY)
 // ═══════════════════════════════════════════════════════
 async function openNuevoCentro() {
-  document.getElementById('modalCentroTitle').textContent = 'Nuevo Centro de Costo';
+  document.getElementById('modalCentroTitle').textContent = 'Nuevo Centro';
   document.getElementById('centroEditId').value = '';
   document.getElementById('centroNombre').value = '';
   document.getElementById('centroDireccion').value = '';
@@ -3356,25 +3389,88 @@ async function openNuevoCentro() {
   document.getElementById('centroGpsLat').value = '';
   document.getElementById('centroGpsLng').value = '';
   document.getElementById('centroGeoRadio').value = '300';
+  document.getElementById('centroGeoRadioLabel').textContent = '300 m';
   document.getElementById('centroMapsLink').style.display = 'none';
   document.getElementById('centroFormError').style.display = 'none';
+  document.getElementById('centroBuscaDireccion').value = '';
+  document.getElementById('centroGeocodeError').style.display = 'none';
   document.getElementById('modalCentroForm').classList.add('open');
+  initCentroMapa(null, null, 300);
 }
 
 function openEditarCentro(id) {
   const o = allCentros.find(c => c.obra_id === id);
   if (!o) return;
-  document.getElementById('modalCentroTitle').textContent = 'Editar Centro de Costo';
+  document.getElementById('modalCentroTitle').textContent = 'Editar Centro';
   document.getElementById('centroEditId').value = o.obra_id;
   document.getElementById('centroNombre').value = o.nombre || '';
   document.getElementById('centroDireccion').value = o.direccion || '';
   document.getElementById('centroEstado').value = o.estado || 'ACTIVA';
   document.getElementById('centroGpsLat').value = o.gps_lat ?? '';
   document.getElementById('centroGpsLng').value = o.gps_lng ?? '';
-  document.getElementById('centroGeoRadio').value = o.geo_radio_m ?? 300;
+  const radio = o.geo_radio_m ?? 300;
+  document.getElementById('centroGeoRadio').value = radio;
+  document.getElementById('centroGeoRadioLabel').textContent = radio >= 1000 ? (radio/1000).toFixed(1)+' km' : radio+' m';
   document.getElementById('centroFormError').style.display = 'none';
+  document.getElementById('centroBuscaDireccion').value = '';
+  document.getElementById('centroGeocodeError').style.display = 'none';
   actualizarMapsLink();
   document.getElementById('modalCentroForm').classList.add('open');
+  initCentroMapa(o.gps_lat || null, o.gps_lng || null, radio);
+}
+
+// ── Mapa Leaflet ────────────────────────────────────────────
+let _cMap = null, _cMarker = null, _cCircle = null;
+
+function initCentroMapa(lat, lng, radio) {
+  if (_cMap) { _cMap.remove(); _cMap = null; _cMarker = null; _cCircle = null; }
+  const defaultLat = lat || -33.4569, defaultLng = lng || -70.6483;
+  const zoom = lat ? 15 : 12;
+  setTimeout(() => {
+    _cMap = L.map('centroMapa').setView([defaultLat, defaultLng], zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(_cMap);
+    if (lat && lng) _colocarMarcador(lat, lng, radio);
+    _cMap.on('click', e => setCentroLocation(e.latlng.lat, e.latlng.lng));
+  }, 120);
+}
+
+function _colocarMarcador(lat, lng, radio) {
+  if (_cMarker) { _cMarker.remove(); _cCircle.remove(); }
+  _cMarker = L.marker([lat, lng], { draggable: true }).addTo(_cMap);
+  _cCircle = L.circle([lat, lng], {
+    radius: radio, color: '#E87722', fillColor: '#E87722', fillOpacity: 0.12, weight: 2
+  }).addTo(_cMap);
+  _cMarker.on('dragend', e => {
+    const p = e.target.getLatLng();
+    setCentroLocation(p.lat, p.lng, false);
+  });
+}
+
+function setCentroLocation(lat, lng, panMap = true) {
+  document.getElementById('centroGpsLat').value = lat.toFixed(6);
+  document.getElementById('centroGpsLng').value = lng.toFixed(6);
+  const radio = parseInt(document.getElementById('centroGeoRadio').value) || 300;
+  if (_cMap) {
+    _colocarMarcador(lat, lng, radio);
+    if (panMap) _cMap.setView([lat, lng], Math.max(_cMap.getZoom(), 15));
+  }
+  actualizarMapsLink();
+}
+
+function onCoordsInput() {
+  const lat = parseFloat(document.getElementById('centroGpsLat').value);
+  const lng = parseFloat(document.getElementById('centroGpsLng').value);
+  if (!isNaN(lat) && !isNaN(lng) && _cMap) setCentroLocation(lat, lng);
+  else actualizarMapsLink();
+}
+
+function onRadioSlider(val) {
+  const v = parseInt(val);
+  document.getElementById('centroGeoRadioLabel').textContent = v >= 1000 ? (v/1000).toFixed(1)+' km' : v+' m';
+  if (_cCircle) _cCircle.setRadius(v);
 }
 
 function actualizarMapsLink() {
@@ -3386,6 +3482,54 @@ function actualizarMapsLink() {
     link.style.display = 'inline';
   } else {
     link.style.display = 'none';
+  }
+}
+
+async function capturarMiUbicacion() {
+  const btn = document.getElementById('btnMiUbicacion');
+  btn.textContent = '⏳ Obteniendo...';
+  btn.disabled = true;
+  if (!navigator.geolocation) {
+    btn.textContent = '📡 Usar mi ubicación';
+    btn.disabled = false;
+    alert('Tu navegador no soporta geolocalización.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      setCentroLocation(pos.coords.latitude, pos.coords.longitude);
+      btn.textContent = '📡 Usar mi ubicación';
+      btn.disabled = false;
+    },
+    err => {
+      btn.textContent = '📡 Usar mi ubicación';
+      btn.disabled = false;
+      const msgs = { 1: 'Permiso denegado', 2: 'Posición no disponible', 3: 'Tiempo de espera agotado' };
+      alert('GPS: ' + (msgs[err.code] || err.message));
+    },
+    { enableHighAccuracy: true, timeout: 12000 }
+  );
+}
+
+async function geocodificarDireccion() {
+  const query = document.getElementById('centroBuscaDireccion').value.trim();
+  const errEl = document.getElementById('centroGeocodeError');
+  errEl.style.display = 'none';
+  if (!query) return;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+    const data = await res.json();
+    if (!data.length) {
+      errEl.textContent = 'No se encontró la dirección. Intenta con más detalle (ciudad, región).';
+      errEl.style.display = 'block';
+      return;
+    }
+    const { lat, lon } = data[0];
+    setCentroLocation(parseFloat(lat), parseFloat(lon));
+  } catch (e) {
+    errEl.textContent = 'Error al buscar dirección. Verifica tu conexión.';
+    errEl.style.display = 'block';
   }
 }
 
@@ -4856,11 +5000,10 @@ function exportAsistenciaCSV() {
 // ═══════════════════════════════════════════════════════
 let allMantTrab = [];
 
-// Trabajador completo = todos los campos obligatorios + foto
+// Trabajador completo = flag calculado por trigger fn_auto_datos_completos en DB
+// (nombre + apellido + rut + cargo + fecha_ingreso + tipo_contrato)
 function trabCompleto(t) {
-  return !!(t.nombre && t.apellido && t.rut && t.email &&
-            t.telefono && t.fecha_nacimiento && t.cargo &&
-            t.fecha_ingreso && t.tipo_contrato && t.foto_rostro_url);
+  return t.datos_completos === true;
 }
 
 const MANT_SELECT = `trabajador_id, nombre, apellido, rut, datos_completos, foto_rostro_url,
@@ -5185,7 +5328,7 @@ async function saveMantNuevo() {
     // CREATE — verificar RUT duplicado
     const { data: dup } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
     if (dup) { showMantError(`El RUT ya está registrado como ${dup.nombre}`); return; }
-    payload.datos_completos = false; // se marca true solo al subir la foto
+    // datos_completos es calculado automáticamente por el trigger fn_auto_datos_completos
     const { data: trab, error } = await sb.from('trabajadores').insert(payload).select().single();
     if (error) { showMantError('Error: ' + error.message); return; }
     const obraId = document.getElementById('mantCentroInicial').value;
@@ -5344,7 +5487,7 @@ async function saveMantFoto() {
     if (upErr) throw upErr;
     const { data: urlData } = sb.storage.from('fotos-rostro').getPublicUrl(path);
     const { error: dbErr } = await sb.from('trabajadores')
-      .update({ foto_rostro_url: urlData.publicUrl, datos_completos: true })
+      .update({ foto_rostro_url: urlData.publicUrl })
       .eq('trabajador_id', trabId);
     if (dbErr) throw dbErr;
     cerrarModalFoto();
