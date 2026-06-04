@@ -879,64 +879,66 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     final confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Firma del trabajador'),
-        content: SizedBox(
-          width: 340,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'El trabajador debe firmar con el dedo en el recuadro.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF0D2148), width: 2),
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Signature(
-                    controller: _firmaCtrl,
-                    height: 180,
-                    backgroundColor: Colors.white,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          _firmaCtrl.addListener(() => setLocal(() {}));
+          return AlertDialog(
+            title: const Text('Firma del trabajador'),
+            content: SizedBox(
+              width: 340,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'El trabajador debe firmar con el dedo en el recuadro.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF0D2148), width: 2),
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Signature(
+                        controller: _firmaCtrl,
+                        height: 180,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Limpiar'),
+                    onPressed: () {
+                      _firmaCtrl.clear();
+                      setLocal(() {});
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Limpiar'),
-                onPressed: () => _firmaCtrl.clear(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: _firmaCtrl.isEmpty
+                    ? null
+                    : () => Navigator.pop(ctx, true),
+                child: const Text('Confirmar firma'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Confirmar firma'),
-          ),
-        ],
+          );
+        },
       ),
     );
 
     if (confirm != true) return;
-    if (_firmaCtrl.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Debes firmar antes de confirmar.')),
-        );
-      }
-      return;
-    }
 
     final png = await _firmaCtrl.toPngBytes();
     if (png != null) {
