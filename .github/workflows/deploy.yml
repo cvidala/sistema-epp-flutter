@@ -1,0 +1,45 @@
+name: Deploy Dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - 'website/**'
+      - 'index.html'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout gh-pages
+        run: git fetch origin gh-pages
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          keep_files: true
+          include_hidden: false
+          exclude_assets: |
+            .github
+            lib
+            android
+            ios
+            web
+            test
+            supabase
+            build
+            pubspec.yaml
+            pubspec.lock
+            analysis_options.yaml
+            *.md
+            *.dart
