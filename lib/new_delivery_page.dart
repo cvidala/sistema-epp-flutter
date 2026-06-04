@@ -1077,35 +1077,26 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       final firmaUrl =
           supabase.storage.from('evidencias').getPublicUrl(firmaPath);
 
-      final payloadEntrega = <String, dynamic>{
-        'event_id': eventId,
-        'trabajador_id': widget.trabajadorId,
-        'obra_id': widget.obraId,
-        'bodega_id': bodegaId,
-        'items': items,
-        'entregado_por': userId,
-        'forensics': _forensicData,
-        'sync_status': 'ENVIADO',
-        'evidencia_foto_url': evidenciaUrl,
-        'evidencia_hash': evidenciaHash,
-        'firma_url': firmaUrl,
-        'evaluacion': evaluacion,
-        'declaracion_text': declaracion,
-        'validacion_tipo': 'FIRMA_DIGITAL',
-      };
+      // RPC atómica: entregas_epp + stock_movimientos en una transacción
+      final ins = await supabase.rpc('insert_entrega_online_v1', params: {
+        'p_event_id':         eventId,
+        'p_obra_id':          widget.obraId,
+        'p_trabajador_id':    widget.trabajadorId,
+        'p_bodega_id':        bodegaId,
+        'p_items':            items,
+        'p_entregado_por':    userId,
+        'p_evidencia_url':    evidenciaUrl,
+        'p_evidencia_hash':   evidenciaHash,
+        'p_firma_url':        firmaUrl,
+        'p_evaluacion':       evaluacion,
+        'p_declaracion_text': declaracion,
+        'p_forensics':        _forensicData,
+      }).timeout(const Duration(seconds: 20));
 
-      await supabase.from('entregas_epp').insert(payloadEntrega);
-
-      for (final it in items) {
-        await supabase.from('stock_movimientos').insert({
-          'bodega_id': bodegaId,
-          'epp_id': it['epp_id'],
-          'tipo': 'SALIDA',
-          'cantidad': it['cantidad'],
-          'referencia_event_id': eventId,
-          'motivo': 'Entrega EPP',
-          'created_by': userId,
-        });
+      final ok = ins is Map ? ins['ok'] == true : false;
+      if (!ok) {
+        final msg = ins is Map ? (ins['error'] ?? 'error desconocido') : ins.toString();
+        throw Exception('RPC insert_entrega_online_v1: $msg');
       }
 
       // ✅ Registrar uso por cada EPP entregado (para control vence_por=USO/AMBOS)
