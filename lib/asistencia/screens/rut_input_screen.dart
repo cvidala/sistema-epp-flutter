@@ -221,24 +221,46 @@ class _RutInputScreenState extends State<RutInputScreen> {
     }
 
     // Ir a cámara
-    final fotoBytes = await Navigator.push<Uint8List?>(
+    final camResult = await Navigator.push<CameraResult?>(
       context,
       MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
     );
 
     if (!mounted) return;
-    if (fotoBytes == null) {
+    if (camResult == null) {
       setState(() => _cargando = false);
       return;
+    }
+
+    // Si la detección biométrica no completó → pedir PIN
+    if (camResult.esFallback) {
+      final pinOk = await _mostrarDialogPin(
+        rut:           rut,
+        fotoBytes:     camResult.fotoBytes,
+        fallbackMotivo: camResult.fallbackMotivo,
+      );
+      if (!mounted) return;
+      if (!pinOk) {
+        setState(() => _cargando = false);
+        return;
+      }
     }
 
     final forensics = await ForensicService.capture();
     final tipo = _tipos[_tipoIndex].label;
 
     if (_online) {
-      await _marcarOnline(rut, fotoBytes, forensics, tipo);
+      await _marcarOnline(
+        rut, camResult.fotoBytes, forensics, tipo,
+        validacionTipo: camResult.esFallback ? 'ALTERNATIVA_PIN' : 'BIOMETRICA',
+        fallbackMotivo: camResult.fallbackMotivo,
+      );
     } else {
-      await _marcarOffline(rut, fotoBytes, forensics, tipo);
+      await _marcarOffline(
+        rut, camResult.fotoBytes, forensics, tipo,
+        validacionTipo: camResult.esFallback ? 'ALTERNATIVA_PIN' : 'BIOMETRICA',
+        fallbackMotivo: camResult.fallbackMotivo,
+      );
     }
   }
 
@@ -264,7 +286,10 @@ class _RutInputScreenState extends State<RutInputScreen> {
   }
 
   Future<void> _marcarOnline(String rut, Uint8List fotoBytes,
-      Map<String, dynamic>? forensics, String tipo) async {
+      Map<String, dynamic>? forensics, String tipo, {
+      String validacionTipo = 'BIOMETRICA',
+      String? fallbackMotivo,
+  }) async {
     final id   = const Uuid().v4();
     final hash = sha256.convert(fotoBytes).toString();
     try {
@@ -279,34 +304,43 @@ class _RutInputScreenState extends State<RutInputScreen> {
         empleadorRut:      _empleador?.rut,
         empleadorNombre:   _empleador?.nombre,
         empleadorDomicilio: _empleador?.domicilio,
+        validacionTipo:    validacionTipo,
+        fallbackMotivo:    fallbackMotivo,
       );
       _trabajadorNombreTemp = null;
       _mostrarResultado(_ResultStatus.ok);
     } catch (e) {
       debugPrint('[Marcar] Error online, guardando offline: $e');
-      // A-1: registrar error de marcación
       if (_empleador != null) {
         await AsistenciaUploadService.registrarErrorMarcacion(
-          orgId:         _empleador!.orgId,
-          rut:           rut,
-          codigoError:   'UPLOAD_FAILED',
-          mensajeError:  e.toString(),
-          forensics:     forensics,
+          orgId:       _empleador!.orgId,
+          rut:         rut,
+          codigoError: 'UPLOAD_FAILED',
+          mensajeError: e.toString(),
+          forensics:   forensics,
         );
       }
-      await _guardarOffline(rut, fotoBytes, forensics, tipo);
+      await _guardarOffline(rut, fotoBytes, forensics, tipo,
+          validacionTipo: validacionTipo, fallbackMotivo: fallbackMotivo);
       _mostrarResultado(_ResultStatus.offline);
     }
   }
 
   Future<void> _marcarOffline(String rut, Uint8List fotoBytes,
-      Map<String, dynamic>? forensics, String tipo) async {
-    await _guardarOffline(rut, fotoBytes, forensics, tipo);
+      Map<String, dynamic>? forensics, String tipo, {
+      String validacionTipo = 'BIOMETRICA',
+      String? fallbackMotivo,
+  }) async {
+    await _guardarOffline(rut, fotoBytes, forensics, tipo,
+        validacionTipo: validacionTipo, fallbackMotivo: fallbackMotivo);
     _mostrarResultado(_ResultStatus.offline);
   }
 
   Future<void> _guardarOffline(String rut, Uint8List fotoBytes,
-      Map<String, dynamic>? forensics, String tipo) async {
+      Map<String, dynamic>? forensics, String tipo, {
+      String validacionTipo = 'BIOMETRICA',
+      String? fallbackMotivo,
+  }) async {
     final id = const Uuid().v4();
     final dir = await getApplicationDocumentsDirectory();
     final fotoDir = Directory('${dir.path}/asistencias');
@@ -330,8 +364,147 @@ class _RutInputScreenState extends State<RutInputScreen> {
       empleadorRut:      _empleador?.rut,
       empleadorNombre:   _empleador?.nombre,
       empleadorDomicilio: _empleador?.domicilio,
+      validacionTipo:    validacionTipo,
+      fallbackMotivo:    fallbackMotivo,
     ));
     _trabajadorNombreTemp = null;
+  }
+
+  /// Diálogo de identificación alternativa por PIN (ORD. 1140/27 §2).
+  /// Muestra la foto capturada (evidencia del intento) y solicita el PIN.
+  /// Retorna true si el PIN es válido.
+  Future<bool> _mostrarDialogPin({
+    required String rut,
+    required Uint8List fotoBytes,
+    String? fallbackMotivo,
+  }) async {
+    final pinCtrl = TextEditingController();
+    String? pinError;
+    bool validando = false;
+
+    final resultado = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Identificación alternativa'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Foto del intento — evidencia para la DT
+                Container(
+                  height: 140,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.orange.shade300, width: 2),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(fotoBytes, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    fallbackMotivo == 'face_timeout'
+                        ? 'Reconocimiento facial no completó en tiempo. Ingresa el PIN de la empresa para continuar.'
+                        : 'El sistema no reconoció el rostro después de $_maxIntentosFallbackMsg intentos. Ingresa el PIN de la empresa.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: pinCtrl,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 4,
+                  decoration: InputDecoration(
+                    labelText: 'PIN de validación (4 dígitos)',
+                    border: const OutlineInputBorder(),
+                    errorText: pinError,
+                    counterText: '',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: validando ? null : () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: validando
+                  ? null
+                  : () async {
+                      final pin = pinCtrl.text.trim();
+                      if (pin.length != 4) {
+                        setLocal(() => pinError = 'El PIN debe tener 4 dígitos');
+                        return;
+                      }
+                      setLocal(() { validando = true; pinError = null; });
+                      try {
+                        final ok = await _validarPin(pin);
+                        if (!ok) {
+                          setLocal(() {
+                            validando = false;
+                            pinError = 'PIN incorrecto';
+                          });
+                          // A-1: registrar intento fallido de PIN
+                          if (_empleador != null) {
+                            AsistenciaUploadService.registrarErrorMarcacion(
+                              orgId:       _empleador!.orgId,
+                              rut:         rut,
+                              codigoError: 'PIN_INCORRECTO',
+                              mensajeError: 'PIN ingresado no coincide',
+                              forensics:   null,
+                            );
+                          }
+                          return;
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx, true);
+                      } catch (e) {
+                        setLocal(() { validando = false; pinError = 'Error al validar: $e'; });
+                      }
+                    },
+              child: validando
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Confirmar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    pinCtrl.dispose();
+    return resultado ?? false;
+  }
+
+  // Mensaje para el dialog según cantidad de intentos configurada
+  String get _maxIntentosFallbackMsg => '3';
+
+  Future<bool> _validarPin(String pin) async {
+    if (_empleador == null) return false;
+    try {
+      final result = await Supabase.instance.client
+          .rpc('validar_pin_kiosko', params: {
+            'p_org_id': _empleador!.orgId,
+            'p_pin':    pin,
+          })
+          .timeout(const Duration(seconds: 8));
+      return result as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   void _mostrarResultado(_ResultStatus status) {
