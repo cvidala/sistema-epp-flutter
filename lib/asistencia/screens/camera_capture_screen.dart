@@ -7,6 +7,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
+/// Resultado de la pantalla de captura.
+/// [esFallback] = true cuando la detección biométrica no completó y
+/// el trabajador debe identificarse por PIN alternativo.
+class CameraResult {
+  final Uint8List fotoBytes;
+  final bool esFallback;
+  final String? fallbackMotivo; // 'face_timeout' | 'face_not_detected'
+
+  const CameraResult({
+    required this.fotoBytes,
+    this.esFallback = false,
+    this.fallbackMotivo,
+  });
+}
+
 class CameraCaptureScreen extends StatefulWidget {
   const CameraCaptureScreen({super.key});
 
@@ -27,6 +42,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   Timer? _progressTimer;
   static const _holdDuration = Duration(seconds: 2);
 
+  // Fallback: 3 intentos fallidos O 20 segundos (ORD. 1140/27 §2)
+  int _intentosFallidos = 0;
+  static const _maxIntentos  = 3;
+  static const _timeoutTotal = Duration(seconds: 20);
+  Timer? _fallbackTimer;
+  bool _fallbackTriggered = false;
+  int _segundosRestantes = 20;
+  Timer? _countdownTimer;
+
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
       performanceMode: FaceDetectorMode.fast,
@@ -41,14 +65,29 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   void initState() {
     super.initState();
     _iniciarCamara();
+    _iniciarTimerFallback();
   }
 
   @override
   void dispose() {
     _progressTimer?.cancel();
+    _fallbackTimer?.cancel();
+    _countdownTimer?.cancel();
     _controller?.dispose();
     _faceDetector.close();
     super.dispose();
+  }
+
+  void _iniciarTimerFallback() {
+    // Countdown visual
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted || _captured || _fallbackTriggered) { t.cancel(); return; }
+      setState(() => _segundosRestantes = (_segundosRestantes - 1).clamp(0, 20));
+    });
+    // Timer principal de 20s
+    _fallbackTimer = Timer(_timeoutTotal, () {
+      if (!_captured && !_fallbackTriggered) _triggerFallback('face_timeout');
+    });
   }
 
   Future<void> _iniciarCamara() async {
@@ -74,17 +113,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   }
 
   void _procesarFrame(CameraImage image) async {
-    if (_isProcessing || _captured) return;
+    if (_isProcessing || _captured || _fallbackTriggered) return;
     _isProcessing = true;
     try {
       final inputImage = _buildInputImage(image);
       if (inputImage == null) return;
       final faces = await _faceDetector.processImage(inputImage);
 
-      if (!mounted || _captured) return;
+      if (!mounted || _captured || _fallbackTriggered) return;
 
-      // Filtrar falsos positivos: el rostro debe ocupar al menos 15% del ancho
-      // de la imagen y estar centrado (no en los bordes)
       final validFaces = faces.where((face) {
         final box = face.boundingBox;
         if (box.width < image.width * 0.15) return false;
@@ -97,31 +134,40 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
       if (validFaces.isNotEmpty) {
         if (_faceSeenAt == null) {
-          // Face just appeared — start hold timer
           _faceSeenAt = DateTime.now();
           _iniciarProgressTimer();
           if (mounted) setState(() => _statusText = 'Rostro detectado — no te muevas');
         } else {
-          // Check if held long enough
           final elapsed = DateTime.now().difference(_faceSeenAt!);
           if (elapsed >= _holdDuration) {
             _captured = true;
             _progressTimer?.cancel();
+            _fallbackTimer?.cancel();
+            _countdownTimer?.cancel();
             await _controller!.stopImageStream();
             if (mounted) setState(() { _holdProgress = 1.0; _statusText = '✓ Capturando...'; });
             await _capturar();
           }
         }
       } else if (validFaces.isEmpty) {
-        // Face lost — reset
         if (_faceSeenAt != null) {
+          // Contar intento fallido si el rostro se había detectado con progreso significativo
+          if (_holdProgress > 0.3) {
+            _intentosFallidos++;
+            if (_intentosFallidos >= _maxIntentos && !_fallbackTriggered) {
+              _triggerFallback('face_not_detected');
+              return;
+            }
+          }
           _faceSeenAt = null;
           _progressTimer?.cancel();
           _progressTimer = null;
           if (mounted) {
             setState(() {
               _holdProgress = 0.0;
-              _statusText = 'Posiciona tu rostro en el óvalo';
+              _statusText = _intentosFallidos > 0
+                  ? 'Intento $_intentosFallidos/$_maxIntentos — reposiciona tu rostro'
+                  : 'Posiciona tu rostro en el óvalo';
             });
           }
         }
@@ -130,6 +176,41 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       debugPrint('[Camera] Error procesando frame: $e');
     } finally {
       _isProcessing = false;
+    }
+  }
+
+  /// Activa el fallback: captura una foto del estado actual (evidencia)
+  /// y retorna con esFallback = true.
+  Future<void> _triggerFallback(String motivo) async {
+    if (_fallbackTriggered || _captured) return;
+    _fallbackTriggered = true;
+    _progressTimer?.cancel();
+    _fallbackTimer?.cancel();
+    _countdownTimer?.cancel();
+
+    if (mounted) {
+      setState(() => _statusText = 'Abriendo identificación alternativa...');
+    }
+
+    try {
+      await _controller?.stopImageStream();
+      final xfile = await _controller?.takePicture();
+      if (xfile == null) {
+        if (mounted) Navigator.pop(context, null);
+        return;
+      }
+      final bytes = await xfile.readAsBytes();
+      final compressed = await _comprimirFoto(bytes);
+      if (mounted) {
+        Navigator.pop(context, CameraResult(
+          fotoBytes:      compressed,
+          esFallback:     true,
+          fallbackMotivo: motivo,
+        ));
+      }
+    } catch (e) {
+      debugPrint('[Camera] Error en fallback: $e');
+      if (mounted) Navigator.pop(context, null);
     }
   }
 
@@ -175,7 +256,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       final xfile = await _controller!.takePicture();
       final bytes = await xfile.readAsBytes();
       final compressed = await _comprimirFoto(bytes);
-      if (mounted) Navigator.pop(context, compressed);
+      if (mounted) Navigator.pop(context, CameraResult(fotoBytes: compressed));
     } catch (e) {
       debugPrint('[Camera] Error capturando: $e');
       if (mounted) {
@@ -223,14 +304,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Preview de cámara
           if (_controller != null && _controller!.value.isInitialized)
             Center(child: CameraPreview(_controller!))
           else
-            const Center(
-                child: CircularProgressIndicator(color: Colors.white)),
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
 
-          // Óvalo guía + overlay oscuro + arco de progreso
           CustomPaint(
             painter: _FaceOvalPainter(
               holdProgress: _holdProgress,
@@ -254,6 +332,30 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
               ),
             ),
           ),
+
+          // Countdown timer — visible cuando quedan ≤10s
+          if (_segundosRestantes <= 10 && !_fallbackTriggered)
+            Positioned(
+              top: 48,
+              right: 60,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _segundosRestantes <= 5
+                      ? Colors.red.withValues(alpha: 0.85)
+                      : Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$_segundosRestantes s',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
 
           // Botón cancelar
           Positioned(
@@ -287,7 +389,6 @@ class _FaceOvalPainter extends CustomPainter {
       height: size.height * 0.46,
     );
 
-    // Overlay oscuro con agujero oval
     final overlayPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
       ..addOval(ovalRect)
@@ -296,7 +397,6 @@ class _FaceOvalPainter extends CustomPainter {
     canvas.drawPath(
         overlayPath, Paint()..color = Colors.black.withValues(alpha: 0.55));
 
-    // Borde base del óvalo
     final borderColor = faceDetected
         ? const Color(0xFF4ADE80).withValues(alpha: 0.5)
         : Colors.white.withValues(alpha: 0.85);
@@ -309,7 +409,6 @@ class _FaceOvalPainter extends CustomPainter {
         ..strokeWidth = 2.5,
     );
 
-    // Arco de progreso verde
     if (holdProgress > 0) {
       final progressPaint = Paint()
         ..color = const Color(0xFF4ADE80)
@@ -317,11 +416,10 @@ class _FaceOvalPainter extends CustomPainter {
         ..strokeWidth = 5.0
         ..strokeCap = StrokeCap.round;
 
-      // Dibujar arco desde la parte superior, sentido horario
       canvas.drawArc(
         ovalRect,
-        -math.pi / 2,               // start: arriba
-        2 * math.pi * holdProgress, // sweep: progreso
+        -math.pi / 2,
+        2 * math.pi * holdProgress,
         false,
         progressPaint,
       );
