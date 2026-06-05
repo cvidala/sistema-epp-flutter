@@ -965,7 +965,8 @@
             <div class="page-title">👤 Usuarios</div>
             <div class="page-sub">Gestión de accesos al sistema</div>
           </div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="openDatosEmpresa()">🏢 Datos de Empresa</button>
             <button class="btn btn-secondary" onclick="openConfigurarPin()">🔑 PIN de Validación</button>
             <button class="btn btn-primary" onclick="openNuevoUsuario()">+ Nuevo Usuario</button>
           </div>
@@ -1047,6 +1048,67 @@
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button class="btn btn-secondary" onclick="closeModal('modalConfigurarPin')">Cancelar</button>
       <button class="btn btn-primary" id="btnGuardarPin" onclick="guardarPin()">Guardar PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DATOS DE EMPRESA (ORD. 1140/27 §3.3) -->
+<div class="modal-bg" id="modalDatosEmpresa">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">🏢 Datos de Empresa</div>
+      <button class="modal-close" onclick="closeModal('modalDatosEmpresa')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 14px;font-size:12px;color:#0369a1;margin-bottom:14px;">
+        Estos datos aparecen en cada comprobante de marcación según ORD. N°1140/27 de la Dirección del Trabajo.
+      </div>
+      <div id="datosEmpresaError" class="form-error"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">RUT Empresa *</label>
+          <input class="form-input" id="empRut" placeholder="76.543.210-K">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Razón Social *</label>
+          <input class="form-input" id="empNombre" placeholder="Constructora XYZ S.A.">
+        </div>
+      </div>
+      <div class="modal-section-title" style="margin-top:4px">Domicilio</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Calle *</label>
+          <input class="form-input" id="empCalle" placeholder="Av. Principal">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label class="form-label">Número</label>
+          <input class="form-input" id="empNumero" placeholder="123">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Piso / Oficina</label>
+          <input class="form-input" id="empPiso" placeholder="Piso 3, Of. 301">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comuna *</label>
+          <input class="form-input" id="empComuna" placeholder="Santiago">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ciudad *</label>
+          <input class="form-input" id="empCiudad" placeholder="Santiago">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Región *</label>
+          <input class="form-input" id="empRegion" placeholder="Región Metropolitana">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalDatosEmpresa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarDatosEmpresa()">Guardar</button>
     </div>
   </div>
 </div>
@@ -4924,6 +4986,52 @@ async function confirmarValidacion() {
     btn.textContent = 'Confirmar';
     document.getElementById('validacionPin').value = '';
   }
+}
+
+// ── Datos de Empresa (ORD. 1140/27 §3.3) ─────────────────────
+async function openDatosEmpresa() {
+  const { data: org } = await sb.from('organizaciones')
+    .select('rut_empresa,razon_social,domicilio_calle,domicilio_numero,domicilio_piso,domicilio_oficina,domicilio_comuna,domicilio_ciudad,domicilio_region')
+    .limit(1).single();
+  document.getElementById('empRut').value     = org?.rut_empresa    || '';
+  document.getElementById('empNombre').value  = org?.razon_social   || '';
+  document.getElementById('empCalle').value   = org?.domicilio_calle  || '';
+  document.getElementById('empNumero').value  = org?.domicilio_numero || '';
+  document.getElementById('empPiso').value    = (org?.domicilio_piso || '') + (org?.domicilio_oficina ? ', ' + org.domicilio_oficina : '');
+  document.getElementById('empComuna').value  = org?.domicilio_comuna || '';
+  document.getElementById('empCiudad').value  = org?.domicilio_ciudad || '';
+  document.getElementById('empRegion').value  = org?.domicilio_region || '';
+  document.getElementById('datosEmpresaError').style.display = 'none';
+  document.getElementById('modalDatosEmpresa').classList.add('open');
+}
+
+async function guardarDatosEmpresa() {
+  const errEl = document.getElementById('datosEmpresaError');
+  const rut    = document.getElementById('empRut').value.trim();
+  const nombre = document.getElementById('empNombre').value.trim();
+  const calle  = document.getElementById('empCalle').value.trim();
+  const comuna = document.getElementById('empComuna').value.trim();
+  const ciudad = document.getElementById('empCiudad').value.trim();
+  const region = document.getElementById('empRegion').value.trim();
+  if (!rut || !nombre || !calle || !comuna || !ciudad || !region) {
+    errEl.textContent = 'Completa los campos obligatorios (*)';
+    errEl.style.display = 'block';
+    return;
+  }
+  const pisoBruto = document.getElementById('empPiso').value.trim();
+  const { error } = await sb.from('organizaciones').update({
+    rut_empresa:       rut,
+    razon_social:      nombre,
+    domicilio_calle:   calle,
+    domicilio_numero:  document.getElementById('empNumero').value.trim() || null,
+    domicilio_piso:    pisoBruto || null,
+    domicilio_comuna:  comuna,
+    domicilio_ciudad:  ciudad,
+    domicilio_region:  region,
+  }).eq('org_id', currentPerfil.org_id);
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  closeModal('modalDatosEmpresa');
+  alert('✅ Datos de empresa guardados correctamente.');
 }
 
 // ── PIN de Validación (admin) ────────────────────────────────
