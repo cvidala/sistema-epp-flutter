@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: complete
-stopped_at: "Milestone v1.0 complete — 4/4 phases shipped, 27/27 requirements satisfied, CI/CD green"
-last_updated: "2026-06-03T00:00:00.000Z"
-last_activity: 2026-06-03 — Milestone v1.0 completado. Bugs adicionales corregidos (SF-01 RLS READONLY, ISSUE-002 audit registro_id). QA del dashboard y landing page.
+milestone: v2.0
+milestone_name: Tests Avanzados
+status: planning
+last_updated: "2026-06-14T00:17:43.427Z"
+last_activity: 2026-06-14
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,11 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-01)
 
 ## Current Position
 
-Phase: 4 of 4 — COMPLETE
-Status: Milestone v1.0 shipped
-Last activity: 2026-06-03 — Todos los bugs post-QA corregidos, landing page testeada, CI verde (#4 success)
-
-Progress: [██████████] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-14 — Milestone v2.0 started
 
 ## Milestone v1.0 Summary
 
@@ -80,6 +78,7 @@ None yet.
 ### Blockers/Concerns
 
 Ninguno. Todos los blockers anteriores resueltos:
+
 - ✅ Credenciales de test en CI (11 GitHub Secrets configurados)
 - ✅ E2E usa integration_test SDK de Flutter + service-layer tests contra Supabase real
 - ✅ SF-01 (READONLY insertaba entregas_epp) — política RLS corregida + test actualizado
