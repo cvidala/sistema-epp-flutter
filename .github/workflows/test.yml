@@ -34,6 +34,9 @@ jobs:
       - name: Unit & Widget Tests
         run: flutter test test/unit/ test/widget_test.dart --coverage
 
+      - name: Stress Tests
+        run: flutter test test/stress/ --tags stress
+
       - name: Integration Tests
         run: flutter test test/integration/supabase/ test/integration/e2e/ --tags integration
         env:
