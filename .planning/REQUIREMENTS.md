@@ -51,20 +51,45 @@
 
 ---
 
-## v2 Requirements (deferred)
+## v2 Requirements — Milestone v2.0: Tests Avanzados
 
-- Tests de carga / stress sobre la cola offline con cientos de entregas simultáneas
-- Tests de Edge Functions (notif-vencimiento)
-- Tests de geofencing
-- Snapshot tests visuales de pantallas Flutter
+### STR — Load/Stress Tests (Cola Offline)
+
+- [ ] **STR-01**: El developer puede ejecutar stress tests que encoluen 200 entregas y verifican que `listPending()` devuelve todas sin duplicados
+- [ ] **STR-02**: El sistema verifica que 20 enqueues simultáneos (`Future.wait`) no corrompen el estado del box ni pierden registros
+- [ ] **STR-03**: El sistema verifica que entregas con `nextRetryAt` futuro quedan excluidas de `listPending()` incluso con 50+ items en la cola
+- [ ] **STR-04**: El CI ejecuta los stress tests con tag `--tags stress` en menos de 60 segundos sin dependencias de red
+
+### EFN — Edge Function Tests (notif-vencimiento)
+
+- [ ] **EFN-01**: El código de `notif-vencimiento/index.ts` tiene una guardia `DRY_RUN` que bloquea el envío de emails en entornos de test
+- [ ] **EFN-02**: La lógica de agrupación y filtrado de trabajadores por vencimiento EPP está extraída en una función pura testeable sin Supabase ni Resend
+- [ ] **EFN-03**: El developer puede ejecutar unit tests Deno que verifican que `buildEmailHtml()` genera HTML correcto para trabajadores con EPP próximo a vencer
+- [ ] **EFN-04**: Los tests Deno verifican que el stub de `globalThis.fetch` captura el payload enviado a Resend (destinatario, asunto, HTML) sin enviar emails reales
+- [ ] **EFN-05**: El CI ejecuta `deno test supabase/functions/tests/` en un job separado con `denoland/setup-deno@v2`
+
+### VIS — Golden File Tests (Pantallas Flutter)
+
+- [ ] **VIS-01**: Las tres pantallas críticas (`ObrasPage`, `WorkersPage`, `NewDeliveryPage`) tienen constructores o helpers de test que inyectan datos sin llamadas a Supabase en `initState`
+- [ ] **VIS-02**: `flutter_test_config.dart` carga las fonts del proyecto para que los goldens muestren texto real en lugar de "Ahem" squares
+- [ ] **VIS-03**: El developer puede generar golden files en Linux (CI) que representan el estado visual correcto de las tres pantallas con datos inyectados
+- [ ] **VIS-04**: El CI ejecuta `flutter test test/golden/ --tags golden` y falla si cualquier pantalla difiere del golden de referencia
+- [ ] **VIS-05**: La actualización de goldens se hace via un job CI con `workflow_dispatch` + `--update-goldens`, no manualmente desde macOS
 
 ---
+
+## Future Requirements (fuera de v2.0)
+
+- Tests de integración completa de `notif-vencimiento` contra Supabase real (`supabase functions serve`)
+- Golden tests de pantallas del módulo asistencia (`RutInputScreen`, `CameraCaptureScreen`)
+- Tests de otras Edge Functions
 
 ## Out of Scope
 
 - Screenshot testing pixel-perfect (muy frágil en mobile)
 - Tests de rendimiento de la BD (no es prioridad)
-- Tests de Edge Functions en Supabase (validados via RPCs)
+- Tests de otras Edge Functions además de `notif-vencimiento`
+- Golden tests generados en macOS (siempre en Linux)
 
 ---
 
@@ -99,3 +124,17 @@
 | CI-02 | Phase 4: CI/CD Pipeline | Complete |
 | CI-03 | Phase 4: CI/CD Pipeline | Complete |
 | CI-04 | Phase 4: CI/CD Pipeline | Complete |
+| STR-01 | Phase 5: Load/Stress Tests | Pending |
+| STR-02 | Phase 5: Load/Stress Tests | Pending |
+| STR-03 | Phase 5: Load/Stress Tests | Pending |
+| STR-04 | Phase 5: Load/Stress Tests | Pending |
+| EFN-01 | Phase 6: Edge Function Tests | Pending |
+| EFN-02 | Phase 6: Edge Function Tests | Pending |
+| EFN-03 | Phase 6: Edge Function Tests | Pending |
+| EFN-04 | Phase 6: Edge Function Tests | Pending |
+| EFN-05 | Phase 6: Edge Function Tests | Pending |
+| VIS-01 | Phase 7: Golden File Tests | Pending |
+| VIS-02 | Phase 7: Golden File Tests | Pending |
+| VIS-03 | Phase 7: Golden File Tests | Pending |
+| VIS-04 | Phase 7: Golden File Tests | Pending |
+| VIS-05 | Phase 7: Golden File Tests | Pending |
