@@ -108,7 +108,11 @@ Plans:
   3. 20 enqueues simultáneos via `Future.wait()` resultan en exactamente 20 registros en el box (sin corrupción de estado)
   4. Con 50+ items en la cola, los items con `nextRetryAt` futuro quedan fuera de `listPending()` y los elegibles se devuelven en orden cronológico
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 05-01-PLAN.md — Crear test/stress/offline_queue_stress_test.dart con los 3 stress tests: volumen 200 (STR-01), concurrencia 20 (STR-02), filtro backoff 50→35 (STR-03)
+- [ ] 05-02-PLAN.md — Agregar paso "Stress Tests" al job test de CI con --tags stress, sin env block (STR-04)
 
 ### Phase 6: Edge Function Tests
 
@@ -153,6 +157,6 @@ Note: Phase 5 and Phase 6 are technically independent (different toolchains). Ph
 | 2. Supabase Tests | 1/1 | Complete | 2026-06-02 |
 | 3. E2E Tests | 1/1 | Complete | 2026-06-02 |
 | 4. CI/CD Pipeline | 1/1 | Complete | 2026-06-02 |
-| 5. Load/Stress Tests | 0/TBD | Not started | - |
+| 5. Load/Stress Tests | 0/2 | Not started | - |
 | 6. Edge Function Tests | 0/TBD | Not started | - |
 | 7. Golden File Tests | 0/TBD | Not started | - |
