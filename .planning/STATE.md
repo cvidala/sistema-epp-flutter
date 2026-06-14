@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Tests Avanzados
-status: planning
-last_updated: "2026-06-14T00:17:43.427Z"
-last_activity: 2026-06-14
+status: active
+last_updated: "2026-06-13T00:00:00.000Z"
+last_activity: 2026-06-13
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-01)
+See: .planning/PROJECT.md (updated 2026-06-13)
 
 **Core value:** Detectar regresiones antes de que lleguen a producción y tener visibilidad en tiempo real del estado del sistema en campo.
-**Current focus:** MILESTONE COMPLETE ✅
+**Current focus:** v2.0 — Tests Avanzados (Phase 5: Load/Stress Tests)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-06-14 — Milestone v2.0 started
+Phase: Phase 5 — Load/Stress Tests
+Plan: Not started
+Status: Ready for planning
+Last activity: 2026-06-13 — Roadmap v2.0 created (Phases 5-7)
+
+Progress: ░░░░░░░░░░ 0% (0/3 phases complete)
 
 ## Milestone v1.0 Summary
 
@@ -35,14 +37,24 @@ Last activity: 2026-06-14 — Milestone v2.0 started
 
 | Phase | Resultado | Tests |
 |-------|-----------|-------|
-| Phase 1: Unit Tests | ✅ Complete | 50 unit tests (hash chain, stock, offline queue) |
-| Phase 2: Supabase Tests | ✅ Complete | 14 integration tests (RLS, triggers, RPCs) |
-| Phase 3: E2E Tests | ✅ Complete | 3 service-layer E2E + integration_test/ ready |
-| Phase 4: CI/CD Pipeline | ✅ Complete | GitHub Actions verde, 11 secrets configurados |
+| Phase 1: Unit Tests | Complete | 50 unit tests (hash chain, stock, offline queue) |
+| Phase 2: Supabase Tests | Complete | 14 integration tests (RLS, triggers, RPCs) |
+| Phase 3: E2E Tests | Complete | 3 service-layer E2E + integration_test/ ready |
+| Phase 4: CI/CD Pipeline | Complete | GitHub Actions verde, 11 secrets configurados |
+
+## Milestone v2.0 Scope
+
+**13 requirements** across 3 phases | **0/3 phases complete**
+
+| Phase | Requirements | Key Constraint |
+|-------|-------------|----------------|
+| Phase 5: Load/Stress Tests | STR-01..04 | Zero new deps, extends hive_test pattern, < 60 s in CI |
+| Phase 6: Edge Function Tests | EFN-01..05 | DRY_RUN guard required before any test; separate Deno CI job |
+| Phase 7: Golden File Tests | VIS-01..05 | Highest effort: alchemist, flutter_test_config.dart, Linux-only baseline generation |
 
 ## Performance Metrics
 
-**By Phase:**
+**By Phase (v1.0):**
 
 | Phase | Plans | Duration |
 |-------|-------|----------|
@@ -51,7 +63,7 @@ Last activity: 2026-06-14 — Milestone v2.0 started
 | 03-e2e-tests | 1 | ~45 min |
 | 04-cicd-pipeline | 1 | ~15 min |
 
-**Total execution:** ~2.5 horas
+**Total v1.0 execution:** ~2.5 horas
 
 ## Accumulated Context
 
@@ -70,30 +82,32 @@ Recent decisions affecting current work:
 - Phase 2 Plan 01: anon INSERT requires Prefer:return=minimal — return=representation triggers SELECT that fails for anon role
 - Phase 2 Plan 01: entregas_epp BEFORE DELETE trigger blocks service_role — test rows permanent; idempotency via event_id existence check
 - Phase 2 Plan 01: TRG-04 audit_log queried by datos_nuevos->>event_id since entregas_epp has no 'id' column (PK is event_id TEXT)
+- v2.0 Roadmap: Phase 5 and Phase 6 are technically independent (different toolchains) — can be worked in parallel if desired, but sequential ordering minimizes CI complexity debt at each step
+- v2.0 Roadmap: Golden baselines MUST be generated on Linux (CI), never macOS — CoreText vs FreeType font rendering differ pixel-by-pixel
+- v2.0 Roadmap: DRY_RUN guard must be added to notif-vencimiento/index.ts BEFORE writing any EFN test — prevents real emails to real users on every CI run
+- v2.0 Roadmap: alchemist ^0.14.0 chosen over raw matchesGoldenFile — CI/local dual-mode with obscureText:true solves macOS/Linux font drift
 
 ### Pending Todos
 
-None yet.
+- Phase 6 (plan time): Read supabase/functions/notif-vencimiento/index.ts to determine exact pure function extraction boundaries before writing tasks
+- Phase 7 (plan time): Inspect ObrasPage, WorkersPage, NewDeliveryPage to determine minimal refactor needed for test-friendly constructors
 
 ### Blockers/Concerns
 
-Ninguno. Todos los blockers anteriores resueltos:
-
-- ✅ Credenciales de test en CI (11 GitHub Secrets configurados)
-- ✅ E2E usa integration_test SDK de Flutter + service-layer tests contra Supabase real
-- ✅ SF-01 (READONLY insertaba entregas_epp) — política RLS corregida + test actualizado
-- ✅ ISSUE-002 (audit_log registro_id null) — trigger fn_audit_log usa CASE por tabla
+None. v1.0 blockers all resolved. v2.0 ready to start.
 
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| v2 | Tests de carga/stress cola offline | Deferred | 2026-06-01 |
-| v2 | Tests de Edge Functions (notif-vencimiento) | Deferred | 2026-06-01 |
-| v2 | Snapshot tests visuales de pantallas Flutter | Deferred | 2026-06-01 |
+| v3 | Tests de integración completa de notif-vencimiento contra Supabase real | Deferred | 2026-06-13 |
+| v3 | Golden tests de pantallas del módulo asistencia (RutInputScreen, CameraCaptureScreen) | Deferred | 2026-06-13 |
+| v3 | Tests de otras Edge Functions (no notif-vencimiento) | Deferred | 2026-06-13 |
+| v3 | Golden tests dark mode (solo cuando se añada dark theme) | Deferred | 2026-06-13 |
+| v3 | Golden tests tablet/large screen (solo cuando se target iPad) | Deferred | 2026-06-13 |
 
 ## Session Continuity
 
-Last session: 2026-06-03
-Status: MILESTONE COMPLETE — no pending work
-Next milestone: v2.0 (when needed — deferred items: load tests, Edge Functions tests, visual snapshot tests)
+Last session: 2026-06-13
+Status: Roadmap v2.0 created — ready to plan Phase 5
+Next step: `/gsd-plan-phase 5`
