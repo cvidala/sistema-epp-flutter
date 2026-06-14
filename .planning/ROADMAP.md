@@ -130,7 +130,15 @@ Plans:
   4. El test que stubea `globalThis.fetch` captura el payload enviado a Resend (URL, destinatario, asunto, HTML) y verifica su estructura
   5. El CI ejecuta `deno test supabase/functions/tests/` en un job separado con `denoland/setup-deno@v2` que pasa en verde
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+**Wave 1**
+
+- [ ] 06-01-PLAN.md — Refactor de index.ts (DRY_RUN guard, exports puros, import.meta.main, sendResendEmail) + tests Deno (HTML, payload Resend) + deno.json (EFN-01..04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 06-02-PLAN.md — Job deno-test separado en CI con denoland/setup-deno@v2 y DRY_RUN=1, sin secrets, + doc en CLAUDE.md (EFN-05)
 
 ### Phase 7: Golden File Tests
 
@@ -161,5 +169,5 @@ Note: Phase 5 and Phase 6 are technically independent (different toolchains). Ph
 | 3. E2E Tests | 1/1 | Complete | 2026-06-02 |
 | 4. CI/CD Pipeline | 1/1 | Complete | 2026-06-02 |
 | 5. Load/Stress Tests | 0/2 | Not started | - |
-| 6. Edge Function Tests | 0/TBD | Not started | - |
+| 6. Edge Function Tests | 0/2 | Not started | - |
 | 7. Golden File Tests | 0/TBD | Not started | - |
