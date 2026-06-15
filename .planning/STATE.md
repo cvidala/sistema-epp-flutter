@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-15T00:06:17.784Z"
-last_activity: 2026-06-15
+last_updated: "2026-06-15T01:01:16.053Z"
+last_activity: 2026-06-15 -- Phase 06 execution started
 progress:
   total_phases: 7
   completed_phases: 1
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-13)
 
 **Core value:** Detectar regresiones antes de que lleguen a producción y tener visibilidad en tiempo real del estado del sistema en campo.
-**Current focus:** Phase 05 — load-stress-tests
+**Current focus:** Phase 06 — edge-function-tests
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Status: Executing Phase 05
-Last activity: 2026-06-15
+Phase: 06 (edge-function-tests) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 06
+Last activity: 2026-06-15 -- Phase 06 execution started
 
 Progress: ░░░░░░░░░░ 0% (0/3 phases complete)
 

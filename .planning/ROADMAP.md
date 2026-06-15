@@ -134,7 +134,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Refactor de index.ts (DRY_RUN guard, exports puros, import.meta.main, sendResendEmail) + tests Deno (HTML, payload Resend) + deno.json (EFN-01..04)
+- [x] 06-01-PLAN.md — Refactor de index.ts (DRY_RUN guard, exports puros, import.meta.main, sendResendEmail) + tests Deno (HTML, payload Resend) + deno.json (EFN-01..04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -169,5 +169,5 @@ Note: Phase 5 and Phase 6 are technically independent (different toolchains). Ph
 | 3. E2E Tests | 1/1 | Complete | 2026-06-02 |
 | 4. CI/CD Pipeline | 1/1 | Complete | 2026-06-02 |
 | 5. Load/Stress Tests | 2/2 | Complete    | 2026-06-15 |
-| 6. Edge Function Tests | 0/2 | Not started | - |
+| 6. Edge Function Tests | 1/2 | In Progress|  |
 | 7. Golden File Tests | 0/TBD | Not started | - |
