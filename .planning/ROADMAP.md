@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: E2E Tests** - Flujos críticos del usuario (entrega EPP, asistencia, sync offline) cubiertos end-to-end (completed 2026-06-02)
 - [x] **Phase 4: CI/CD Pipeline** - GitHub Actions ejecuta toda la suite en cada PR y bloquea merges con regresiones (completed 2026-06-02)
 - [x] **Phase 5: Load/Stress Tests** - La cola offline Hive aguanta volumen alto, concurrencia y filtrado de backoff con 200+ items sin corrupciones (completed 2026-06-14)
-- [ ] **Phase 6: Edge Function Tests** - `notif-vencimiento` tiene guardia DRY_RUN, lógica pura extraída, y tests Deno que verifican HTML, payload Resend y condiciones límite de fechas
+- [x] **Phase 6: Edge Function Tests** - `notif-vencimiento` tiene guardia DRY_RUN, lógica pura extraída, y tests Deno que verifican HTML, payload Resend y condiciones límite de fechas (completed 2026-06-15)
 - [ ] **Phase 7: Golden File Tests** - Las tres pantallas críticas (`ObrasPage`, `WorkersPage`, `NewDeliveryPage`) tienen goldens Linux generados por CI que detectan regresiones visuales en cada PR
 
 ## Phase Details
@@ -138,7 +138,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 06-02-PLAN.md — Job deno-test separado en CI con denoland/setup-deno@v2 y DRY_RUN=1, sin secrets, + doc en CLAUDE.md (EFN-05)
+- [x] 06-02-PLAN.md — Job deno-test separado en CI con denoland/setup-deno@v2 y DRY_RUN=1, sin secrets, + doc en CLAUDE.md (EFN-05)
 
 ### Phase 7: Golden File Tests
 
@@ -169,5 +169,5 @@ Note: Phase 5 and Phase 6 are technically independent (different toolchains). Ph
 | 3. E2E Tests | 1/1 | Complete | 2026-06-02 |
 | 4. CI/CD Pipeline | 1/1 | Complete | 2026-06-02 |
 | 5. Load/Stress Tests | 2/2 | Complete    | 2026-06-15 |
-| 6. Edge Function Tests | 1/2 | In Progress|  |
+| 6. Edge Function Tests | 2/2 | Complete   | 2026-06-15 |
 | 7. Golden File Tests | 0/TBD | Not started | - |
