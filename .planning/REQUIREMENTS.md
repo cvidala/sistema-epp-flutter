@@ -55,10 +55,10 @@
 
 ### STR — Load/Stress Tests (Cola Offline)
 
-- [ ] **STR-01**: El developer puede ejecutar stress tests que encoluen 200 entregas y verifican que `listPending()` devuelve todas sin duplicados
-- [ ] **STR-02**: El sistema verifica que 20 enqueues simultáneos (`Future.wait`) no corrompen el estado del box ni pierden registros
-- [ ] **STR-03**: El sistema verifica que entregas con `nextRetryAt` futuro quedan excluidas de `listPending()` incluso con 50+ items en la cola
-- [ ] **STR-04**: El CI ejecuta los stress tests con tag `--tags stress` en menos de 60 segundos sin dependencias de red
+- [x] **STR-01**: El developer puede ejecutar stress tests que encoluen 200 entregas y verifican que `listPending()` devuelve todas sin duplicados
+- [x] **STR-02**: El sistema verifica que 20 enqueues simultáneos (`Future.wait`) no corrompen el estado del box ni pierden registros
+- [x] **STR-03**: El sistema verifica que entregas con `nextRetryAt` futuro quedan excluidas de `listPending()` incluso con 50+ items en la cola
+- [x] **STR-04**: El CI ejecuta los stress tests con tag `--tags stress` en menos de 60 segundos sin dependencias de red
 
 ### EFN — Edge Function Tests (notif-vencimiento)
 
@@ -124,10 +124,10 @@
 | CI-02 | Phase 4: CI/CD Pipeline | Complete |
 | CI-03 | Phase 4: CI/CD Pipeline | Complete |
 | CI-04 | Phase 4: CI/CD Pipeline | Complete |
-| STR-01 | Phase 5: Load/Stress Tests | Pending |
-| STR-02 | Phase 5: Load/Stress Tests | Pending |
-| STR-03 | Phase 5: Load/Stress Tests | Pending |
-| STR-04 | Phase 5: Load/Stress Tests | Pending |
+| STR-01 | Phase 5: Load/Stress Tests | Complete |
+| STR-02 | Phase 5: Load/Stress Tests | Complete |
+| STR-03 | Phase 5: Load/Stress Tests | Complete |
+| STR-04 | Phase 5: Load/Stress Tests | Complete |
 | EFN-01 | Phase 6: Edge Function Tests | Pending |
 | EFN-02 | Phase 6: Edge Function Tests | Pending |
 | EFN-03 | Phase 6: Edge Function Tests | Pending |
