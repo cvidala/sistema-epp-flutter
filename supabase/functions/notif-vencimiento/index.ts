@@ -5,111 +5,52 @@
 // ============================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL            = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const RESEND_API_KEY          = Deno.env.get('RESEND_API_KEY')!;
-const FROM_EMAIL              = 'TrazApp <notificaciones@trazapp.cl>';
-const DASHBOARD_URL           = 'https://trazapp.cl';
+const FROM_EMAIL    = 'TrazApp <notificaciones@trazapp.cl>';
+const DASHBOARD_URL = 'https://trazapp.cl';
 
-interface Vencimiento {
-  org_id:           string;
+export interface Vencimiento {
+  org_id:            string;
   trabajador_nombre: string;
-  trabajador_rut:   string;
-  obra_nombre:      string;
-  epp_nombre:       string;
-  epp_codigo:       string;
-  dias_restantes:   number;
+  trabajador_rut:    string;
+  obra_nombre:       string;
+  epp_nombre:        string;
+  epp_codigo:        string;
+  dias_restantes:    number;
   fecha_vencimiento: string;
-  nivel_alerta:     'CRITICO' | 'AVISO';
+  nivel_alerta:      'CRITICO' | 'AVISO';
 }
 
-interface Destinatario {
-  nombre:     string;
+export interface Destinatario {
+  nombre:      string;
   email_notif: string | null;
 }
 
-Deno.serve(async () => {
-  try {
-    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-    // ── 1. Obtener vencimientos del día ──────────────────
-    const { data: venc, error: vErr } = await sb
-      .rpc('get_vencimientos_proximos');
-    if (vErr) throw new Error(`RPC error: ${vErr.message}`);
-    if (!venc || venc.length === 0) {
-      return new Response('Sin vencimientos para notificar hoy.', { status: 200 });
-    }
-
-    // ── 2. Agrupar por organización ──────────────────────
-    const porOrg = new Map<string, Vencimiento[]>();
-    for (const v of venc as Vencimiento[]) {
-      if (!porOrg.has(v.org_id)) porOrg.set(v.org_id, []);
-      porOrg.get(v.org_id)!.push(v);
-    }
-
-    // ── 3. Para cada org: obtener destinatarios y enviar ─
-    let emailsEnviados = 0;
-    const errores: string[] = [];
-
-    for (const [orgId, items] of porOrg) {
-      const { data: destinatarios, error: dErr } = await sb
-        .from('perfiles')
-        .select('nombre, email_notif')
-        .eq('org_id', orgId)
-        .eq('recibe_notif_venc', true)
-        .eq('activo', true);
-
-      if (dErr || !destinatarios?.length) continue;
-
-      const emails = (destinatarios as Destinatario[])
-        .map(d => d.email_notif)
-        .filter((e): e is string => !!e && e.includes('@'));
-
-      if (!emails.length) continue;
-
-      const criticos = items.filter(i => i.nivel_alerta === 'CRITICO');
-      const avisos   = items.filter(i => i.nivel_alerta === 'AVISO');
-      const asunto   = criticos.length > 0
-        ? `🔴 ${criticos.length} EPP vence${criticos.length > 1 ? 'n' : ''} en ${criticos[0].dias_restantes} días — TrazApp`
-        : `⚠️ ${avisos.length} EPP próximo${avisos.length > 1 ? 's' : ''} a vencer — TrazApp`;
-
-      const html = buildEmailHtml(items, criticos, avisos);
-
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ from: FROM_EMAIL, to: emails, subject: asunto, html }),
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        errores.push(`Org ${orgId}: ${err}`);
-      } else {
-        emailsEnviados++;
-      }
-    }
-
-    const msg = `Enviados: ${emailsEnviados} emails. Errores: ${errores.length > 0 ? errores.join(' | ') : 'ninguno'}.`;
-    console.log(msg);
-    return new Response(msg, { status: 200 });
-
-  } catch (e) {
-    console.error('Error en notif-vencimiento:', e);
-    return new Response(`Error: ${e.message}`, { status: 500 });
-  }
-});
+// ── Función pura: envío a Resend ───────────────────────────
+export async function sendResendEmail(
+  to: string[],
+  subject: string,
+  html: string,
+  apiKey: string,
+): Promise<boolean> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+  });
+  return res.ok;
+}
 
 // ── Template de email ──────────────────────────────────────
-function buildEmailHtml(
+export function buildEmailHtml(
   todos: Vencimiento[],
   criticos: Vencimiento[],
-  avisos: Vencimiento[]
+  avisos: Vencimiento[],
 ): string {
   const today = new Date().toLocaleDateString('es-CL', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
   const filas = (items: Vencimiento[], color: string, icono: string) =>
@@ -193,8 +134,85 @@ function buildEmailHtml(
 </body></html>`;
 }
 
-function formatFecha(iso: string): string {
+export function formatFecha(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-CL', {
-    day: '2-digit', month: 'short', year: 'numeric'
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+}
+
+// ── Entry point (solo cuando se corre directamente) ────────
+if (import.meta.main) {
+  const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
+  const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const RESEND_API_KEY       = Deno.env.get('RESEND_API_KEY')!;
+
+  Deno.serve(async () => {
+    // ── DRY_RUN guard (test safety) ─────────────────────
+    if (Deno.env.get('DRY_RUN')) {
+      return new Response('DRY_RUN: no emails sent.', { status: 200 });
+    }
+
+    try {
+      const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+      // ── 1. Obtener vencimientos del día ──────────────────
+      const { data: venc, error: vErr } = await sb
+        .rpc('get_vencimientos_proximos');
+      if (vErr) throw new Error(`RPC error: ${vErr.message}`);
+      if (!venc || venc.length === 0) {
+        return new Response('Sin vencimientos para notificar hoy.', { status: 200 });
+      }
+
+      // ── 2. Agrupar por organización ──────────────────────
+      const porOrg = new Map<string, Vencimiento[]>();
+      for (const v of venc as Vencimiento[]) {
+        if (!porOrg.has(v.org_id)) porOrg.set(v.org_id, []);
+        porOrg.get(v.org_id)!.push(v);
+      }
+
+      // ── 3. Para cada org: obtener destinatarios y enviar ─
+      let emailsEnviados = 0;
+      const errores: string[] = [];
+
+      for (const [orgId, items] of porOrg) {
+        const { data: destinatarios, error: dErr } = await sb
+          .from('perfiles')
+          .select('nombre, email_notif')
+          .eq('org_id', orgId)
+          .eq('recibe_notif_venc', true)
+          .eq('activo', true);
+
+        if (dErr || !destinatarios?.length) continue;
+
+        const emails = (destinatarios as Destinatario[])
+          .map(d => d.email_notif)
+          .filter((e): e is string => !!e && e.includes('@'));
+
+        if (!emails.length) continue;
+
+        const criticos = items.filter(i => i.nivel_alerta === 'CRITICO');
+        const avisos   = items.filter(i => i.nivel_alerta === 'AVISO');
+        const asunto   = criticos.length > 0
+          ? `🔴 ${criticos.length} EPP vence${criticos.length > 1 ? 'n' : ''} en ${criticos[0].dias_restantes} días — TrazApp`
+          : `⚠️ ${avisos.length} EPP próximo${avisos.length > 1 ? 's' : ''} a vencer — TrazApp`;
+
+        const html = buildEmailHtml(items, criticos, avisos);
+        const ok   = await sendResendEmail(emails, asunto, html, RESEND_API_KEY);
+
+        if (!ok) {
+          errores.push(`Org ${orgId}: envío fallido`);
+        } else {
+          emailsEnviados++;
+        }
+      }
+
+      const msg = `Enviados: ${emailsEnviados} emails. Errores: ${errores.length > 0 ? errores.join(' | ') : 'ninguno'}.`;
+      console.log(msg);
+      return new Response(msg, { status: 200 });
+
+    } catch (e) {
+      console.error('Error en notif-vencimiento:', e);
+      return new Response(`Error: ${e.message}`, { status: 500 });
+    }
   });
 }
