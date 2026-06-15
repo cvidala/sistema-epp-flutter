@@ -60,7 +60,7 @@ Suite de calidad integral para TrazApp, integrada dentro del mismo repo `sistema
 
 ### Active (v2.0 — a construir)
 
-- [ ] Load/stress tests cola offline (Hive): concurrencia, volumen alto, backoff bajo carga
+- [x] Load/stress tests cola offline (Hive): concurrencia, volumen alto, backoff bajo carga — Validated in Phase 05: load-stress-tests
 - [ ] Tests Edge Functions `notif-vencimiento`: invocación, emails Resend, condiciones límite de fechas
 - [ ] Golden file tests de pantallas Flutter críticas: ObrasPage, WorkersPage, NewDeliveryPage
 
@@ -95,4 +95,4 @@ Este documento evoluciona en cada transición de fase.
 3. Decisiones clave → agregar a Key Decisions
 
 ---
-*Last updated: 2026-06-13 — milestone v2.0 iniciado*
+*Last updated: 2026-06-14 — Phase 05 complete: stress tests cola offline + CI integración*
