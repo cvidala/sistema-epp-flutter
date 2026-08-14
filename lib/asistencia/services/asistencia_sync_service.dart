@@ -62,7 +62,7 @@ class AsistenciaSyncService {
           final fotoPath =
               await AsistenciaUploadService.subirFoto(a.id, a.rut, bytes);
           await AsistenciaUploadService.insertarRegistro(
-              a: a, fotoPath: fotoPath);
+              a: a, fotoPath: fotoPath, orgId: a.orgId ?? '');
           await AsistenciaHiveService.marcarEnviada(a.id);
           // Borra la foto local inmediatamente para no llenar la memoria
           try {

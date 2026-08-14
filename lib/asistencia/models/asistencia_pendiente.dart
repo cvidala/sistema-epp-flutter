@@ -14,6 +14,7 @@ class AsistenciaPendiente {
   String? ultimoError;
 
   // Campos DT — ORD. N°1140/27
+  final String? orgId;              // tenant — requerido para RLS y portal fiscalización
   final String? trabajadorNombre;   // A-2: nombre completo al momento de marcar
   final String? empleadorRut;       // C-2: snapshot RUT empresa
   final String? empleadorNombre;    // C-2: snapshot razón social
@@ -35,6 +36,7 @@ class AsistenciaPendiente {
     this.status = 'pendiente',
     this.intentos = 0,
     this.ultimoError,
+    this.orgId,
     this.trabajadorNombre,
     this.empleadorRut,
     this.empleadorNombre,
@@ -57,6 +59,7 @@ class AsistenciaPendiente {
         'status': status,
         'intentos': intentos,
         'ultimoError': ultimoError,
+        'orgId': orgId,
         'trabajadorNombre': trabajadorNombre,
         'empleadorRut': empleadorRut,
         'empleadorNombre': empleadorNombre,
@@ -80,6 +83,7 @@ class AsistenciaPendiente {
         status: map['status'] as String? ?? 'pendiente',
         intentos: map['intentos'] as int? ?? 0,
         ultimoError: map['ultimoError'] as String?,
+        orgId: map['orgId'] as String?,
         trabajadorNombre: map['trabajadorNombre'] as String?,
         empleadorRut: map['empleadorRut'] as String?,
         empleadorNombre: map['empleadorNombre'] as String?,
