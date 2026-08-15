@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrazApp — Guión Programa Piloto</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0D2148;--navy2:#162d5e;--orange:#E87722;--bg:#F0F3FA;--card:#fff;
+  --text:#0D2148;--muted:#6B7A99;--border:#DDE3F0;--green:#16a34a;--red:#DC2626;--yellow:#D97706;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);padding:32px 24px;max-width:900px;margin:0 auto;}
+@media print{body{background:white;padding:0;}  .no-print{display:none;}}
+
+h1{font-size:26px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+.subtitle{font-size:14px;color:var(--muted);margin-bottom:32px;}
+h2{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+h3{font-size:14px;font-weight:700;color:var(--navy);margin:16px 0 8px;}
+p{font-size:13.5px;line-height:1.75;color:#334155;margin-bottom:8px;}
+ul,ol{padding-left:20px;margin-bottom:8px;}
+li{font-size:13.5px;line-height:1.8;color:#334155;}
+strong{color:var(--navy);}
+
+.section{background:white;border:1px solid var(--border);border-radius:14px;
+  padding:24px;margin-bottom:20px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.time-badge{background:#EFF6FF;color:#1D4ED8;border-radius:20px;
+  padding:4px 12px;font-size:11px;font-weight:700;}
+
+.step{display:flex;gap:14px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.step-num{width:28px;height:28px;background:var(--navy);color:white;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.step-content{flex:1;}
+.step-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+
+.pregunta{background:#F8FAFD;border-left:3px solid var(--navy);border-radius:0 8px 8px 0;
+  padding:10px 14px;margin-bottom:8px;font-size:13px;font-style:italic;}
+.respuesta{background:#F0FDF4;border-left:3px solid var(--green);border-radius:0 8px 8px 0;
+  padding:10px 14px;margin-bottom:12px;font-size:13px;}
+.objecion{background:#FFF7ED;border-left:3px solid var(--orange);border-radius:0 8px 8px 0;
+  padding:10px 14px;margin-bottom:8px;}
+.objecion-label{font-size:10px;font-weight:700;color:var(--orange);letter-spacing:0.5px;margin-bottom:4px;}
+
+.pill{display:inline-block;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;margin:2px;}
+.pill-green{background:#DCFCE7;color:#166534;}
+.pill-orange{background:#FEF3C7;color:#92400E;}
+.pill-blue{background:#DBEAFE;color:#1E40AF;}
+.pill-red{background:#FEE2E2;color:#991B1B;}
+
+.checklist{list-style:none;padding:0;}
+.checklist li{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:13.5px;}
+.checklist li::before{content:'☐';font-size:16px;color:var(--muted);flex-shrink:0;line-height:1.3;}
+.checklist li.done::before{content:'✅';}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+
+.kpi{background:#F8FAFD;border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-align:center;}
+.kpi-num{font-size:28px;font-weight:800;color:var(--navy);}
+.kpi-label{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;}
+
+.email-box{background:#1e293b;color:#e2e8f0;border-radius:10px;padding:20px;
+  font-family:monospace;font-size:12.5px;line-height:1.8;white-space:pre-wrap;}
+
+.alert{border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:13px;}
+.alert-blue{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;}
+.alert-orange{background:#FFF7ED;border:1px solid #FED7AA;color:#92400E;}
+.alert-green{background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;}
+
+.tab-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border);background:white;color:var(--muted);transition:all 0.15s;}
+.tab.active{background:var(--navy);color:white;border-color:var(--navy);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+</style>
+</head>
+<body>
+
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+  <div style="width:44px;height:44px;background:var(--orange);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:800;">T</div>
+  <div>
+    <h1>Programa Piloto — Guión de Videollamada</h1>
+    <div class="subtitle">Uso interno · Actualizado agosto 2025</div>
+  </div>
+  <button class="no-print" onclick="window.print()" style="margin-left:auto;padding:8px 18px;
+    background:var(--navy);color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;">
+    Imprimir / PDF
+  </button>
+</div>
+
+<!-- KPIs objetivo -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">
+  <div class="kpi"><div class="kpi-num">45'</div><div class="kpi-label">DURACIÓN IDEAL</div></div>
+  <div class="kpi"><div class="kpi-num">30</div><div class="kpi-label">DÍAS PILOTO</div></div>
+  <div class="kpi"><div class="kpi-num">0</div><div class="kpi-label">COSTO PILOTO</div></div>
+  <div class="kpi"><div class="kpi-num">3</div><div class="kpi-label">META PILOTOS Q3</div></div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="showTab('guion')">📋 Guión de llamada</div>
+  <div class="tab" onclick="showTab('oferta')">📦 Oferta piloto</div>
+  <div class="tab" onclick="showTab('objeciones')">🛡️ Objeciones</div>
+  <div class="tab" onclick="showTab('setup')">⚙️ Setup técnico</div>
+  <div class="tab" onclick="showTab('email')">📧 Email post-llamada</div>
+  <div class="tab" onclick="showTab('corfo')">📊 Datos para Corfo</div>
+</div>
+
+<!-- ── GUIÓN ─────────────────────────────────────────────────── -->
+<div id="tab-guion" class="tab-content active">
+
+  <div class="alert alert-blue">
+    💡 <strong>Antes de la llamada:</strong> busca la empresa en LinkedIn y Google. ¿Cuántos trabajadores tienen? ¿Qué rubros? ¿Han tenido accidentes o multas DT recientes? Te toma 5 minutos y cambia toda la conversación.
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>1 — Apertura y contexto</h2>
+      <span class="time-badge">⏱ 5 min</span>
+    </div>
+    <div class="step">
+      <div class="step-num">→</div>
+      <div class="step-content">
+        <div class="step-title">Presentación breve (30 segundos)</div>
+        <p><em>"Hola [Nombre], soy [tu nombre] de TrazApp. Gracias por contactarnos a través del sitio. Para aprovechar bien el tiempo, quisiera entender primero cómo están gestionando esto hoy, y luego te muestro cómo lo resolvemos. ¿Te parece bien?"</em></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">→</div>
+      <div class="step-content">
+        <div class="step-title">Preguntas de descubrimiento — escucha más de lo que hablas</div>
+        <div class="pregunta">¿Cuántas obras o plantas activas tienen hoy? ¿Cuántos trabajadores aproximadamente?</div>
+        <div class="pregunta">¿Cómo llevan hoy el control de entrega de EPP y la asistencia? ¿Papel, Excel, algún sistema?</div>
+        <div class="pregunta">¿Han tenido fiscalizaciones de la DT? ¿O accidentes vinculados a EPP faltante?</div>
+        <div class="pregunta">¿Qué los motivó a buscar una solución ahora? ¿Hay algo específico que los hizo contactarnos?</div>
+        <p style="color:var(--muted);font-size:12px;">👂 <em>Toma nota de los números que dicen (trabajadores, obras, incidentes). Los vas a usar en la demo.</em></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>2 — Demo en vivo</h2>
+      <span class="time-badge">⏱ 15 min</span>
+    </div>
+    <div class="alert alert-orange">
+      ⚠️ Abre la app en tu teléfono ANTES de empezar. Comparte pantalla desde el inicio. Usa datos reales inventados (ej: "Trabajador: Juan Pérez, obra: Proyecto Maipú").
+    </div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Flujo EPP completo (5 min)</div>
+        <p>Login → seleccionar obra → buscar trabajador → entregar items EPP → capturar foto → firma digital → confirmar. Muestra el registro quedando en el historial.</p>
+        <p><em>"Esto que acaban de ver queda registrado con GPS, foto del trabajador firmando, y hash criptográfico. Si la DT fiscaliza, tienes evidencia irrefutable de qué EPP recibió cada persona y cuándo."</em></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Modo offline (3 min)</div>
+        <p>Activa el modo avión del teléfono. Muestra que la app sigue funcionando, registra igual. Vuelve a conectar y muestra la sincronización automática.</p>
+        <p><em>"En obras con mala señal esto es crítico — los datos nunca se pierden."</em></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Kiosko de asistencia (4 min)</div>
+        <p>Muestra el kiosko: ingreso de RUT → reconocimiento facial → confirmación. Muestra el fallback por PIN si la cámara falla.</p>
+        <p><em>"Este módulo cumple la Resolución Exenta N°38 de la DT. Los registros son inalterables una vez guardados — incluso nosotros como proveedores no podemos modificarlos. Eso es lo que exige la ley."</em></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Portal de fiscalización DT (3 min)</div>
+        <p>Muestra el portal web. <em>"Si un inspector de la DT aparece en tu obra, le das acceso a este portal. Ve exactamente lo que necesita: quién marcó, cuándo, con qué evidencia. Nada más."</em></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>3 — Propuesta de valor personalizada</h2>
+      <span class="time-badge">⏱ 8 min</span>
+    </div>
+    <div class="step">
+      <div class="step-num">→</div>
+      <div class="step-content">
+        <div class="step-title">Conecta con lo que dijeron en el descubrimiento</div>
+        <p>Usa los números que anotaste. Si dijeron "80 trabajadores en 3 obras":</p>
+        <p><em>"Con 80 personas, si cada entrega de EPP toma 10 minutos en papel, están gastando más de 13 horas-hombre al mes solo en papeleo. TrazApp lo baja a 2 minutos por entrega y el registro queda automático."</em></p>
+        <p>Si mencionaron fiscalización o accidentes:</p>
+        <p><em>"Una multa de la DT por registros incompletos de EPP puede costar entre 1 y 5 UTM por trabajador afectado. Con [N] trabajadores, eso es [N × $75.000 a $375.000]. Nuestro costo mensual es una fracción de eso."</em></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>4 — Oferta del Programa Piloto</h2>
+      <span class="time-badge">⏱ 7 min</span>
+    </div>
+    <div class="step">
+      <div class="step-num">→</div>
+      <div class="step-content">
+        <div class="step-title">Presentar el piloto</div>
+        <p><em>"Lo que quiero proponerte es que sean una de nuestras 3 empresas piloto de este trimestre. No es una versión recortada — es el sistema completo, sin costo, durante 30 días."</em></p>
+        <p><em>"A cambio, necesito que me cuenten cómo les va: qué funcionó, qué mejoraría. Eso nos ayuda a perfeccionar el producto antes del lanzamiento comercial completo."</em></p>
+        <p><em>"¿Tienen una obra activa donde podamos partir esta semana?"</em></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 5 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>5 — Cierre y siguientes pasos</h2>
+      <span class="time-badge">⏱ 5 min</span>
+    </div>
+    <div class="step">
+      <div class="step-num">→</div>
+      <div class="step-content">
+        <div class="step-title">Definir próxima acción concreta antes de colgar</div>
+        <p><em>"Perfecto. Entonces lo que necesito de parte tuya es: [1] el nombre y RUT de la empresa, [2] una lista de los trabajadores en Excel, [3] el nombre de la persona que va a ser el administrador del sistema."</em></p>
+        <p><em>"Yo configuro todo en 24 horas y te mando las instrucciones. ¿Puedes enviarme eso antes del [día concreto]?"</em></p>
+        <p style="color:var(--red);font-size:12px;font-weight:600;">⚠️ Nunca termines sin una fecha y un compromiso específico del otro lado.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── OFERTA ─────────────────────────────────────────────────── -->
+<div id="tab-oferta" class="tab-content">
+  <div class="section">
+    <h2>📦 Qué incluye el Programa Piloto</h2>
+    <div class="two-col">
+      <div>
+        <h3>Lo que recibe la empresa piloto</h3>
+        <ul class="checklist">
+          <li>Acceso completo al módulo EPP (entregas, firma, historial)</li>
+          <li>Módulo de asistencia DT-compatible (biométrico + PIN fallback)</li>
+          <li>Dashboard web de supervisión en tiempo real</li>
+          <li>Portal de fiscalización DT (acceso para inspectores)</li>
+          <li>Soporte directo por WhatsApp durante el piloto</li>
+          <li>Sesión de setup y capacitación (45 min, online)</li>
+          <li>Carga inicial de trabajadores desde Excel</li>
+          <li>Informe final de uso al término del piloto</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Lo que compromete la empresa piloto</h3>
+        <ul class="checklist">
+          <li>Usar el sistema en al menos 1 obra activa por 30 días</li>
+          <li>Registrar al menos 20 entregas de EPP reales</li>
+          <li>Responder 1 encuesta de feedback a los 15 días</li>
+          <li>Reunión de cierre de 30 minutos al final del piloto</li>
+          <li>Autorizar uso de métricas anonimizadas en materiales de Corfo/inversores</li>
+          <li>Considerar continuar como cliente pago si el resultado fue positivo</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>💰 Estructura de precios post-piloto</h2>
+    <div class="alert alert-blue">No revelar precios hasta que el piloto termine y el cliente esté convencido del valor. Durante el piloto solo confirmar que existe un plan comercial competitivo.
+    </div>
+    <div class="two-col">
+      <div style="border:2px solid var(--border);border-radius:12px;padding:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;">PLAN BASE</div>
+        <div style="font-size:28px;font-weight:800;color:var(--navy);">$XX.000 <span style="font-size:14px;font-weight:400;">/mes</span></div>
+        <div style="font-size:12px;color:var(--muted);margin:4px 0 16px;">hasta 50 trabajadores · 1 obra</div>
+        <ul style="font-size:13px;list-style:none;padding:0;">
+          <li style="padding:4px 0;">✓ Módulo EPP completo</li>
+          <li style="padding:4px 0;">✓ Asistencia DT</li>
+          <li style="padding:4px 0;">✓ Dashboard</li>
+        </ul>
+      </div>
+      <div style="border:2px solid var(--orange);border-radius:12px;padding:20px;position:relative;">
+        <div style="position:absolute;top:-10px;right:16px;background:var(--orange);color:white;
+          border-radius:20px;padding:2px 12px;font-size:10px;font-weight:700;">MÁS POPULAR</div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;">PLAN PRO</div>
+        <div style="font-size:28px;font-weight:800;color:var(--navy);">$XX.000 <span style="font-size:14px;font-weight:400;">/mes</span></div>
+        <div style="font-size:12px;color:var(--muted);margin:4px 0 16px;">hasta 200 trabajadores · obras ilimitadas</div>
+        <ul style="font-size:13px;list-style:none;padding:0;">
+          <li style="padding:4px 0;">✓ Todo el plan Base</li>
+          <li style="padding:4px 0;">✓ Portal DT incluido</li>
+          <li style="padding:4px 0;">✓ API de reportes</li>
+          <li style="padding:4px 0;">✓ Soporte prioritario</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── OBJECIONES ─────────────────────────────────────────────── -->
+<div id="tab-objeciones" class="tab-content">
+  <div class="section">
+    <h2>🛡️ Objeciones frecuentes y cómo responderlas</h2>
+
+    <div class="objecion">
+      <div class="objecion-label">OBJECIÓN</div>
+      <strong>"Ya usamos Excel / papel y nos funciona bien."</strong>
+    </div>
+    <div class="respuesta">
+      <strong>Respuesta:</strong> "Entiendo, y mientras no hay fiscalización funciona. El problema viene cuando la DT pide demostrar qué EPP recibió un trabajador específico hace 6 meses, con foto y firma. En Excel eso no existe. Un inspector puede multar por cada trabajador sin evidencia, y en obras grandes eso escala rápido."
+    </div>
+
+    <div class="objecion">
+      <div class="objecion-label">OBJECIÓN</div>
+      <strong>"¿Funciona sin internet? Nuestras obras tienen mala señal."</strong>
+    </div>
+    <div class="respuesta">
+      <strong>Respuesta:</strong> "Sí, es el caso de uso principal que diseñamos. La app funciona completamente offline — registra, guarda foto y firma. Cuando hay señal, sincroniza automáticamente. No pierdes ningún registro."
+    </div>
+
+    <div class="objecion">
+      <div class="objecion-label">OBJECIÓN</div>
+      <strong>"Los trabajadores no son tech-savvy, les cuesta con el celular."</strong>
+    </div>
+    <div class="respuesta">
+      <strong>Respuesta:</strong> "El kiosko de asistencia está diseñado para eso: pantalla grande, solo ingresan el RUT y miran a la cámara. En la práctica tarda 15 segundos por persona. El supervisor es quien usa la parte más compleja, no el trabajador."
+    </div>
+
+    <div class="objecion">
+      <div class="objecion-label">OBJECIÓN</div>
+      <strong>"¿Cuánto cuesta? Somos una empresa chica."</strong>
+    </div>
+    <div class="respuesta">
+      <strong>Respuesta:</strong> "Por eso diseñamos el programa piloto: costo cero por 30 días. Si al final ven el valor, conversamos precios. Si no, no hay compromiso. ¿Qué pierden con probarlo?"
+    </div>
+
+    <div class="objecion">
+      <div class="objecion-label">OBJECIÓN</div>
+      <strong>"¿Cómo sé que mis datos están seguros?"</strong>
+    </div>
+    <div class="respuesta">
+      <strong>Respuesta:</strong> "Los datos están en Supabase, que corre sobre AWS en datacenter en Norteamérica con certificación SOC2. Cada empresa tiene sus datos completamente aislados — TrazApp no puede ver datos de otra empresa. Y los registros de asistencia son técnicamente inalterables, incluso para nosotros como proveedores."
+    </div>
+
+    <div class="objecion">
+      <div class="objecion-label">OBJECIÓN</div>
+      <strong>"Necesito consultarlo con gerencia / el área de RRHH."</strong>
+    </div>
+    <div class="respuesta">
+      <strong>Respuesta:</strong> "Perfecto, tiene sentido. ¿Qué información específica necesitan para tomar la decisión? Puedo preparar un resumen de una página que puedas compartirles, o si prefieren, agendamos una llamada corta con ellos también."
+    </div>
+  </div>
+</div>
+
+<!-- ── SETUP TÉCNICO ───────────────────────────────────────────── -->
+<div id="tab-setup" class="tab-content">
+  <div class="section">
+    <h2>⚙️ Setup técnico del piloto</h2>
+    <div class="alert alert-green">
+      ✅ El cliente no necesita instalar nada en servidores. Solo se necesita un celular con Android 5.1+ o iPhone con iOS 11+.
+    </div>
+
+    <h3>Lo que necesitas del cliente para configurar</h3>
+    <ul class="checklist">
+      <li>Nombre de la empresa y RUT</li>
+      <li>Lista de trabajadores (Excel con: RUT, Nombre, Apellido, Estado)</li>
+      <li>Email del administrador (quien gestiona la app)</li>
+      <li>Nombre de la(s) obra(s) donde van a usar el sistema</li>
+      <li>Catálogo de EPP que manejan (nombre, unidad)</li>
+    </ul>
+
+    <h3>Lo que tú configuras antes de la sesión de onboarding</h3>
+    <ul class="checklist">
+      <li>Crear organización en Supabase con RUT y razón social</li>
+      <li>Crear usuario admin con email del cliente</li>
+      <li>Cargar lista de trabajadores (importación desde Excel)</li>
+      <li>Crear obra(s) y asignar acceso al supervisor</li>
+      <li>Cargar catálogo de EPP</li>
+      <li>Configurar PIN de kiosko (4 dígitos)</li>
+      <li>Enviar APK o link a TestFlight</li>
+    </ul>
+
+    <h3>Sesión de onboarding (45 min)</h3>
+    <ol>
+      <li style="padding:4px 0;">Instalar la app (10 min)</li>
+      <li style="padding:4px 0;">Login y tour de la interfaz (10 min)</li>
+      <li style="padding:4px 0;">Primera entrega de EPP real (10 min)</li>
+      <li style="padding:4px 0;">Configuración del kiosko de asistencia (10 min)</li>
+      <li style="padding:4px 0;">Preguntas y dudas (5 min)</li>
+    </ol>
+
+    <h3>Seguimiento durante el piloto</h3>
+    <ul>
+      <li>Día 3: mensaje de WhatsApp para verificar que están usando el sistema</li>
+      <li>Día 15: llamada de 15 min de seguimiento + encuesta de NPS</li>
+      <li>Día 28: agendar reunión de cierre</li>
+      <li>Día 30: reunión de cierre + propuesta comercial</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ── EMAIL ──────────────────────────────────────────────────── -->
+<div id="tab-email" class="tab-content">
+  <div class="section">
+    <h2>📧 Email post-llamada (enviar en las próximas 2 horas)</h2>
+    <div class="email-box">Asunto: TrazApp Programa Piloto — Resumen y próximos pasos
+
+Hola [Nombre],
+
+Gracias por la conversación de hoy. Fue muy útil entender el contexto de [Empresa].
+
+Como conversamos, quiero proponerte sumarte como empresa piloto de TrazApp durante 30 días, sin costo.
+
+QUÉ INCLUYE EL PILOTO
+━━━━━━━━━━━━━━━━━━━━
+• Módulo EPP completo (entregas digitales, firma, foto, historial)
+• Módulo de Asistencia con cumplimiento DT (Res. Exenta N°38)
+• Dashboard web de supervisión
+• Portal de fiscalización para inspectores DT
+• Soporte directo por WhatsApp + sesión de capacitación
+
+QUÉ NECESITO DE TU PARTE
+━━━━━━━━━━━━━━━━━━━━━━━━
+Para configurar tu organización necesito que me envíes:
+
+1. RUT y razón social de la empresa
+2. Lista de trabajadores (Excel: RUT, Nombre, Apellido)
+3. Nombre de la obra donde van a partir
+4. Tu email para crear el usuario administrador
+
+Una vez que reciba esto, configuro todo en 24 horas y agendamos la sesión de capacitación.
+
+¿Puedes enviarme esa información antes del [fecha]?
+
+Cualquier duda estoy disponible por este email o al +56 9 XXXX XXXX.
+
+Saludos,
+[Tu nombre]
+TrazApp | trazapp.cl
+    </div>
+  </div>
+</div>
+
+<!-- ── CORFO ──────────────────────────────────────────────────── -->
+<div id="tab-corfo" class="tab-content">
+  <div class="section">
+    <h2>📊 Métricas del piloto para Corfo / inversores</h2>
+    <div class="alert alert-orange">
+      Corfo evaluó débil el "plan de pilotajes comerciales". Cada piloto que ejecutes genera evidencia directa para la próxima postulación. Registra estos datos desde el primer día.
+    </div>
+
+    <h3>Datos a registrar por cada empresa piloto</h3>
+    <div class="two-col">
+      <div>
+        <h3 style="color:var(--green);">Métricas de uso</h3>
+        <ul class="checklist">
+          <li>N° de trabajadores registrados</li>
+          <li>N° de entregas EPP registradas</li>
+          <li>N° de marcaciones de asistencia</li>
+          <li>% de registros biométricos vs PIN</li>
+          <li>Tiempo promedio por entrega (objetivo: &lt;3 min)</li>
+          <li>Uptime offline (% de días con uso sin conexión)</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--navy);">Métricas de impacto</h3>
+        <ul class="checklist">
+          <li>Horas/hombre ahorradas vs proceso anterior</li>
+          <li>Incidentes de EPP faltante detectados</li>
+          <li>¿Hubo fiscalización DT durante el piloto?</li>
+          <li>NPS del responsable (escala 0-10)</li>
+          <li>Disposición a pagar (sí/no + rango)</li>
+          <li>Testimonial para usar en materiales</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Framing para la próxima postulación Corfo</h3>
+    <p><strong>Diferenciación frente a plataformas HSE genéricas:</strong> TrazApp es la única solución del mercado chileno diseñada específicamente para cumplimiento de la Resolución Exenta N°38 de la DT, con registros inalterables, evidencia forense y portal de fiscalización integrado. Las plataformas HSE genéricas (SafetyCulture, iAuditor) no tienen esto.</p>
+    <p><strong>Métricas de mercado a construir con los pilotos:</strong></p>
+    <ul>
+      <li>Tamaño del segmento: ~15.000 empresas con más de 5 trabajadores en construcción/manufactura en Chile</li>
+      <li>Con 3 pilotos activos puedes decir: "Validado con N trabajadores en X obras, ahorro promedio de Y horas/mes"</li>
+      <li>El portal DT es un diferenciador único — ningún competidor lo tiene documentado</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+</script>
+</body>
+</html>
