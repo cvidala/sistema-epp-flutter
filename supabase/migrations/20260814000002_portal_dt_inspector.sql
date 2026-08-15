@@ -25,7 +25,7 @@ SELECT
   a.foto_path             AS foto_path_storage
 FROM asistencias a
 LEFT JOIN organizaciones o ON o.org_id = a.org_id
-LEFT JOIN obras ob         ON ob.id    = a.obra_id;
+LEFT JOIN obras ob         ON ob.obra_id = a.obra_id;
 
 -- ── 2. RPC paginada para inspectores ─────────────────────────────────────────
 -- Filtra por RUT de empresa + rango de fechas.

@@ -4,7 +4,7 @@
 -- ── 1. Columnas de tenant y faena ────────────────────────────────────────────
 ALTER TABLE asistencias
   ADD COLUMN IF NOT EXISTS org_id  UUID REFERENCES organizaciones(org_id),
-  ADD COLUMN IF NOT EXISTS obra_id UUID REFERENCES obras(id);
+  ADD COLUMN IF NOT EXISTS obra_id UUID REFERENCES obras(obra_id);
 
 CREATE INDEX IF NOT EXISTS idx_asistencias_org_fecha
   ON asistencias(org_id, captured_at DESC);
