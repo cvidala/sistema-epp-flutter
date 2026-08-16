@@ -6,6 +6,7 @@ on:
     paths:
       - 'dashboard/**'
       - 'website/**'
+      - 'inspector/**'
       - 'index.html'
 
 jobs:
