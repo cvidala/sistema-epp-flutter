@@ -212,7 +212,8 @@ if (import.meta.main) {
 
     } catch (e) {
       console.error('Error en notif-vencimiento:', e);
-      return new Response(`Error: ${e.message}`, { status: 500 });
+      const msg = e instanceof Error ? e.message : String(e);
+      return new Response(`Error: ${msg}`, { status: 500 });
     }
   });
 }
