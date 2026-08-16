@@ -4,7 +4,7 @@
 // Sin Supabase real, sin red, sin emails reales.
 // ============================================================
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { assertSpyCalls, spy } from 'jsr:@std/testing/mock@1';
+import { assertSpyCalls, spy } from 'jsr:@std/testing@1/mock';
 import {
   buildEmailHtml,
   sendResendEmail,
