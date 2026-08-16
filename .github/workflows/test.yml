@@ -34,6 +34,9 @@ jobs:
       - name: Unit & Widget Tests
         run: flutter test test/unit/ test/widget_test.dart --coverage
 
+      - name: Stress Tests
+        run: flutter test test/stress/ --tags stress
+
       - name: Integration Tests
         run: flutter test test/integration/supabase/ test/integration/e2e/ --tags integration
         env:
@@ -55,3 +58,21 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
+
+  deno-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Edge Function Tests (EFN-05)
+        run: deno test supabase/functions/tests/ --allow-env --allow-read
+        env:
+          DRY_RUN: "1"

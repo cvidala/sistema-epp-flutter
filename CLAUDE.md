@@ -398,9 +398,14 @@ export $(grep -v '^#' .env.test | xargs) && flutter test test/integration/supaba
 
 # 4. E2E con Xcode (EXCLUIDO de CI — requiere dispositivo/simulador local)
 flutter test integration_test/ --tags e2e
+
+# 5. Edge Function tests (Deno) — sin Supabase, sin red
+DRY_RUN=1 deno test supabase/functions/tests/ --allow-env --allow-read
 ```
 
 El archivo `.env.test` está excluido de git (`.gitignore`). Nunca commitear credenciales de test.
+
+> **Paso 5 (Deno):** Corre en un job CI separado (`deno-test`) usando `denoland/setup-deno@v2` con `deno-version: v2.x`. NO requiere secrets de Supabase ni Resend — los tests usan fetch stubbeado y la guardia `DRY_RUN`. Para correrlo localmente se necesita Deno instalado (`brew install deno` en macOS — no viene con el toolchain de Flutter).
 
 ### GitHub Secrets requeridos
 

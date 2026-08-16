@@ -15,7 +15,7 @@ class AsistenciaUploadService {
           bytes,
           fileOptions: const FileOptions(
             contentType: 'image/jpeg',
-            upsert: true, // reintento seguro si el upload anterior quedó parcial
+            upsert: true,
           ),
         );
     return path;
@@ -25,6 +25,8 @@ class AsistenciaUploadService {
   static Future<void> insertarRegistro({
     required AsistenciaPendiente a,
     required String fotoPath,
+    required String orgId,
+    String? obraId,
   }) async {
     await _s.from('asistencias').insert({
       'local_event_id':      a.id,
@@ -37,6 +39,8 @@ class AsistenciaUploadService {
       'device_model':        a.deviceModel,
       'captured_at':         a.capturedAt,
       'sync_status':         'synced',
+      'org_id':              orgId,
+      'obra_id':             obraId,
       // Campos DT — ORD. N°1140/27
       'trabajador_nombre':   a.trabajadorNombre,
       'empleador_rut':       a.empleadorRut,
@@ -56,6 +60,8 @@ class AsistenciaUploadService {
     required String fotoHash,
     required Map<String, dynamic>? forensics,
     required String tipo,
+    required String orgId,
+    String? obraId,
     // Campos DT
     String? trabajadorNombre,
     String? empleadorRut,
@@ -77,6 +83,8 @@ class AsistenciaUploadService {
       'captured_at':         forensics?['captured_at'] ??
                              DateTime.now().toUtc().toIso8601String(),
       'sync_status':         'online',
+      'org_id':              orgId,
+      'obra_id':             obraId,
       // Campos DT — ORD. N°1140/27
       'trabajador_nombre':   trabajadorNombre,
       'empleador_rut':       empleadorRut,
@@ -88,7 +96,9 @@ class AsistenciaUploadService {
     });
   }
 
-  /// Registra una marcación fallida en asistencias_errores (§1 ORD. 1140/27).
+  /// Registra una marcación fallida vía RPC (accesible por anon).
+  /// Reemplaza el insert directo a asistencias_errores que fallaba silenciosamente
+  /// porque la política INSERT usaba auth.uid() = NULL para el kiosko anon.
   static Future<void> registrarErrorMarcacion({
     required String orgId,
     required String? rut,
@@ -97,18 +107,17 @@ class AsistenciaUploadService {
     required Map<String, dynamic>? forensics,
   }) async {
     try {
-      await _s.from('asistencias_errores').insert({
-        'org_id':       orgId,
-        'rut':          rut,
-        'codigo_error': codigoError,
-        'mensaje_error': mensajeError,
-        'gps_lat':      forensics?['gps_lat'],
-        'gps_lng':      forensics?['gps_lng'],
-        'device_model': forensics?['device_model'],
-        'occurred_at':  DateTime.now().toUtc().toIso8601String(),
+      await _s.rpc('registrar_error_marcacion', params: {
+        'p_org_id':        orgId,
+        'p_rut':           rut,
+        'p_codigo':        codigoError,
+        'p_mensaje':       mensajeError,
+        'p_gps_lat':       forensics?['gps_lat'],
+        'p_gps_lng':       forensics?['gps_lng'],
+        'p_device_model':  forensics?['device_model'],
       });
     } catch (_) {
-      // No crítico: el error de marcación es evidencia, pero no bloquea el flujo
+      // No crítico: el error de marcación es evidencia secundaria
     }
   }
 }

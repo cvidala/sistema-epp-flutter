@@ -6,6 +6,7 @@ PerfilUsuario _perfil(String rol, {ConfigModulos? modulos}) => PerfilUsuario(
       nombre: 'Test User',
       rol: rol,
       orgId: 'org-test',
+      rutEmpresa: '',
       modulos: modulos,
     );
 

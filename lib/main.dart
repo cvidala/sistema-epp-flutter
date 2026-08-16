@@ -8,8 +8,10 @@ import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
 import 'services/device_id_service.dart';
 import 'services/auth_service.dart';
+import 'services/subscription_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
+import 'suscripcion_bloqueada_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 Future<void> main() async {
@@ -145,16 +147,22 @@ class _LoginGateState extends State<LoginGate> {
     final hayInternet  = connectivity.any((r) => r != ConnectivityResult.none);
 
     if (hayInternet) {
-      // Online: cargar perfil desde Supabase y sincronizar caché
+      // Online: cargar perfil desde Supabase y verificar suscripción
       try {
-        await AuthService.instance.cargarPerfil();
+        final perfil = await AuthService.instance.cargarPerfil();
+        await SubscriptionService.instance.checkSubscription(perfil.rutEmpresa);
         // Sync en segundo plano — no bloquea la navegación
         DataCacheService.sincronizarTodo();
-        if (mounted) {
+        if (!mounted) return;
+        if (!SubscriptionService.instance.active) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => ObrasPage()),
+            MaterialPageRoute(builder: (_) => const SuscripcionBloqueadaPage()),
           );
+          return;
         }
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => ObrasPage()),
+        );
       } on PerfilNoEncontradoException catch (e) {
         await Supabase.instance.client.auth.signOut();
         if (mounted) {
@@ -241,13 +249,20 @@ class _LoginPageState extends State<LoginPage> {
         password: passCtrl.text,
       );
 
-      // Cargar perfil desde Supabase
-      await AuthService.instance.cargarPerfil();
+      // Cargar perfil y verificar suscripción MIRA
+      final perfil = await AuthService.instance.cargarPerfil();
+      await SubscriptionService.instance.checkSubscription(perfil.rutEmpresa);
 
       // Sincronizar caché en segundo plano para futuros usos offline
       DataCacheService.sincronizarTodo();
 
       if (!mounted) return;
+      if (!SubscriptionService.instance.active) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const SuscripcionBloqueadaPage()),
+        );
+        return;
+      }
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => ObrasPage()),
       );

@@ -47,6 +47,7 @@ class PerfilUsuario {
   final String nombre;
   final String rol; // 'ADMIN' | 'SUPERVISOR' | 'READONLY'
   final String orgId;
+  final String rutEmpresa; // RUT de la organización — usado para verificar suscripción MIRA
   final ConfigModulos modulos;
 
   const PerfilUsuario({
@@ -54,6 +55,7 @@ class PerfilUsuario {
     required this.nombre,
     required this.rol,
     required this.orgId,
+    required this.rutEmpresa,
     ConfigModulos? modulos,
   }) : modulos = modulos ?? const ConfigModulos();
 
@@ -104,10 +106,10 @@ class AuthService {
           'No hay usuario autenticado.');
     }
 
-    // Cargamos perfil + config_modulos de la organización en una sola query
+    // Cargamos perfil + config_modulos + rut de la organización en una sola query
     final data = await supabase
         .from('perfiles')
-        .select('nombre, rol, org_id, organizaciones(config_modulos)')
+        .select('nombre, rol, org_id, organizaciones(config_modulos, rut)')
         .eq('user_id', userId)
         .eq('activo', true)
         .maybeSingle();
@@ -118,21 +120,26 @@ class AuthService {
           'Tu usuario no tiene perfil asignado. Contacta al administrador.');
     }
 
-    // Parsear config_modulos desde la org relacionada
+    // Parsear config_modulos y rut desde la org relacionada
     ConfigModulos modulos = ConfigModulos.defaults();
+    String rutEmpresa = '';
     final orgData = data['organizaciones'];
-    if (orgData is Map && orgData['config_modulos'] is Map) {
-      modulos = ConfigModulos.fromJson(
-        Map<String, dynamic>.from(orgData['config_modulos'] as Map),
-      );
+    if (orgData is Map) {
+      if (orgData['config_modulos'] is Map) {
+        modulos = ConfigModulos.fromJson(
+          Map<String, dynamic>.from(orgData['config_modulos'] as Map),
+        );
+      }
+      rutEmpresa = (orgData['rut'] as String?) ?? '';
     }
 
     _perfil = PerfilUsuario(
-      userId: userId,
-      nombre: data['nombre'] as String,
-      rol:    data['rol']    as String,
-      orgId:  data['org_id'] as String,
-      modulos: modulos,
+      userId:     userId,
+      nombre:     data['nombre'] as String,
+      rol:        data['rol']    as String,
+      orgId:      data['org_id'] as String,
+      rutEmpresa: rutEmpresa,
+      modulos:    modulos,
     );
 
     return _perfil!;
@@ -187,11 +194,12 @@ class AuthService {
       );
     }
     _perfil = PerfilUsuario(
-      userId:  data['user_id'] ?? '',
-      nombre:  data['nombre']  ?? 'Usuario',
-      rol:     data['rol']     ?? 'READONLY',
-      orgId:   data['org_id']  ?? '',
-      modulos: modulos,
+      userId:     data['user_id']     ?? '',
+      nombre:     data['nombre']      ?? 'Usuario',
+      rol:        data['rol']         ?? 'READONLY',
+      orgId:      data['org_id']      ?? '',
+      rutEmpresa: data['rut_empresa'] ?? '',
+      modulos:    modulos,
     );
   }
 
