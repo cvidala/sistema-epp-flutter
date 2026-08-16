@@ -4,6 +4,8 @@
 
 Cuatro capas de calidad construidas incrementalmente: unit tests de lógica de negocio crítica (hash chain, stock, offline queue), tests de Supabase contra la DB real (RLS por rol, triggers de inmutabilidad, RPCs), flujos E2E de los caminos críticos del sistema, y finalmente un pipeline CI/CD que bloquea regresiones en cada PR. Cada fase entrega cobertura verificable antes de avanzar a la siguiente.
 
+El milestone v2.0 añade tres capas de testing diferidas: stress de la cola offline Hive, tests unitarios Deno de la Edge Function `notif-vencimiento`, y golden file tests de las pantallas Flutter críticas.
+
 ## Phases
 
 **Phase Numbering:**
@@ -17,6 +19,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Supabase Tests** - RLS por rol, triggers de inmutabilidad y audit log, y RPCs críticas verificados contra la DB real (completed 2026-06-02)
 - [x] **Phase 3: E2E Tests** - Flujos críticos del usuario (entrega EPP, asistencia, sync offline) cubiertos end-to-end (completed 2026-06-02)
 - [x] **Phase 4: CI/CD Pipeline** - GitHub Actions ejecuta toda la suite en cada PR y bloquea merges con regresiones (completed 2026-06-02)
+- [x] **Phase 5: Load/Stress Tests** - La cola offline Hive aguanta volumen alto, concurrencia y filtrado de backoff con 200+ items sin corrupciones (completed 2026-06-14)
+- [x] **Phase 6: Edge Function Tests** - `notif-vencimiento` tiene guardia DRY_RUN, lógica pura extraída, y tests Deno que verifican HTML, payload Resend y condiciones límite de fechas (completed 2026-06-15)
+- [ ] **Phase 7: Golden File Tests** - Las tres pantallas críticas (`ObrasPage`, `WorkersPage`, `NewDeliveryPage`) tienen goldens Linux generados por CI que detectan regresiones visuales en cada PR
 
 ## Phase Details
 
@@ -91,10 +96,71 @@ Plans:
 
 - [x] 04-01-PLAN.md — GitHub Actions workflow (analyze + unit/widget + integration + coverage upload), .gitignore update, CLAUDE.md CI/CD section
 
+### Phase 5: Load/Stress Tests
+
+**Goal**: La cola offline Hive aguanta volumen alto, concurrencia y filtrado de backoff con 200+ items sin corrupciones de estado ni pérdida de registros, y los tests corren en CI sin dependencias de red
+**Depends on**: Phase 4
+**Requirements**: STR-01, STR-02, STR-03, STR-04
+**Success Criteria** (what must be TRUE):
+
+  1. `flutter test test/stress/ --tags stress` pasa en menos de 60 segundos sin conexión a Supabase ni red
+  2. Encolar 200 entregas y llamar `listAll()` devuelve exactamente 200 registros, sin duplicados ni pérdidas
+  3. 20 enqueues simultáneos via `Future.wait()` resultan en exactamente 20 registros en el box (sin corrupción de estado)
+  4. Con 50+ items en la cola, los items con `nextRetryAt` futuro quedan fuera de `listPending()` y los elegibles se devuelven en orden cronológico
+
+**Plans**: 2 plansPlans:
+**Wave 1**
+
+- [x] 05-01-PLAN.md — Crear test/stress/offline_queue_stress_test.dart con los 3 stress tests: volumen 200 (STR-01), concurrencia 20 (STR-02), filtro backoff 50→35 (STR-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 05-02-PLAN.md — Agregar paso "Stress Tests" al job test de CI con --tags stress, sin env block (STR-04)
+
+### Phase 6: Edge Function Tests
+
+**Goal**: `notif-vencimiento/index.ts` tiene guardia DRY_RUN que bloquea emails en entornos de test, la lógica de negocio está extraída en funciones puras, y los tests Deno verifican HTML, payload Resend y manejo de errores sin enviar emails reales ni necesitar Supabase
+**Depends on**: Phase 4
+**Requirements**: EFN-01, EFN-02, EFN-03, EFN-04, EFN-05
+**Success Criteria** (what must be TRUE):
+
+  1. `notif-vencimiento/index.ts` lee `Deno.env.get('DRY_RUN')` y retorna inmediatamente sin llamar a Resend cuando la variable está presente
+  2. `buildEmailHtml()` es una función pura exportada que acepta datos de trabajadores y devuelve HTML verificable sin importar Supabase ni Resend
+  3. `deno test supabase/functions/tests/` pasa completamente sin variables de entorno de producción ni conexión a Supabase
+  4. El test que stubea `globalThis.fetch` captura el payload enviado a Resend (URL, destinatario, asunto, HTML) y verifica su estructura
+  5. El CI ejecuta `deno test supabase/functions/tests/` en un job separado con `denoland/setup-deno@v2` que pasa en verde
+
+**Plans**: 2 plans
+Plans:
+**Wave 1**
+
+- [x] 06-01-PLAN.md — Refactor de index.ts (DRY_RUN guard, exports puros, import.meta.main, sendResendEmail) + tests Deno (HTML, payload Resend) + deno.json (EFN-01..04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 06-02-PLAN.md — Job deno-test separado en CI con denoland/setup-deno@v2 y DRY_RUN=1, sin secrets, + doc en CLAUDE.md (EFN-05)
+
+### Phase 7: Golden File Tests
+
+**Goal**: Las tres pantallas críticas (`ObrasPage`, `WorkersPage`, `NewDeliveryPage`) tienen goldens PNG generados en Linux CI que detectan diferencias visuales en cada PR, con un workflow documentado para regenerar baselines sin usar macOS
+**Depends on**: Phase 5
+**Requirements**: VIS-01, VIS-02, VIS-03, VIS-04, VIS-05
+**Success Criteria** (what must be TRUE):
+
+  1. `flutter test test/golden/ --tags golden` pasa en CI (ubuntu-latest) con los tres goldens sin fallos de font rendering ("Ahem" squares)
+  2. Modificar el layout de `ObrasPage`, `WorkersPage` o `NewDeliveryPage` hace fallar el test golden correspondiente en CI
+  3. Los widgets de test de las tres pantallas renderizan con datos inyectados sin llamar a Supabase ni `initState` con side effects reales
+  4. Los goldens PNG de referencia están committed en el repo, generados en Linux, y `.gitattributes` los marca como binarios
+  5. Regenerar los goldens se hace via `workflow_dispatch` en CI con `--update-goldens`, y el resultado se commitea desde el runner de Linux
+
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+
+Note: Phase 5 and Phase 6 are technically independent (different toolchains). Phase 7 depends on Phase 5 (CI infrastructure for new test tags).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -102,3 +168,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Supabase Tests | 1/1 | Complete | 2026-06-02 |
 | 3. E2E Tests | 1/1 | Complete | 2026-06-02 |
 | 4. CI/CD Pipeline | 1/1 | Complete | 2026-06-02 |
+| 5. Load/Stress Tests | 2/2 | Complete    | 2026-06-15 |
+| 6. Edge Function Tests | 2/2 | Complete   | 2026-06-15 |
+| 7. Golden File Tests | 0/TBD | Not started | - |

@@ -35,6 +35,15 @@ Suite de calidad integral para TrazApp, integrada dentro del mismo repo `sistema
 - Los flujos E2E críticos (entrega EPP, asistencia, sync offline) están cubiertos
 - Un dashboard o reporte simple muestra el estado de salud del sistema
 
+## Current Milestone: v2.0 Tests Avanzados
+
+**Goal:** Cubrir las tres capas de testing diferidas en v1.0 — stress de la cola offline, Edge Functions de notificaciones, y regresión visual de pantallas Flutter.
+
+**Target features:**
+- Load/stress tests cola offline (Hive queue: concurrencia, volumen, backoff bajo carga)
+- Tests Edge Functions `notif-vencimiento` (invocación, emails Resend, fechas límite)
+- Snapshot tests visuales Flutter (golden file tests de pantallas críticas)
+
 ## Requirements
 
 ### Validated (existente en TrazApp)
@@ -49,24 +58,24 @@ Suite de calidad integral para TrazApp, integrada dentro del mismo repo `sistema
 - ✓ Kiosko de asistencia con detección facial — existente
 - ✓ Notificaciones de vencimiento EPP via cron + Resend — existente
 
-### Active (a construir)
+### Active (v2.0 — a construir)
 
-- [ ] Tests unitarios de servicios de negocio (AuthService, OfflineQueueService, SyncService)
-- [ ] Tests unitarios de lógica de entrega EPP y cálculo de hash chain
-- [ ] Tests de widget Flutter para pantallas críticas
-- [ ] Tests de integración Flutter (flujos completos)
-- [ ] Tests de Supabase RLS por rol (ADMIN, SUPERVISOR, READONLY, anon)
-- [ ] Tests de triggers de inmutabilidad y audit log
-- [ ] Tests de RPCs críticas (evaluar_entrega_v2, get_vencimientos_proximos)
-- [ ] Tests E2E de flujos críticos (entrega EPP, asistencia, sync offline)
-- [ ] Setup de CI (GitHub Actions) que ejecute tests en cada PR
-- [ ] Dashboard/reporte de cobertura y estado del sistema
+- [x] Load/stress tests cola offline (Hive): concurrencia, volumen alto, backoff bajo carga — Validated in Phase 05: load-stress-tests
+- [ ] Tests Edge Functions `notif-vencimiento`: invocación, emails Resend, condiciones límite de fechas
+- [ ] Golden file tests de pantallas Flutter críticas: ObrasPage, WorkersPage, NewDeliveryPage
+
+### Validated (v1.0 — entregado 2026-06-02)
+
+- ✓ Tests unitarios hash chain, StockCalculator, OfflineQueueService — 50 tests
+- ✓ Tests Supabase RLS por rol (ADMIN, SUPERVISOR, READONLY, anon) — 14 tests
+- ✓ Tests triggers inmutabilidad, audit log, RPCs evaluar_entrega_v2 — incluidos arriba
+- ✓ Tests E2E flujos críticos (login→obras, entrega EPP, sync offline, kiosko) — 3 service-layer
+- ✓ CI/CD GitHub Actions: flutter analyze + flutter test + cobertura en cada PR
 
 ### Out of Scope
 
-- Tests de UI visual (pixel-perfect screenshot testing) — demasiado frágil para mobile
-- Tests de performance/load — no es prioridad actual
-- Tests de Edge Functions Supabase — se validan via RPCs
+- Tests de performance/load de red o Supabase — no es prioridad actual
+- Tests de otras Edge Functions (no notif-vencimiento)
 
 ## Key Decisions
 
@@ -86,4 +95,4 @@ Este documento evoluciona en cada transición de fase.
 3. Decisiones clave → agregar a Key Decisions
 
 ---
-*Last updated: 2026-06-01 — inicialización del proyecto*
+*Last updated: 2026-06-14 — Phase 05 complete: stress tests cola offline + CI integración*
