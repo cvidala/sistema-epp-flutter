@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TrazApp — Portal Fiscalización DT</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root {
   --navy:#0D2148; --navy2:#162d5e; --orange:#E87722;
@@ -228,8 +228,8 @@ tr:hover td{background:#FAFBFD;}
       <div class="search-grid">
         <div class="field" style="margin:0;">
           <label>RUT Empresa (sin puntos, con guión)</label>
-          <input type="text" id="searchRut" placeholder="12345678-9" maxlength="12"
-            oninput="formatRutInput(this)">
+          <input type="text" id="searchRut" placeholder="77.282.244-8" maxlength="13"
+            oninput="formatRutEmpresa(this)">
         </div>
         <div class="field" style="margin:0;">
           <label>Fecha desde</label>
@@ -315,7 +315,8 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const POR_PAGINA    = 100;
 const BUCKET        = 'asistencias-fotos';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const { createClient } = window.supabase;
+const _sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ── ESTADO ────────────────────────────────────────────────
 let currentPage  = 0;
@@ -325,7 +326,7 @@ let searchParams = {};
 
 // ── INIT ──────────────────────────────────────────────────
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
   if (session) mostrarApp(session.user);
 
   // Defaults: últimos 30 días
@@ -350,10 +351,10 @@ async function doLogin() {
   btn.disabled = true;
   btn.textContent = 'Ingresando...';
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
 
   if (error) {
-    errEl.textContent = 'Credenciales incorrectas. Verifique su usuario y contraseña.';
+    errEl.textContent = error.message || 'Error al iniciar sesión. Verifique sus credenciales.';
     errEl.style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Ingresar';
@@ -371,15 +372,22 @@ function mostrarApp(user) {
 }
 
 async function doLogout() {
-  await supabase.auth.signOut();
+  await _sb.auth.signOut();
   location.reload();
 }
 
-// ── FORMATO RUT ───────────────────────────────────────────
-function formatRutInput(input) {
+// ── FORMATO RUT EMPRESA (XX.XXX.XXX-D) ───────────────────
+function formatRutEmpresa(input) {
   let v = input.value.replace(/[^0-9kK]/g, '').toUpperCase();
-  if (v.length > 1) v = v.slice(0, -1) + '-' + v.slice(-1);
-  input.value = v;
+  if (v.length <= 1) { input.value = v; return; }
+  const dv     = v.slice(-1);
+  const digits = v.slice(0, -1);
+  let grupos = '';
+  for (let i = digits.length - 1, c = 0; i >= 0; i--, c++) {
+    if (c > 0 && c % 3 === 0) grupos = '.' + grupos;
+    grupos = digits[i] + grupos;
+  }
+  input.value = grupos + '-' + dv;
 }
 
 // ── BÚSQUEDA ──────────────────────────────────────────────
@@ -403,7 +411,8 @@ async function buscar(page) {
     return;
   }
 
-  searchParams = { rut: rutRaw, desde, hasta };
+  const rutNorm = rutRaw.replace(/[.\-\s]/g, '');
+  searchParams = { rut: rutNorm, desde, hasta };
   currentPage  = page;
 
   btn.disabled = true;
@@ -416,8 +425,8 @@ async function buscar(page) {
 
   // Conteo total (solo en primera página)
   if (page === 0) {
-    const { data: cnt, error: cntErr } = await supabase.rpc('dt_contar_asistencias', {
-      p_rut_empresa: rutRaw,
+    const { data: cnt, error: cntErr } = await _sb.rpc('dt_contar_asistencias', {
+      p_rut_empresa: rutNorm,
       p_fecha_desde: desde,
       p_fecha_hasta: hasta,
     });
@@ -425,8 +434,8 @@ async function buscar(page) {
   }
 
   // Datos paginados
-  const { data, error } = await supabase.rpc('dt_consulta_asistencias', {
-    p_rut_empresa: rutRaw,
+  const { data, error } = await _sb.rpc('dt_consulta_asistencias', {
+    p_rut_empresa: rutNorm,
     p_fecha_desde: desde,
     p_fecha_hasta: hasta,
     p_pagina:      page,
@@ -575,7 +584,7 @@ async function abrirFoto(idx) {
     `Foto — ${r.trabajador_nombre || r.trabajador_rut} — ${formatFecha(r.captured_at)}`;
   document.getElementById('modalImg').src = '';
 
-  const { data, error } = await supabase.storage
+  const { data, error } = await _sb.storage
     .from(BUCKET)
     .createSignedUrl(r.foto_path_storage, 900);
 
@@ -632,7 +641,7 @@ const thumbObserver = new IntersectionObserver(async (entries) => {
     const path = img.dataset.path;
     if (!path || img.src.startsWith('blob') || img.src.includes('storage')) continue;
     thumbObserver.unobserve(img);
-    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 900);
+    const { data } = await _sb.storage.from(BUCKET).createSignedUrl(path, 900);
     if (data?.signedUrl) img.src = data.signedUrl;
   }
 }, { rootMargin: '200px' });
