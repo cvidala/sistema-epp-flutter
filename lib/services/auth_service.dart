@@ -50,6 +50,7 @@ class PerfilUsuario {
   final String rol; // 'ADMIN' | 'SUPERVISOR' | 'READONLY'
   final String orgId;
   final String rutEmpresa; // RUT de la organización — usado para verificar suscripción MIRA
+  final String razonSocial; // Nombre legal de la empresa
   final ConfigModulos modulos;
 
   const PerfilUsuario({
@@ -58,6 +59,7 @@ class PerfilUsuario {
     required this.rol,
     required this.orgId,
     required this.rutEmpresa,
+    this.razonSocial = '',
     ConfigModulos? modulos,
   }) : modulos = modulos ?? const ConfigModulos();
 
@@ -108,10 +110,10 @@ class AuthService {
           'No hay usuario autenticado.');
     }
 
-    // Cargamos perfil + config_modulos + rut de la organización en una sola query
+    // Cargamos perfil + config_modulos + rut + razon_social de la organización
     final data = await supabase
         .from('perfiles')
-        .select('nombre, rol, org_id, organizaciones(config_modulos, rut)')
+        .select('nombre, rol, org_id, organizaciones(config_modulos, rut, razon_social)')
         .eq('user_id', userId)
         .eq('activo', true)
         .maybeSingle();
@@ -125,6 +127,7 @@ class AuthService {
     // Parsear config_modulos y rut desde la org relacionada
     ConfigModulos modulos = ConfigModulos.defaults();
     String rutEmpresa = '';
+    String razonSocial = '';
     final orgData = data['organizaciones'];
     if (orgData is Map) {
       if (orgData['config_modulos'] is Map) {
@@ -132,16 +135,18 @@ class AuthService {
           Map<String, dynamic>.from(orgData['config_modulos'] as Map),
         );
       }
-      rutEmpresa = (orgData['rut'] as String?) ?? '';
+      rutEmpresa  = (orgData['rut']          as String?) ?? '';
+      razonSocial = (orgData['razon_social'] as String?) ?? '';
     }
 
     _perfil = PerfilUsuario(
-      userId:     userId,
-      nombre:     data['nombre'] as String,
-      rol:        data['rol']    as String,
-      orgId:      data['org_id'] as String,
-      rutEmpresa: rutEmpresa,
-      modulos:    modulos,
+      userId:      userId,
+      nombre:      data['nombre'] as String,
+      rol:         data['rol']    as String,
+      orgId:       data['org_id'] as String,
+      rutEmpresa:  rutEmpresa,
+      razonSocial: razonSocial,
+      modulos:     modulos,
     );
 
     return _perfil!;
