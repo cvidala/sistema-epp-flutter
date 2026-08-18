@@ -1545,24 +1545,28 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: (estadoActual == 'BLOQUEO' || evaluando)
+              onPressed: (estadoActual == 'BLOQUEO' || evaluando || firmaBytes == null)
                   ? null
                   : _guardar,
               style: ElevatedButton.styleFrom(
                 backgroundColor: estadoActual == 'BLOQUEO'
                     ? Colors.grey
-                    : modoOffline
-                        ? Colors.orange
-                        : null,
+                    : firmaBytes == null
+                        ? Colors.grey.shade400
+                        : modoOffline
+                            ? Colors.orange
+                            : null,
               ),
               child: Text(
                 estadoActual == 'BLOQUEO'
                     ? 'Bloqueado'
                     : evaluando
                         ? 'Evaluando...'
-                        : modoOffline
-                            ? 'Guardar (OFFLINE)'
-                            : 'Guardar entrega',
+                        : firmaBytes == null
+                            ? 'Firma requerida'
+                            : modoOffline
+                                ? 'Guardar (OFFLINE)'
+                                : 'Guardar entrega',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),

@@ -2671,7 +2671,11 @@ function renderEntregasPage(data) {
       <td style="font-size:12px;color:var(--muted)">${e.obras?.nombre||'—'}</td>
       <td style="font-size:12px;">${items} EPP</td>
       <td>${tipoLabel(e.validacion_tipo)}</td>
-      <td><span style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;">Ver →</span></td>
+      <td style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;">Ver →</span>
+        <span onclick="event.stopPropagation();abrirComprobante('${e.event_id}')"
+              style="font-size:11px;background:var(--navy);color:white;padding:3px 8px;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap;">🧾 Comprobante</span>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -2754,6 +2758,154 @@ async function openEntregaModal(eventId) {
   }
 }
 
+
+async function abrirComprobante(eventId) {
+  try {
+    const [{ data: e }, { data: catalogo }] = await Promise.all([
+      sb.from('entregas_epp')
+        .select('*, trabajadores(nombre,rut), obras(nombre)')
+        .eq('event_id', eventId)
+        .maybeSingle(),
+      sb.from('catalogo_epp').select('epp_id, nombre, codigo')
+    ]);
+    if (!e) { alert('No se encontró la entrega.'); return; }
+
+    const catMap = {};
+    for (const c of (catalogo||[])) catMap[c.epp_id] = c;
+
+    const fecha = new Date(e.created_at).toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+    const validLabel = e.validacion_tipo === 'BIOMETRICA' ? '✅ Biométrica' :
+                       e.validacion_tipo === 'ALTERNATIVA_PIN' ? '🔑 PIN Alternativo' :
+                       e.validacion_tipo === 'FIRMA_DIGITAL' ? '✍️ Firma Digital' :
+                       e.validacion_tipo || '—';
+
+    const eppRows = (e.items||[]).map(it => {
+      const cat = catMap[it.epp_id] || {};
+      return `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;">${cat.nombre || 'EPP'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#888;">${cat.codigo || it.epp_id.slice(0,8)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:700;text-align:center;">${it.cantidad || 1}</td>
+      </tr>`;
+    }).join('');
+
+    const gpsHtml = (e.gps_lat && e.gps_lng)
+      ? `<p style="margin:4px 0;font-size:12px;color:#555;">📍 GPS: ${parseFloat(e.gps_lat).toFixed(6)}, ${parseFloat(e.gps_lng).toFixed(6)}
+         ${e.gps_precision_m ? ` (±${parseFloat(e.gps_precision_m).toFixed(0)} m)` : ''}</p>`
+      : '';
+
+    const fotoHtml = e.evidencia_foto_url
+      ? `<div style="margin-top:24px;">
+           <h3 style="font-size:13px;text-transform:uppercase;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:8px;">Foto Evidencia</h3>
+           <img src="${e.evidencia_foto_url}" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;border:1px solid #ddd;">
+         </div>`
+      : '';
+
+    const firmaHtml = e.firma_url
+      ? `<div style="margin-top:24px;">
+           <h3 style="font-size:13px;text-transform:uppercase;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:8px;">Firma del Trabajador</h3>
+           <div style="border:1px solid #ddd;border-radius:10px;padding:12px;background:#fafafa;text-align:center;">
+             <img src="${e.firma_url}" style="max-width:100%;max-height:140px;object-fit:contain;">
+           </div>
+         </div>`
+      : '<p style="color:#bbb;font-size:12px;margin-top:16px;">Sin firma registrada</p>';
+
+    const hashHtml = e.hash_integridad
+      ? `<p style="margin:4px 0;font-size:10px;color:#aaa;word-break:break-all;font-family:monospace;">SHA-256: ${e.hash_integridad}</p>`
+      : '';
+
+    const html = `<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprobante EPP — ${e.event_id}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Sora',sans-serif; background:#f4f6fb; padding:32px 16px; color:#0D2148; }
+  .card { background:white; border-radius:16px; max-width:680px; margin:0 auto; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+  .header { background:#0D2148; color:white; padding:28px 32px; }
+  .header-logo { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .logo-icon { width:40px; height:40px; background:#E87722; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:white; }
+  .logo-name { font-size:20px; font-weight:700; }
+  .logo-sub { font-size:11px; opacity:0.6; letter-spacing:2px; text-transform:uppercase; }
+  .title { font-size:22px; font-weight:700; }
+  .subtitle { font-size:12px; opacity:0.6; margin-top:4px; }
+  .body { padding:28px 32px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+  .field { background:#f8fafd; border-radius:10px; padding:12px 16px; }
+  .field-label { font-size:10px; text-transform:uppercase; font-weight:700; color:#8899b0; letter-spacing:0.5px; margin-bottom:4px; }
+  .field-val { font-size:14px; font-weight:700; }
+  .field-sub { font-size:11px; color:#8899b0; margin-top:2px; font-family:monospace; }
+  table { width:100%; border-collapse:collapse; }
+  th { background:#f0f3fa; padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#8899b0; text-transform:uppercase; letter-spacing:0.5px; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:20px; padding:4px 12px; font-size:12px; font-weight:700; background:#e0f2fe; color:#0369a1; }
+  .footer { background:#f8fafd; padding:20px 32px; border-top:1px solid #eee; text-align:center; }
+  .print-btn { background:#E87722; color:white; border:none; border-radius:10px; padding:12px 28px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .print-btn:hover { opacity:0.9; }
+  @media print {
+    body { background:white; padding:0; }
+    .card { box-shadow:none; border-radius:0; }
+    .print-btn { display:none; }
+    .footer { display:none; }
+  }
+</style>
+</head><body>
+<div class="card">
+  <div class="header">
+    <div class="header-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <div class="logo-name">TrazApp</div>
+        <div class="logo-sub">Sistema EPP</div>
+      </div>
+    </div>
+    <div class="title">Comprobante de Entrega EPP</div>
+    <div class="subtitle">${fecha} · Ref: ${e.event_id}</div>
+  </div>
+  <div class="body">
+    <div class="grid2">
+      <div class="field">
+        <div class="field-label">Trabajador</div>
+        <div class="field-val">${e.trabajadores?.nombre || '—'}</div>
+        <div class="field-sub">${e.trabajadores?.rut || ''}</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Centro de trabajo</div>
+        <div class="field-val">${e.obras?.nombre || '—'}</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Validación</div>
+        <div class="field-val">${validLabel}</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Fecha de entrega</div>
+        <div class="field-val" style="font-size:12px;">${fecha}</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:13px;text-transform:uppercase;color:#8899b0;font-weight:700;letter-spacing:1px;margin-bottom:10px;">EPP Entregado</h3>
+    <table style="margin-bottom:20px;">
+      <thead><tr><th>Ítem</th><th>Código</th><th style="text-align:center;">Cantidad</th></tr></thead>
+      <tbody>${eppRows || '<tr><td colspan="3" style="padding:12px;color:#bbb;text-align:center;">Sin ítems</td></tr>'}</tbody>
+    </table>
+
+    ${gpsHtml}
+    ${hashHtml}
+    ${fotoHtml}
+    ${firmaHtml}
+  </div>
+  <div class="footer">
+    <button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    <p style="font-size:11px;color:#bbb;margin-top:12px;">TrazApp · Comprobante generado el ${new Date().toLocaleString('es-CL')}</p>
+  </div>
+</div>
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=720,height=900,scrollbars=yes');
+    w.document.write(html);
+    w.document.close();
+  } catch(err) {
+    alert('Error al generar comprobante: ' + err.message);
+  }
+}
 
 async function loadPageAlertas() {
   document.getElementById('alertasPageList').innerHTML = '<div class="empty-state">Cargando...</div>';
