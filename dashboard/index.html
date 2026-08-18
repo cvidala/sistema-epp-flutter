@@ -333,7 +333,7 @@
       <div class="logo-icon" style="background:none;padding:0;overflow:hidden;"><img src="favicon.png" style="width:36px;height:36px;border-radius:8px;display:block;object-fit:cover;" alt="TrazApp"></div>
       <div>
         <div class="logo-text">TrazApp</div>
-        <div class="logo-sub">EPP Dashboard</div>
+        <div class="logo-sub" id="sidebarEmpresa">EPP Dashboard</div>
       </div>
     </div>
     <div class="sidebar-section">
@@ -1793,7 +1793,7 @@ async function doLogin() {
 
     // Cargar perfil
     const { data: perfil, error: pErr } = await sb.from('perfiles')
-      .select('nombre, rol, org_id, activo')
+      .select('nombre, rol, org_id, activo, organizaciones(razon_social)')
       .eq('user_id', data.user.id)
       .eq('activo', true)
       .maybeSingle();
@@ -1802,7 +1802,8 @@ async function doLogin() {
     if (!['ADMIN','SUPERVISOR'].includes(perfil.rol)) throw new Error('Acceso denegado. Solo ADMIN y SUPERVISOR pueden acceder al dashboard.');
 
     currentUser  = data.user;
-    currentPerfil = { ...perfil, userId: data.user.id, email: data.user.email };
+    const razonSocial = perfil.organizaciones?.razon_social || null;
+    currentPerfil = { ...perfil, userId: data.user.id, email: data.user.email, razonSocial };
 
     await initApp();
   } catch(e) {
@@ -1835,6 +1836,11 @@ async function initApp() {
   document.getElementById('userAvatar').textContent = nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   document.getElementById('userName').textContent = nombre;
   document.getElementById('userRole').textContent = currentPerfil.rol === 'ADMIN' ? 'Administrador' : currentPerfil.rol === 'READONLY' ? 'Visor' : 'Supervisor';
+
+  // Nombre de empresa en sidebar
+  if (currentPerfil.razonSocial) {
+    document.getElementById('sidebarEmpresa').textContent = currentPerfil.razonSocial;
+  }
 
   // Show/hide admin-only elements
   const isAdmin = currentPerfil.rol === 'ADMIN';
@@ -2239,13 +2245,14 @@ function showLoading(v) {
   if (session) {
     currentUser = session.user;
     const { data: perfil } = await sb.from('perfiles')
-      .select('nombre, rol, org_id, activo')
+      .select('nombre, rol, org_id, activo, organizaciones(razon_social)')
       .eq('user_id', session.user.id)
       .eq('activo', true)
       .maybeSingle();
 
     if (perfil && ['ADMIN','SUPERVISOR'].includes(perfil.rol)) {
-      currentPerfil = { ...perfil, userId: session.user.id, email: session.user.email };
+      const razonSocial = perfil.organizaciones?.razon_social || null;
+      currentPerfil = { ...perfil, userId: session.user.id, email: session.user.email, razonSocial };
       document.getElementById('loginScreen').style.display = 'none';
       await initApp();
       return;

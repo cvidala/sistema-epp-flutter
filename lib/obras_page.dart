@@ -144,7 +144,10 @@ class _ObrasPageState extends State<ObrasPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Centros de trabajo'),
+        title: Text(
+          p?.razonSocial.isNotEmpty == true ? p!.razonSocial : 'Centros de trabajo',
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (p != null)
             Container(
