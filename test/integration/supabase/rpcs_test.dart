@@ -24,23 +24,6 @@ const _kObraId = '7becbb3a-dbe6-4b0b-856d-8751e266735d';
 const _kTrabajadorConEntregas = '09e5ffb5-3da9-46a7-81c3-ec8df2b36a03';
 
 void main() {
-  late String realEppId;
-
-  setUpAll(() async {
-    final svc = serviceClient();
-    // Usar un EPP que tenga regla BLOQUEO en la obra de test.
-    // evaluar_entrega_v2 verifica obra_epp_reglas — si el EPP no tiene regla
-    // en la obra, devuelve OK aunque el trabajador no lo tenga.
-    final reglaResp = await svc
-        .from('obra_epp_reglas')
-        .select('epp_id')
-        .eq('obra_id', _kObraId)
-        .eq('modo_control', 'BLOQUEO')
-        .limit(1)
-        .single();
-    realEppId = reglaResp['epp_id'] as String;
-    svc.dispose();
-  });
 
   // ────────────────────────────────────────────────────────────
   // TRG-05: evaluar_entrega_v2 para trabajador CON entregas previas
@@ -110,22 +93,18 @@ void main() {
 
           // evaluar_entrega_v2 usa vw_cumplimiento_trabajador que filtra
           // por trabajador_obras — el worker DEBE estar asignado a _kObraId.
-          // Usamos _kTrabajadorConEntregas (Pedro 3) que está en la obra
-          // pero no tiene realEppId (Casco EPP, item nuevo post-migración RLS).
+          // Usamos _kTrabajadorConEntregas (Pedro 3) que está en la obra.
+          //
+          // p_items representa los ítems que se ENTREGAN en esta transacción.
+          // Con p_items vacío, la función evalúa el estado ACTUAL del worker:
+          // Pedro 3 no tiene Casco EPP (ítem nuevo post-migración RLS, modo BLOQUEO)
+          // que es obligatorio con modo_control BLOQUEO → accion=BLOQUEO.
           final trabId = _kTrabajadorConEntregas;
 
-          // Llamar con un item CRITICO que el trabajador no tiene
-          // → la función debe retornar accion=BLOQUEO
           final response = await svc.rpc('evaluar_entrega_v2', params: {
             'p_trabajador_id': trabId,
             'p_obra_id': _kObraId,
-            'p_items': [
-              {
-                'epp_id': realEppId,
-                'cantidad': 1,
-                'criticidad': 'CRITICO',
-              }
-            ],
+            'p_items': const <Map<String, dynamic>>[],
           });
 
           svc.dispose();
