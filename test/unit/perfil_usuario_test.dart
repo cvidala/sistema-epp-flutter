@@ -47,47 +47,58 @@ void main() {
   });
 
   group('ConfigModulos — defaults', () {
-    test('defaults: epp=true, asistencia=false, prevencion=false, reportes=true', () {
+    test('defaults: gestion_epp=true, asistencia=false, prevencion=false, dashboard=true', () {
       final m = ConfigModulos.defaults();
-      expect(m.epp, isTrue);
+      expect(m.gestionEpp, isTrue);
       expect(m.asistencia, isFalse);
       expect(m.prevencion, isFalse);
-      expect(m.reportes, isTrue);
+      expect(m.dashboard, isTrue);
     });
 
-    test('fromJson respeta valores del JSON', () {
+    test('fromJson respeta claves nuevas', () {
+      final m = ConfigModulos.fromJson({
+        'gestion_epp': false,
+        'asistencia': true,
+        'prevencion': true,
+        'dashboard': false,
+      });
+      expect(m.gestionEpp, isFalse);
+      expect(m.asistencia, isTrue);
+      expect(m.prevencion, isTrue);
+      expect(m.dashboard, isFalse);
+    });
+
+    test('fromJson acepta claves legacy (epp, reportes) para compatibilidad Supabase', () {
       final m = ConfigModulos.fromJson({
         'epp': false,
         'asistencia': true,
-        'prevencion': true,
         'reportes': false,
       });
-      expect(m.epp, isFalse);
-      expect(m.asistencia, isTrue);
-      expect(m.prevencion, isTrue);
-      expect(m.reportes, isFalse);
+      expect(m.gestionEpp, isFalse);
+      expect(m.dashboard, isFalse);
     });
 
     test('fromJson con JSON vacío usa defaults', () {
       final m = ConfigModulos.fromJson({});
-      expect(m.epp, isTrue);
+      expect(m.gestionEpp, isTrue);
       expect(m.asistencia, isFalse);
     });
 
     test('toJson round-trip conserva valores', () {
-      final original = ConfigModulos(epp: true, asistencia: true, prevencion: false, reportes: true);
+      final original = ConfigModulos(
+          gestionEpp: true, asistencia: true, prevencion: false, dashboard: true);
       final restored = ConfigModulos.fromJson(original.toJson());
-      expect(restored.epp, equals(original.epp));
+      expect(restored.gestionEpp, equals(original.gestionEpp));
       expect(restored.asistencia, equals(original.asistencia));
       expect(restored.prevencion, equals(original.prevencion));
-      expect(restored.reportes, equals(original.reportes));
+      expect(restored.dashboard, equals(original.dashboard));
     });
   });
 
   group('PerfilUsuario — módulos', () {
-    test('moduloEpp expone el valor del módulo EPP', () {
-      final p = _perfil('ADMIN', modulos: const ConfigModulos(epp: false));
-      expect(p.moduloEpp, isFalse);
+    test('moduloGestionEpp expone el valor del módulo gestion_epp', () {
+      final p = _perfil('ADMIN', modulos: const ConfigModulos(gestionEpp: false));
+      expect(p.moduloGestionEpp, isFalse);
     });
 
     test('moduloAsistencia expone el valor del módulo asistencia', () {
@@ -112,7 +123,8 @@ void main() {
     });
 
     test('limpiar() borra el perfil cacheado', () {
-      AuthService.instance.cargarPerfilDesdeCache({'user_id': 'x', 'nombre': 'X', 'rol': 'ADMIN', 'org_id': 'o'});
+      AuthService.instance.cargarPerfilDesdeCache(
+          {'user_id': 'x', 'nombre': 'X', 'rol': 'ADMIN', 'org_id': 'o'});
       AuthService.instance.limpiar();
       expect(AuthService.instance.perfil, isNull);
     });

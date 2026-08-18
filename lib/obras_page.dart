@@ -164,7 +164,7 @@ class _ObrasPageState extends State<ObrasPage> {
                 ),
               ),
             ),
-          if (p?.canWrite == true && p?.moduloEpp == true)
+          if (p?.canWrite == true && p?.moduloGestionEpp == true)
             IconButton(
               icon: const Icon(Icons.inventory_2_outlined),
               tooltip: 'Stock EPP',

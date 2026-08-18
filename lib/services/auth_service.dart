@@ -1,43 +1,45 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Configuración de módulos habilitados para la organización.
+/// Las claves siguen el contrato unificado MIRA/JSV.
 class ConfigModulos {
-  final bool epp;
+  final bool gestionEpp;    // key MIRA: gestion_epp
   final bool asistencia;
   final bool prevencion;
-  final bool reportes;
+  final bool dashboard;     // key MIRA: dashboard
 
   const ConfigModulos({
-    this.epp        = true,
-    this.asistencia = false,
-    this.prevencion = false,
-    this.reportes   = true,
+    this.gestionEpp  = true,
+    this.asistencia  = false,
+    this.prevencion  = false,
+    this.dashboard   = true,
   });
 
   factory ConfigModulos.fromJson(Map<String, dynamic> json) {
     return ConfigModulos(
-      epp:        (json['epp']        ?? true)  as bool,
-      asistencia: (json['asistencia'] ?? false) as bool,
-      prevencion: (json['prevencion'] ?? false) as bool,
-      reportes:   (json['reportes']   ?? true)  as bool,
+      // fallback a claves legacy ('epp', 'reportes') para datos Supabase existentes
+      gestionEpp:  ((json['gestion_epp'] ?? json['epp'])      ?? true)  as bool,
+      asistencia:  (json['asistencia']                         ?? false) as bool,
+      prevencion:  (json['prevencion']                         ?? false) as bool,
+      dashboard:   ((json['dashboard']   ?? json['reportes'])  ?? true)  as bool,
     );
   }
 
   /// Configuración por defecto — todos los módulos base habilitados
   factory ConfigModulos.defaults() => const ConfigModulos(
-    epp: true, asistencia: false, prevencion: false, reportes: true,
+    gestionEpp: true, asistencia: false, prevencion: false, dashboard: true,
   );
 
   Map<String, dynamic> toJson() => {
-    'epp': epp,
-    'asistencia': asistencia,
-    'prevencion': prevencion,
-    'reportes': reportes,
+    'gestion_epp': gestionEpp,
+    'asistencia':  asistencia,
+    'prevencion':  prevencion,
+    'dashboard':   dashboard,
   };
 
   @override
-  String toString() => 'ConfigModulos(epp:$epp, asistencia:$asistencia, '
-      'prevencion:$prevencion, reportes:$reportes)';
+  String toString() => 'ConfigModulos(gestion_epp:$gestionEpp, asistencia:$asistencia, '
+      'prevencion:$prevencion, dashboard:$dashboard)';
 }
 
 /// Perfil del usuario autenticado.
@@ -69,11 +71,11 @@ class PerfilUsuario {
   /// Puede crear/editar centros de trabajo, usuarios y reglas
   bool get canManageSystem => rol == 'ADMIN';
 
-  /// Shortcuts de módulos
-  bool get moduloEpp        => modulos.epp;
-  bool get moduloAsistencia => modulos.asistencia;
-  bool get moduloPrevencion => modulos.prevencion;
-  bool get moduloReportes   => modulos.reportes;
+  /// Shortcuts de módulos — claves unificadas con contrato MIRA/JSV
+  bool get moduloGestionEpp  => modulos.gestionEpp;
+  bool get moduloAsistencia  => modulos.asistencia;
+  bool get moduloPrevencion  => modulos.prevencion;
+  bool get moduloDashboard   => modulos.dashboard;
 
   @override
   String toString() => 'PerfilUsuario($nombre, $rol, org:$orgId)';

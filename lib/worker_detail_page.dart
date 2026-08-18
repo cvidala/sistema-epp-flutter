@@ -20,7 +20,7 @@ class WorkerDetailPage extends StatefulWidget {
   final String trabajadorNombre;
   final String trabajadorRut;
   final bool canWrite;
-  final bool moduloEpp;
+  final bool moduloGestionEpp;
 
   const WorkerDetailPage({
     super.key,
@@ -30,7 +30,7 @@ class WorkerDetailPage extends StatefulWidget {
     required this.trabajadorNombre,
     required this.trabajadorRut,
     this.canWrite  = true,
-    this.moduloEpp = true,
+    this.moduloGestionEpp = true,
   });
 
   @override
@@ -528,7 +528,7 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
           IconButton(onPressed: _loadAll, icon: const Icon(Icons.refresh)),
         ],
       ),
-      floatingActionButton: (widget.canWrite && widget.moduloEpp)
+      floatingActionButton: (widget.canWrite && widget.moduloGestionEpp)
           ? Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
