@@ -1907,66 +1907,74 @@ async function loadDashboard() {
 
 // ── DATA LOADERS ──────────────────────────────────────────────────
 async function loadTrabajadores(obraId) {
-  // Traer trabajadores con sus últimas entregas
+  // Query 1: trabajador_obras con joins
   let q = sb.from('trabajador_obras')
-    .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)')
-
+    .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)');
   if (obraId) q = q.eq('obra_id', obraId);
-
   const { data, error } = await q;
   if (error) { console.error(error); return []; }
 
-  // Filtrar nulls y deduplicar
+  // Deduplicar por trabajador_id
   const seen = new Set();
-  const result = [];
+  const rows = [];
   for (const row of (data || [])) {
     const t = row.trabajadores;
     if (!t || seen.has(t.trabajador_id)) continue;
     seen.add(t.trabajador_id);
+    rows.push(row);
+  }
+  if (!rows.length) return [];
 
-    // Última entrega
-    const { data: ult } = await sb.from('entregas_epp')
-      .select('created_at, items')
-      .eq('trabajador_id', t.trabajador_id)
+  const workerIds = rows.map(r => r.trabajadores.trabajador_id);
+  const obraIds   = [...new Set(rows.map(r => r.obra_id))];
+
+  // Queries 2+3: bulk en paralelo — reemplaza el loop N+1
+  const [{ data: entregas }, { data: reglas }] = await Promise.all([
+    sb.from('entregas_epp')
+      .select('trabajador_id, obra_id, created_at, items')
+      .in('trabajador_id', workerIds)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(300),
+    sb.from('obra_epp_reglas')
+      .select('obra_id, epp_id')
+      .in('obra_id', obraIds),
+  ]);
 
-    // Cumplimiento: contar EPP entregados vs requeridos (simplificado)
-    const { data: reglasObra } = await sb.from('obra_epp_reglas')
-      .select('epp_id')
-      .eq('obra_id', row.obra_id)
-      .limit(50);
+  // Construir mapas en cliente
+  const reglasPorObra = {};
+  for (const r of (reglas || [])) {
+    if (!reglasPorObra[r.obra_id]) reglasPorObra[r.obra_id] = new Set();
+    reglasPorObra[r.obra_id].add(r.epp_id);
+  }
 
-    const totalReq = (reglasObra || []).length;
-
-    // EPP vigentes del trabajador (última entrega de cada tipo)
-    const { data: entregados } = await sb.from('entregas_epp')
-      .select('items')
-      .eq('trabajador_id', t.trabajador_id)
-      .eq('obra_id', row.obra_id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    const eppIds = new Set();
-    for (const e of (entregados || [])) {
-      for (const it of (e.items || [])) {
-        if (it.epp_id) eppIds.add(it.epp_id);
-      }
+  const ultimaEntrega = {};
+  const eppPorWorkerObra = {};
+  for (const e of (entregas || [])) {
+    if (!ultimaEntrega[e.trabajador_id]) ultimaEntrega[e.trabajador_id] = e.created_at;
+    const key = `${e.trabajador_id}_${e.obra_id}`;
+    if (!eppPorWorkerObra[key]) eppPorWorkerObra[key] = new Set();
+    for (const it of (e.items || [])) {
+      if (it.epp_id) eppPorWorkerObra[key].add(it.epp_id);
     }
+  }
 
-    const pct = totalReq > 0 ? Math.round((eppIds.size / totalReq) * 100) : (eppIds.size > 0 ? 100 : 0);
-
-    result.push({
+  return rows.map(row => {
+    const t        = row.trabajadores;
+    const reqs     = reglasPorObra[row.obra_id] || new Set();
+    const key      = `${t.trabajador_id}_${row.obra_id}`;
+    const done     = eppPorWorkerObra[key] || new Set();
+    const totalReq = reqs.size;
+    const matched  = [...reqs].filter(id => done.has(id)).length;
+    const pct = totalReq > 0 ? Math.round((matched / totalReq) * 100) : (done.size > 0 ? 100 : 0);
+    return {
       id: t.trabajador_id,
       nombre: t.nombre,
       rut: t.rut,
       centro: row.obras?.nombre || '—',
       pct: Math.min(pct, 100),
-      ultimaEntrega: ult ? ult.created_at : null,
-    });
-  }
-  return result;
+      ultimaEntrega: ultimaEntrega[t.trabajador_id] || null,
+    };
+  });
 }
 
 async function loadEntregas(obraId) {
