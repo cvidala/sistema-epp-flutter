@@ -22,7 +22,6 @@ import 'helpers/test_client.dart';
 // - Sin entregas: 0bcb4909-7e50-44fa-94de-e10b5a2e0e41
 const _kObraId = '7becbb3a-dbe6-4b0b-856d-8751e266735d';
 const _kTrabajadorConEntregas = '09e5ffb5-3da9-46a7-81c3-ec8df2b36a03';
-const _kTrabajadorSinEntregas = '0bcb4909-7e50-44fa-94de-e10b5a2e0e41';
 
 void main() {
   late String realEppId;
@@ -109,42 +108,11 @@ void main() {
         () async {
           final svc = serviceClient();
 
-          // Verificar que el trabajador sin entregas realmente no tiene entregas
-          final entrResp = await svc
-              .from('entregas_epp')
-              .select('trabajador_id')
-              .eq('trabajador_id', _kTrabajadorSinEntregas)
-              .limit(1);
-
-          final String trabId;
-          if (entrResp.isNotEmpty) {
-            // El trabajador ya tiene entregas — buscar uno sin entregas
-            final allTrab = await svc
-                .from('trabajadores')
-                .select('trabajador_id');
-            final trabConEntregas = (await svc
-                    .from('entregas_epp')
-                    .select('trabajador_id'))
-                .map((e) => e['trabajador_id'] as String)
-                .toSet();
-
-            final trabSinEntregas = allTrab
-                .map((t) => t['trabajador_id'] as String)
-                .where((id) => !trabConEntregas.contains(id))
-                .toList();
-
-            if (trabSinEntregas.isEmpty) {
-              svc.dispose();
-              markTestSkipped(
-                'TRG-06: No se encontró trabajador sin entregas en la DB. '
-                'Test no es verificable con los datos actuales.',
-              );
-              return;
-            }
-            trabId = trabSinEntregas.first;
-          } else {
-            trabId = _kTrabajadorSinEntregas;
-          }
+          // evaluar_entrega_v2 usa vw_cumplimiento_trabajador que filtra
+          // por trabajador_obras — el worker DEBE estar asignado a _kObraId.
+          // Usamos _kTrabajadorConEntregas (Pedro 3) que está en la obra
+          // pero no tiene realEppId (Casco EPP, item nuevo post-migración RLS).
+          final trabId = _kTrabajadorConEntregas;
 
           // Llamar con un item CRITICO que el trabajador no tiene
           // → la función debe retornar accion=BLOQUEO
