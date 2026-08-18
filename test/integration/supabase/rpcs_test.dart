@@ -29,17 +29,17 @@ void main() {
 
   setUpAll(() async {
     final svc = serviceClient();
-    // Filtrar por la org de Vidal para que el EPP pertenezca a la misma org
-    // que los trabajadores y obras de test. Desde que se agregó la empresa demo,
-    // la primera fila puede ser de otra org, haciendo que evaluar_entrega_v2
-    // devuelva OK en lugar de BLOQUEO (sin regla para ese EPP en la obra).
-    final eppResp = await svc
-        .from('catalogo_epp')
+    // Usar un EPP que tenga regla BLOQUEO en la obra de test.
+    // evaluar_entrega_v2 verifica obra_epp_reglas — si el EPP no tiene regla
+    // en la obra, devuelve OK aunque el trabajador no lo tenga.
+    final reglaResp = await svc
+        .from('obra_epp_reglas')
         .select('epp_id')
-        .eq('org_id', 'aaaaaaaa-0000-0000-0000-000000000001')
+        .eq('obra_id', _kObraId)
+        .eq('modo_control', 'BLOQUEO')
         .limit(1)
         .single();
-    realEppId = eppResp['epp_id'] as String;
+    realEppId = reglaResp['epp_id'] as String;
     svc.dispose();
   });
 
