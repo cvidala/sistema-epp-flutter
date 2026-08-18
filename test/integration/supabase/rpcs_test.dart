@@ -29,8 +29,16 @@ void main() {
 
   setUpAll(() async {
     final svc = serviceClient();
-    final eppResp =
-        await svc.from('catalogo_epp').select('epp_id').limit(1).single();
+    // Filtrar por la org de Vidal para que el EPP pertenezca a la misma org
+    // que los trabajadores y obras de test. Desde que se agregó la empresa demo,
+    // la primera fila puede ser de otra org, haciendo que evaluar_entrega_v2
+    // devuelva OK en lugar de BLOQUEO (sin regla para ese EPP en la obra).
+    final eppResp = await svc
+        .from('catalogo_epp')
+        .select('epp_id')
+        .eq('org_id', 'aaaaaaaa-0000-0000-0000-000000000001')
+        .limit(1)
+        .single();
     realEppId = eppResp['epp_id'] as String;
     svc.dispose();
   });
