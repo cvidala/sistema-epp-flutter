@@ -785,7 +785,7 @@ class _WorkersPageState extends State<WorkersPage> {
                                             : (t['nombre'] ?? ''),
                                         trabajadorRut: t['rut'] ?? '',
                                         canWrite:  _canWriteThisObra,
-                                        moduloEpp: perfil?.moduloEpp ?? true,
+                                        moduloGestionEpp: perfil?.moduloGestionEpp ?? true,
                                       ),
                                     ),
                                   );
