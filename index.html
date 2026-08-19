@@ -128,16 +128,23 @@ h1 em { color:var(--orange); font-style:normal; }
 .mockup-dot.yellow { background:#ffbd2e; }
 .mockup-dot.green { background:#28c840; }
 .mockup-screen {
-  height:440px; display:flex; align-items:center; justify-content:center;
-  flex-direction:column; gap:16px; padding:32px;
+  display:flex; align-items:flex-start; justify-content:center;
+  background:#0d2148;
 }
-.mockup-placeholder {
-  width:100%; height:100%; background:rgba(255,255,255,0.03);
-  border:2px dashed rgba(255,255,255,0.12); border-radius:12px;
-  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+.mockup-screen img { width:100%; height:auto; display:block; }
+
+/* Screenshots reales dentro de los slots del diseño */
+.shot {
+  width:100%; height:100%; object-fit:cover; object-position:top center;
+  display:block; border-radius:12px;
 }
-.mockup-placeholder-icon { font-size:40px; opacity:0.4; }
-.mockup-placeholder-text { color:rgba(255,255,255,0.3); font-size:13px; font-weight:500; }
+.placeholder-img:has(img.shot),
+.step-screen:has(img.shot),
+.offline-placeholder:has(img.shot) { border:none; background:transparent; padding:0; }
+.step-screen:has(img.shot) { overflow:hidden; }
+.preview-screen:has(img.shot) { padding:0; height:auto; align-items:flex-start; }
+.preview-screen .shot { border-radius:0; }
+.offline-visual:has(img.shot) { padding:16px; }
 
 /* Hero stats */
 .hero-stats {
@@ -434,7 +441,7 @@ footer {
     <a href="#contacto">Contacto</a>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <a href="/dashboard/" class="nav-login" target="_blank">Acceder</a>
+    <a href="https://dashboard.trazapp.cl" class="nav-login" target="_blank">Acceder</a>
     <a href="#contacto" class="nav-cta">Solicitar demo</a>
   </div>
   <button class="nav-mobile-btn" onclick="toggleMobileMenu()">☰</button>
@@ -453,7 +460,7 @@ footer {
   <div class="hero-actions">
     <a href="#contacto" class="btn-primary">Solicitar demo →</a>
     <a href="#como-funciona" class="btn-secondary">Ver cómo funciona</a>
-    <a href="/dashboard/" class="btn-login" target="_blank">Iniciar sesión</a>
+    <a href="https://dashboard.trazapp.cl" class="btn-login" target="_blank">Iniciar sesión</a>
   </div>
 
   <div class="hero-mockup" style="max-width:900px;width:100%">
@@ -464,10 +471,7 @@ footer {
       <span style="margin-left:12px;font-size:12px;color:rgba(255,255,255,0.3)">TrazApp Dashboard</span>
     </div>
     <div class="mockup-screen">
-      <div class="mockup-placeholder">
-        <div class="mockup-placeholder-icon">🖥️</div>
-        <div class="mockup-placeholder-text">Pantalla principal — Dashboard</div>
-      </div>
+      <img src="assets/screenshots/dashboard-resumen.png" alt="Dashboard TrazApp — Resumen general de cumplimiento EPP" loading="lazy">
     </div>
   </div>
 
@@ -535,8 +539,7 @@ footer {
       </div>
       <div class="problema-visual-body">
         <div class="placeholder-img">
-          <div class="placeholder-img-icon">📱</div>
-          <div class="placeholder-img-text">Pantalla de entregas — App móvil</div>
+          <img class="shot" src="assets/screenshots/app-nueva-entrega.png" alt="App móvil TrazApp: nueva entrega de EPP con semáforo de cumplimiento y firma obligatoria" loading="lazy">
         </div>
       </div>
     </div>
@@ -556,8 +559,7 @@ footer {
       <div class="step-title">Selecciona el trabajador y el EPP</div>
       <div class="step-text">El supervisor busca al trabajador por nombre o RUT. El sistema muestra automáticamente qué EPP tiene pendiente según las reglas de la obra.</div>
       <div class="step-screen">
-        <div class="placeholder-img-icon">👷</div>
-        <div class="step-screen-label">Pantalla trabajadores</div>
+        <img class="shot" src="assets/screenshots/app-trabajadores.png" alt="Pantalla de trabajadores por obra con estado de cumplimiento EPP" loading="lazy">
       </div>
     </div>
     <div class="step">
@@ -565,8 +567,7 @@ footer {
       <div class="step-title">Captura foto y firma digital</div>
       <div class="step-text">El trabajador firma en la pantalla táctil y se toma una foto como evidencia. Todo queda encriptado con SHA-256 para garantizar integridad.</div>
       <div class="step-screen">
-        <div class="placeholder-img-icon">✍️</div>
-        <div class="step-screen-label">Pantalla firma y evidencia</div>
+        <img class="shot" src="assets/screenshots/app-firma.png" alt="Pantalla de captura de firma táctil del trabajador" loading="lazy" style="object-position:center">
       </div>
     </div>
     <div class="step">
@@ -574,8 +575,7 @@ footer {
       <div class="step-title">Sincroniza y monitorea en tiempo real</div>
       <div class="step-text">Cuando hay conexión, las entregas se sincronizan automáticamente. El dashboard muestra cumplimiento, stock y alertas en tiempo real.</div>
       <div class="step-screen">
-        <div class="placeholder-img-icon">📊</div>
-        <div class="step-screen-label">Pantalla dashboard web</div>
+        <img class="shot" src="assets/screenshots/dashboard-reportes.png" alt="Pantalla del dashboard web con reportes de cumplimiento EPP" loading="lazy">
       </div>
     </div>
   </div>
@@ -670,8 +670,7 @@ footer {
     </div>
     <div class="offline-visual">
       <div class="offline-placeholder">
-        <div class="offline-placeholder-icon">📴</div>
-        <div class="offline-placeholder-text">Pantalla modo offline / sincronización</div>
+        <img class="shot" src="assets/screenshots/app-obras.png" alt="App móvil TrazApp funcionando en terreno con sincronización de entregas" loading="lazy">
       </div>
     </div>
   </div>
@@ -723,10 +722,7 @@ footer {
       <span style="margin-left:12px;font-size:12px;color:rgba(255,255,255,0.3)">trazapp.cl/dashboard</span>
     </div>
     <div class="preview-screen">
-      <div class="placeholder-img" style="max-width:100%;height:100%">
-        <div class="placeholder-img-icon">🖥️</div>
-        <div class="placeholder-img-text">Pantalla dashboard — Vista general</div>
-      </div>
+      <img class="shot" src="assets/screenshots/dashboard-trabajadores.png" alt="Dashboard web TrazApp: vista general de trabajadores y cumplimiento EPP" loading="lazy">
     </div>
   </div>
 </section>
