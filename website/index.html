@@ -330,6 +330,24 @@ section { padding: 96px 5%; }
   flex-direction:column; gap:14px; padding:32px;
 }
 
+/* ── PRUEBA / EN USO REAL ─────────────────────────────────── */
+#prueba { background:white; }
+.prueba-metrics { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-top:48px; }
+.prueba-metric {
+  background:var(--bg); border:1px solid var(--border); border-radius:20px;
+  padding:28px 40px; min-width:240px; text-align:center;
+}
+.prueba-metric-num { font-size:40px; font-weight:800; color:var(--orange); line-height:1; }
+.prueba-metric-label { font-size:14px; color:var(--muted); font-weight:600; margin-top:10px; }
+
+/* ── FAQ ──────────────────────────────────────────────────── */
+#faq { background:var(--bg); }
+.faq-list { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:56px; }
+.faq-item { background:white; border:1px solid var(--border); border-radius:16px; padding:24px 26px; }
+.faq-q { font-size:16px; font-weight:700; color:var(--navy); margin-bottom:8px; }
+.faq-a { font-size:14px; color:var(--muted); line-height:1.7; }
+@media (max-width:768px){ .faq-list { grid-template-columns:1fr; } }
+
 /* ── CONTACTO ─────────────────────────────────────────────── */
 #contacto { background:white; }
 .contacto-grid { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; margin-top:56px; }
@@ -443,7 +461,7 @@ footer {
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
     <a href="https://dashboard.trazapp.cl" class="nav-login" target="_blank">Acceder</a>
-    <a href="#contacto" class="nav-cta">Solicitar demo</a>
+    <a href="#contacto" class="nav-cta">Prueba gratis 14 días</a>
   </div>
   <button class="nav-mobile-btn" onclick="toggleMobileMenu()">☰</button>
 </nav>
@@ -453,15 +471,17 @@ footer {
   <div class="hero-badge">
     <span></span> Sistema de Gestión de EPP — Hecho en Chile
   </div>
-  <h1>Trazabilidad total en la<br>entrega de <em>EPP</em></h1>
+  <h1>Deja de arriesgar multas:<br>entrega de EPP <em>firmada por el trabajador</em><br>y lista para la <em>fiscalización</em></h1>
   <p class="hero-sub">
-    Digitaliza, registra y audita cada entrega de equipos de protección personal.
-    Funciona sin internet, con firma digital y cumplimiento normativo automático.
+    Registra la entrega con la firma del trabajador, foto y fecha — desde el celular,
+    en obra y hasta sin señal. Exportas todo listo para una fiscalización.
   </p>
   <div class="hero-actions">
-    <a href="#contacto" class="btn-primary">Solicitar demo →</a>
+    <a href="#contacto" class="btn-primary">Prueba gratis 14 días →</a>
     <a href="#como-funciona" class="btn-secondary">Ver cómo funciona</a>
-    <a href="https://dashboard.trazapp.cl" class="btn-login" target="_blank">Iniciar sesión</a>
+  </div>
+  <div style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.55);font-weight:500">
+    14 días gratis · hasta 15 usuarios · sin tarjeta de crédito
   </div>
 
   <div class="hero-mockup" style="max-width:900px;width:100%">
@@ -478,20 +498,20 @@ footer {
 
   <div class="hero-stats">
     <div>
-      <div class="hero-stat-num">100%</div>
-      <div class="hero-stat-label">Offline-first</div>
+      <div class="hero-stat-num">Firma</div>
+      <div class="hero-stat-label">del trabajador en cada entrega</div>
     </div>
     <div>
-      <div class="hero-stat-num">SHA-256</div>
-      <div class="hero-stat-label">Integridad garantizada</div>
+      <div class="hero-stat-num">Offline</div>
+      <div class="hero-stat-label">funciona sin señal en obra</div>
     </div>
     <div>
       <div class="hero-stat-num">0</div>
       <div class="hero-stat-label">Entregas sin evidencia</div>
     </div>
     <div>
-      <div class="hero-stat-num">Real-time</div>
-      <div class="hero-stat-label">Dashboard web</div>
+      <div class="hero-stat-num">1 clic</div>
+      <div class="hero-stat-label">Export para la DT</div>
     </div>
   </div>
 </section>
@@ -501,8 +521,8 @@ footer {
   <div class="problema-grid">
     <div>
       <div class="section-label">El problema</div>
-      <h2 class="section-title">La gestión de EPP<br>sigue siendo <em>papel y Excel</em></h2>
-      <p class="section-sub">En construcción, minería e industria, registrar la entrega de EPP es obligatorio por ley. Pero el proceso es lento, propenso a errores y difícil de auditar.</p>
+      <h2 class="section-title">El cuaderno de EPP<br>no te salva en una <em>fiscalización</em></h2>
+      <p class="section-sub">Hojas sueltas, firmas que faltan. Cuando llega la DT, tienes que demostrar que cada trabajador recibió su EPP con fecha y firma. Si no, es multa.</p>
       <div class="problema-list" style="margin-top:32px">
         <div class="problema-item">
           <div class="problema-icon">📶</div>
@@ -528,8 +548,8 @@ footer {
         <div class="problema-item">
           <div class="problema-icon">🔍</div>
           <div>
-            <div class="problema-item-title">Sin evidencia ante un accidente</div>
-            <div class="problema-item-text">Si ocurre un accidente, no hay forma de demostrar que se entregó el EPP correcto en el momento correcto.</div>
+            <div class="problema-item-title">Sin evidencia ante la DT o un accidente</div>
+            <div class="problema-item-text">Si llega una fiscalización o pasa un accidente, con papeles no puedes probar que entregaste el EPP correcto, con fecha y firma.</div>
           </div>
         </div>
       </div>
@@ -551,30 +571,30 @@ footer {
 <section id="como-funciona">
   <div class="section-center">
     <div class="section-label">Cómo funciona</div>
-    <h2 class="section-title">Simple para el supervisor,<br><em>poderoso</em> para la empresa</h2>
-    <p class="section-sub">Tres pasos para dejar constancia legal de cada entrega de EPP, con o sin internet.</p>
+    <h2 class="section-title">Tres pasos<br>y tienes la <em>prueba</em></h2>
+    <p class="section-sub">Del EPP a la firma en menos de un minuto. Con o sin señal, y listo para exportar cuando llegue la DT.</p>
   </div>
   <div class="steps">
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-title">Selecciona el trabajador y el EPP</div>
-      <div class="step-text">El supervisor busca al trabajador por nombre o RUT. El sistema muestra automáticamente qué EPP tiene pendiente según las reglas de la obra.</div>
+      <div class="step-title">Eliges trabajador y EPP</div>
+      <div class="step-text">El bodeguero busca al trabajador por nombre o RUT y selecciona el EPP que le entrega. El semáforo muestra qué le falta según las reglas de la obra.</div>
       <div class="step-screen">
         <img class="shot" src="assets/screenshots/app-trabajadores.png" alt="Pantalla de trabajadores por obra con estado de cumplimiento EPP" loading="lazy">
       </div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-title">Captura foto y firma digital</div>
-      <div class="step-text">El trabajador firma en la pantalla táctil y se toma una foto como evidencia. Todo queda encriptado con SHA-256 para garantizar integridad.</div>
+      <div class="step-title">El trabajador firma + foto</div>
+      <div class="step-text">El trabajador firma en la misma pantalla y se toma una foto como evidencia. Queda registrado con fecha y hora, imposible de alterar.</div>
       <div class="step-screen">
         <img class="shot" src="assets/screenshots/app-firma.png" alt="Pantalla de captura de firma táctil del trabajador" loading="lazy" style="object-position:center">
       </div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-title">Sincroniza y monitorea en tiempo real</div>
-      <div class="step-text">Cuando hay conexión, las entregas se sincronizan automáticamente. El dashboard muestra cumplimiento, stock y alertas en tiempo real.</div>
+      <div class="step-title">Se guarda solo y lo exportas</div>
+      <div class="step-text">La entrega se guarda al instante y se sincroniza sola cuando hay señal. Cuando llega la DT, exportas el historial completo en un clic.</div>
       <div class="step-screen">
         <img class="shot" src="assets/screenshots/dashboard-reportes.png" alt="Pantalla del dashboard web con reportes de cumplimiento EPP" loading="lazy">
       </div>
@@ -585,53 +605,73 @@ footer {
 <!-- ── FEATURES ──────────────────────────────────────────────── -->
 <section id="features">
   <div class="section-center">
-    <div class="section-label">Funcionalidades</div>
-    <h2 class="section-title">Todo lo que necesitas<br>en <em>una sola app</em></h2>
+    <div class="section-label">Beneficios</div>
+    <h2 class="section-title">La prueba que necesitas<br><em>ante la DT</em></h2>
   </div>
   <div class="features-grid">
 
     <div class="feature-card">
-      <div class="feature-icon orange">📴</div>
-      <div class="feature-title">100% Offline</div>
-      <div class="feature-text">La app funciona sin internet. Las entregas se guardan localmente y se sincronizan solas cuando recuperas conexión. Cero pérdida de datos.</div>
-      <span class="feature-tag">Tecnología Offline-first</span>
-    </div>
-
-    <div class="feature-card">
       <div class="feature-icon blue">✍️</div>
-      <div class="feature-title">Firma digital + foto</div>
-      <div class="feature-text">Cada entrega incluye la firma táctil del trabajador y una foto de evidencia. Doble comprobante legal en cada registro.</div>
-      <span class="feature-tag">Evidencia integrada</span>
+      <div class="feature-title">Firma del trabajador</div>
+      <div class="feature-text">La firma en pantalla de cada trabajador es tu prueba irrefutable de que recibió su EPP. Nadie puede decir que no se lo entregaste.</div>
+      <span class="feature-tag">Prueba irrefutable</span>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon green">🔒</div>
-      <div class="feature-title">Integridad criptográfica</div>
-      <div class="feature-text">Cada entrega está encadenada con un hash SHA-256. Imposible alterar registros anteriores sin que el sistema lo detecte.</div>
-      <span class="feature-tag">Hash encadenado</span>
+      <div class="feature-icon orange">📴</div>
+      <div class="feature-title">Funciona sin internet</div>
+      <div class="feature-text">Registra entregas en plena obra, sin señal. Se guardan en el teléfono y se sincronizan solas al recuperar conexión. Cero pérdida.</div>
+      <span class="feature-tag">Offline-first</span>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon red">🚨</div>
-      <div class="feature-title">Cumplimiento automático</div>
-      <div class="feature-text">El sistema evalúa si falta EPP obligatorio y bloquea la entrega si no está completa. Nunca más un trabajador sin su protección requerida.</div>
-      <span class="feature-tag">Semáforo inteligente</span>
+      <div class="feature-icon red">🚦</div>
+      <div class="feature-title">Semáforo de cumplimiento</div>
+      <div class="feature-text">El sistema te avisa qué EPP le falta a cada trabajador y bloquea entregas incompletas. Nadie sale a terreno sin su protección.</div>
+      <span class="feature-tag">Cumplimiento automático</span>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon purple">📊</div>
-      <div class="feature-title">Dashboard en tiempo real</div>
-      <div class="feature-text">Visualiza cumplimiento, stock, alertas y reportes desde cualquier computador. Exporta a PDF o CSV con un clic.</div>
-      <span class="feature-tag">Web + reportes</span>
+      <div class="feature-icon purple">🗂️</div>
+      <div class="feature-title">Historial completo</div>
+      <div class="feature-text">Cada entrega queda con fecha, hora, foto y firma. Historial ordenado por trabajador y por obra, listo para consultar cuando lo necesites.</div>
+      <span class="feature-tag">Fecha + evidencia</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon green">📤</div>
+      <div class="feature-title">Exportable para la DT</div>
+      <div class="feature-text">Genera el reporte de entregas en PDF o CSV con un clic. Llega la fiscalización y tienes todo listo, sin buscar papeles.</div>
+      <span class="feature-tag">Listo para fiscalización</span>
     </div>
 
     <div class="feature-card">
       <div class="feature-icon teal">📦</div>
-      <div class="feature-title">Control de stock integrado</div>
-      <div class="feature-text">Cada entrega descuenta automáticamente del inventario. Alertas configurables cuando el stock llega al mínimo definido.</div>
+      <div class="feature-title">Control de stock</div>
+      <div class="feature-text">Cada entrega descuenta del inventario automáticamente. Alertas cuando el stock de un EPP llega al mínimo que definas.</div>
       <span class="feature-tag">Gestión de bodega</span>
     </div>
 
+  </div>
+</section>
+
+<!-- ── PRUEBA / EN USO REAL ───────────────────────────────────── -->
+<section id="prueba">
+  <div class="section-center">
+    <div class="section-label">En uso real</div>
+    <h2 class="section-title">No es teoría: se usa a diario<br>en <em>Constructora Vidal</em></h2>
+    <p class="section-sub">TrazApp registra la entrega de EPP de todo el personal en terreno, todos los días. Firmado, con foto y listo para fiscalización.</p>
+  </div>
+  <!-- TODO: reemplazar los "—" por 1-2 métricas reales (ej: entregas registradas, trabajadores al día) -->
+  <div class="prueba-metrics">
+    <div class="prueba-metric">
+      <div class="prueba-metric-num">—</div>
+      <div class="prueba-metric-label">Entregas registradas</div>
+    </div>
+    <div class="prueba-metric">
+      <div class="prueba-metric-num">—</div>
+      <div class="prueba-metric-label">Trabajadores con EPP al día</div>
+    </div>
   </div>
 </section>
 
@@ -728,13 +768,39 @@ footer {
   </div>
 </section>
 
+<!-- ── FAQ ────────────────────────────────────────────────────── -->
+<section id="faq">
+  <div class="section-center">
+    <div class="section-label">Preguntas frecuentes</div>
+    <h2 class="section-title">Lo que todos<br><em>preguntan</em></h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q">¿Necesito internet en la obra?</div>
+      <div class="faq-a">No. La app funciona sin señal: guarda las entregas en el teléfono y sincroniza sola cuando recuperas conexión.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Sirve como prueba ante la DT?</div>
+      <div class="faq-a">Sí. Cada entrega queda con la firma del trabajador, foto y fecha, y la exportas en PDF o CSV cuando la necesites.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Es difícil de usar?</div>
+      <div class="faq-a">No. El bodeguero la usa desde el primer día, sin capacitación. Buscar, entregar, firmar y listo.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Cuánto cuesta?</div>
+      <div class="faq-a">Pruébala gratis 14 días, hasta 15 usuarios y sin tarjeta de crédito. Después conversamos el plan que te sirva.</div>
+    </div>
+  </div>
+</section>
+
 <!-- ── CONTACTO ───────────────────────────────────────────────── -->
 <section id="contacto">
   <div class="contacto-grid">
     <div>
-      <div class="section-label">Contacto</div>
-      <h2 class="section-title">¿Listo para<br><em>digitalizar</em> tu EPP?</h2>
-      <p class="section-sub">Agenda una demo gratuita y te mostramos cómo TrazApp puede funcionar en tu empresa en menos de una semana.</p>
+      <div class="section-label">Empieza hoy</div>
+      <h2 class="section-title">Deja de improvisar<br>el registro de <em>EPP</em></h2>
+      <p class="section-sub">Prueba TrazApp gratis 14 días con tu equipo. Déjanos tus datos y te ayudamos a partir en obra en menos de una semana.</p>
       <div class="contacto-info" style="margin-top:36px">
         <div class="contacto-info-item">
           <div class="contacto-info-icon">✉️</div>
@@ -764,7 +830,7 @@ footer {
       <form class="contacto-form" id="contactForm"
             action="https://formspree.io/f/xeerwlez" method="POST">
         <input type="hidden" name="_replyto" value="c.vidalaedo2@gmail.com">
-        <input type="hidden" name="_subject" value="Nueva consulta desde TrazApp.cl">
+        <input type="hidden" name="_subject" value="Nueva solicitud de prueba desde TrazApp.cl">
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Nombre *</label>
@@ -792,13 +858,13 @@ footer {
         </div>
         <div class="form-group">
           <label class="form-label">Mensaje *</label>
-          <textarea class="form-textarea" name="mensaje" placeholder="Cuéntanos sobre tu empresa y qué necesitas..." required></textarea>
+          <textarea class="form-textarea" name="mensaje" placeholder="Cuéntanos de tu obra o empresa y cuántos usuarios necesitas para la prueba..." required></textarea>
         </div>
         <div class="form-error-msg" id="formError">Error al enviar. Por favor intenta de nuevo.</div>
         <div class="form-success" id="formSuccess">
           ✅ ¡Mensaje enviado! Te contactaremos en menos de 24 horas.
         </div>
-        <button type="submit" class="form-submit" id="formSubmit">Enviar mensaje →</button>
+        <button type="submit" class="form-submit" id="formSubmit">Prueba gratis 14 días →</button>
       </form>
     </div>
   </div>
@@ -830,7 +896,7 @@ footer {
       </div>
       <div class="footer-col">
         <div class="footer-col-title">Contacto</div>
-        <a href="#contacto">Solicitar demo</a>
+        <a href="#contacto">Prueba gratis 14 días</a>
         <a href="mailto:hola@trazapp.cl">hola@trazapp.cl</a>
       </div>
     </div>
