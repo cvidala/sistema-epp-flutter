@@ -1797,6 +1797,53 @@ const SUPABASE_URL = 'https://ppltpmmtdnprgauwnytf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbHRwbW10ZG5wcmdhdXdueXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNTM0NzIsImV4cCI6MjA4NTgyOTQ3Mn0.WsRKOEYNzU-tRrL3p6I_ip-AAQmNCgfVKEdockq_gE8';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ── Storage: signed URLs para buckets privados (Fase 1: lecturas) ──────────
+// Normaliza un valor guardado (URL pública legacy o path) y devuelve una
+// signed URL temporal. Mientras el bucket siga público, createSignedUrl
+// funciona igual; si falla y el valor es http, se usa tal cual (fallback).
+function extractStoragePath(value, bucket){
+  if(!value) return null;
+  for(const marker of [`/object/public/${bucket}/`, `/object/sign/${bucket}/`]){
+    const i = value.indexOf(marker);
+    if(i !== -1){
+      let p = value.substring(i + marker.length);
+      const q = p.indexOf('?'); if(q !== -1) p = p.substring(0, q);
+      try { return decodeURIComponent(p); } catch(_) { return p; }
+    }
+  }
+  return value.startsWith('http') ? null : value;
+}
+async function signedStorageUrl(value, bucket, ttl=3600){
+  if(!value) return null;
+  const path = extractStoragePath(value, bucket);
+  if(!path) return value.startsWith('http') ? value : null;
+  try {
+    const { data } = await sb.storage.from(bucket).createSignedUrl(path, ttl);
+    return (data && data.signedUrl) || (value.startsWith('http') ? value : null);
+  } catch(_) {
+    return value.startsWith('http') ? value : null;
+  }
+}
+// Hidrata elementos con data-storage-value/data-storage-bucket tras insertar HTML:
+// <img>/<a> reciben src/href firmados. Llamar después de asignar innerHTML.
+async function hydrateStorageMedia(root){
+  if(!root) return;
+  const els = root.querySelectorAll('[data-storage-value]');
+  await Promise.all(Array.from(els).map(async el => {
+    const val = el.getAttribute('data-storage-value');
+    const bucket = el.getAttribute('data-storage-bucket') || 'evidencias';
+    const signed = await signedStorageUrl(val, bucket);
+    if(!signed) return;
+    if(el.tagName === 'A') el.setAttribute('href', signed);
+    else el.setAttribute('src', signed);
+  }));
+}
+// Abre en pestaña nueva la media ya firmada de un elemento (onclick de fotos).
+function abrirMediaFirmada(el){
+  const s = el.getAttribute('src') || el.getAttribute('href');
+  if(s) window.open(s, '_blank');
+}
+
 let currentUser = null;
 let currentPerfil = null;
 let obrasAccesibles = [];
@@ -2600,10 +2647,11 @@ async function openTrabajadorModal(trabajadorId, obraId, nombre, event) {
             <div class="epp-item-name">${itemNames || '—'}</div>
             <div style="font-size:11px;color:var(--muted)">${formatRelative(e.created_at)} · ${e.obras?.nombre || '—'} · ${tipo}</div>
           </div>
-          ${e.evidencia_foto_url ? `<a href="${e.evidencia_foto_url}" target="_blank" style="font-size:11px;color:var(--orange);font-weight:600;">📷 Ver</a>` : ''}
+          ${e.evidencia_foto_url ? `<a data-storage-value="${e.evidencia_foto_url}" data-storage-bucket="evidencias" target="_blank" style="font-size:11px;color:var(--orange);font-weight:600;">📷 Ver</a>` : ''}
         </div>`;
       }).join('')}
     </div>`;
+  hydrateStorageMedia(body);
 }
 
 // ── PAGE: STOCK ───────────────────────────────────────────────────
@@ -2798,14 +2846,15 @@ async function openEntregaModal(eventId) {
       ${e.evidencia_foto_url ? `
         <div style="margin-top:16px">
           <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">📷 Foto Evidencia</div>
-          <img src="${e.evidencia_foto_url}" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover;border:1px solid var(--border)">
+          <img data-storage-value="${e.evidencia_foto_url}" data-storage-bucket="evidencias" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover;border:1px solid var(--border)">
         </div>` : ''}
       ${e.firma_url ? `
         <div style="margin-top:12px">
           <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">✍️ Firma Trabajador</div>
-          <img src="${e.firma_url}" style="max-width:100%;border-radius:10px;max-height:150px;object-fit:contain;background:white;border:1px solid var(--border);padding:8px">
+          <img data-storage-value="${e.firma_url}" data-storage-bucket="evidencias" style="max-width:100%;border-radius:10px;max-height:150px;object-fit:contain;background:white;border:1px solid var(--border);padding:8px">
         </div>` : ''}
     `;
+    hydrateStorageMedia(bodyEl);
   } catch(err) {
     bodyEl.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
   }
@@ -2846,18 +2895,24 @@ async function abrirComprobante(eventId) {
          ${e.gps_precision_m ? ` (±${parseFloat(e.gps_precision_m).toFixed(0)} m)` : ''}</p>`
       : '';
 
-    const fotoHtml = e.evidencia_foto_url
+    // El comprobante se abre como documento standalone (ventana nueva) sin
+    // acceso a sb/hydrate, así que resolvemos las signed URLs aquí, antes de
+    // construir el HTML. TTL amplio para que la ventana quede usable un rato.
+    const fotoSigned  = await signedStorageUrl(e.evidencia_foto_url, 'evidencias', 3600);
+    const firmaSigned = await signedStorageUrl(e.firma_url, 'evidencias', 3600);
+
+    const fotoHtml = fotoSigned
       ? `<div style="margin-top:24px;">
            <h3 style="font-size:13px;text-transform:uppercase;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:8px;">Foto Evidencia</h3>
-           <img src="${e.evidencia_foto_url}" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;border:1px solid #ddd;">
+           <img src="${fotoSigned}" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;border:1px solid #ddd;">
          </div>`
       : '';
 
-    const firmaHtml = e.firma_url
+    const firmaHtml = firmaSigned
       ? `<div style="margin-top:24px;">
            <h3 style="font-size:13px;text-transform:uppercase;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:8px;">Firma del Trabajador</h3>
            <div style="border:1px solid #ddd;border-radius:10px;padding:12px;background:#fafafa;text-align:center;">
-             <img src="${e.firma_url}" style="max-width:100%;max-height:140px;object-fit:contain;">
+             <img src="${firmaSigned}" style="max-width:100%;max-height:140px;object-fit:contain;">
            </div>
          </div>`
       : '<p style="color:#bbb;font-size:12px;margin-top:16px;">Sin firma registrada</p>';
@@ -5119,8 +5174,9 @@ async function viewFotoAsist(asistenciaId) {
   try {
     const { data: perfilUrl } = await sb.rpc('get_foto_perfil_por_rut', { p_rut: r.rut });
     if (perfilUrl) {
+      const perfilSigned = await signedStorageUrl(perfilUrl, 'fotos-rostro');
       document.getElementById('fotoAsistImgPerfil').innerHTML =
-        `<img src="${perfilUrl}" style="width:100%;max-height:380px;object-fit:cover;border-radius:12px;display:block;" alt="Foto perfil">`;
+        `<img src="${perfilSigned || perfilUrl}" style="width:100%;max-height:380px;object-fit:cover;border-radius:12px;display:block;" alt="Foto perfil">`;
     } else {
       document.getElementById('fotoAsistImgPerfil').innerHTML =
         `<div style="display:flex;align-items:center;justify-content:center;height:240px;color:#94a3b8;flex-direction:column;gap:8px;">
@@ -5498,7 +5554,7 @@ function renderMantPage(list) {
       : '<span style="color:var(--muted);font-size:12px">—</span>';
 
     const fotoHtml = t.foto_rostro_url
-      ? `<img src="${t.foto_rostro_url}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--green)" onclick="window.open('${t.foto_rostro_url}','_blank')" title="Ver foto">`
+      ? `<img data-storage-value="${t.foto_rostro_url}" data-storage-bucket="fotos-rostro" style="width:36px;height:36px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--green)" onclick="abrirMediaFirmada(this)" title="Ver foto">`
       : `<span style="color:var(--muted);font-size:12px">Sin foto</span>`;
 
     const datosHtml = trabCompleto(t)
@@ -5528,6 +5584,7 @@ function renderMantPage(list) {
       </div></td>
     </tr>`;
   }).join('');
+  hydrateStorageMedia(tb);
 }
 
 // ── CREATE ────────────────────────────────────────────────────
@@ -5684,7 +5741,9 @@ function openMantFoto(trabId, nombre, fotoUrl) {
   setFotoTab('archivo');
 
   if (fotoUrl) {
-    document.getElementById('mantFotoPreview').src = fotoUrl;
+    signedStorageUrl(fotoUrl, 'fotos-rostro').then(signed => {
+      document.getElementById('mantFotoPreview').src = signed || fotoUrl;
+    });
     document.getElementById('mantFotoPreviewWrap').style.display = 'block';
     document.getElementById('mantFotoNoFoto').style.display = 'none';
   } else {
