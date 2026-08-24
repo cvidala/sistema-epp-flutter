@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'secure_hive.dart';
 
 /// Servicio de caché offline para TrazApp.
 /// Guarda en Hive todo lo necesario para operar sin conexión:
@@ -17,7 +18,8 @@ class OfflineCacheService {
   static Box? _box;
 
   static Future<void> init() async {
-    _box = await Hive.openBox(_boxName);
+    _box = await Hive.openBox(_boxName,
+        encryptionCipher: await SecureHive.cipher());
   }
 
   static Box get _b {

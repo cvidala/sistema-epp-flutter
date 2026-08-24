@@ -1,12 +1,14 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/asistencia_pendiente.dart';
+import '../../services/secure_hive.dart';
 
 class AsistenciaHiveService {
   static const _boxName = 'asistencias_pendientes';
   static Box? _box;
 
   static Future<void> init() async {
-    _box = await Hive.openBox(_boxName);
+    _box = await Hive.openBox(_boxName,
+        encryptionCipher: await SecureHive.cipher());
   }
 
   static Box get _b {

@@ -21,6 +21,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:epp_app/services/offline_queue_service.dart';
 import 'package:epp_app/services/sync_service.dart';
+import 'package:epp_app/services/secure_hive.dart';
 
 import '../supabase/helpers/test_client.dart';
 
@@ -45,6 +46,7 @@ void main() {
     if (!hiveDir.existsSync()) await hiveDir.create(recursive: true);
     Hive.init(hiveDir.path);
 
+    SecureHive.debugSetTestCipher();
     if (!Hive.isBoxOpen('outbox_entregas')) {
       await OfflineQueueService.init();
     }

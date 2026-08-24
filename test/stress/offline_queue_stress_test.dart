@@ -4,6 +4,7 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_test/hive_test.dart';
 import 'package:epp_app/services/offline_queue_service.dart';
+import 'package:epp_app/services/secure_hive.dart';
 
 OfflineEntrega _entrega({
   String localEventId = 'evt-test-001',
@@ -35,6 +36,7 @@ void main() {
   group('STR-01 — volumen 200 items', () {
     setUp(() async {
       await setUpTestHive();
+      SecureHive.debugSetTestCipher();
       await OfflineQueueService.init();
     });
 
@@ -65,6 +67,7 @@ void main() {
   group('STR-02 — concurrencia 20 enqueues', () {
     setUp(() async {
       await setUpTestHive();
+      SecureHive.debugSetTestCipher();
       await OfflineQueueService.init();
     });
 
@@ -97,6 +100,7 @@ void main() {
   group('STR-03 — filtro backoff bajo carga', () {
     setUp(() async {
       await setUpTestHive();
+      SecureHive.debugSetTestCipher();
       await OfflineQueueService.init();
     });
 
