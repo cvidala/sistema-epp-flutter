@@ -4969,10 +4969,14 @@ async function _procesarCredibilidadRegistro(registro) {
 
     if (!signed?.signedUrl) throw new Error('No se pudo generar URL firmada');
 
+    // Foto de perfil: firmar (bucket fotos-rostro privado; tolera path o URL legacy)
+    const perfilSignedUrl = await signedStorageUrl(fotoPerfilUrl, 'fotos-rostro');
+    if (!perfilSignedUrl) throw new Error('No se pudo firmar la foto de perfil');
+
     // Cargar ambas imágenes en paralelo
     const [imgAsist, imgPerfil] = await Promise.all([
       _cargarImagen(signed.signedUrl),
-      _cargarImagen(fotoPerfilUrl),
+      _cargarImagen(perfilSignedUrl),
     ]);
 
     // Extraer descriptores faciales en paralelo
@@ -5865,9 +5869,10 @@ async function saveMantFoto() {
   try {
     const { error: upErr } = await sb.storage.from('fotos-rostro').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
     if (upErr) throw upErr;
-    const { data: urlData } = sb.storage.from('fotos-rostro').getPublicUrl(path);
+    // Fase 2 buckets privados: guardamos el PATH (no la URL pública).
+    // Las lecturas generan signed URLs vía signedStorageUrl().
     const { error: dbErr } = await sb.from('trabajadores')
-      .update({ foto_rostro_url: urlData.publicUrl })
+      .update({ foto_rostro_url: path })
       .eq('trabajador_id', trabId);
     if (dbErr) throw dbErr;
     cerrarModalFoto();
