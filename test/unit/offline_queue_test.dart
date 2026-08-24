@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_test/hive_test.dart';
 import 'package:epp_app/services/offline_queue_service.dart';
+import 'package:epp_app/services/secure_hive.dart';
 
 OfflineEntrega _entrega({
   String localEventId = 'evt-test-001',
@@ -88,6 +89,7 @@ void main() {
   group('OfflineQueueService.listPending — backoff filter (UTL-04)', () {
     setUp(() async {
       await setUpTestHive();
+      SecureHive.debugSetTestCipher();
       await OfflineQueueService.init();
     });
 
@@ -122,6 +124,7 @@ void main() {
   group('OfflineQueueService.listPending — orden cronológico (UTL-05)', () {
     setUp(() async {
       await setUpTestHive();
+      SecureHive.debugSetTestCipher();
       await OfflineQueueService.init();
     });
 

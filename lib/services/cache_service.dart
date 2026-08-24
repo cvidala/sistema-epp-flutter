@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
+import 'secure_hive.dart';
 
 class CacheService {
   static const _boxName = 'cache_api';
 
   static Future<void> init() async {
-    await Hive.openBox<String>(_boxName);
+    await Hive.openBox<String>(_boxName,
+        encryptionCipher: await SecureHive.cipher());
   }
 
   static String _k(String key, {String? obraId}) => obraId == null ? key : '$key:$obraId';

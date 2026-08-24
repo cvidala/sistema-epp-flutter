@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'secure_hive.dart';
 
 /// Genera un UUID único por instalación de la app y lo persiste en Hive.
 /// No cambia aunque el usuario cierre sesión o cambie de cuenta.
@@ -10,7 +11,8 @@ class DeviceIdService {
   static const _uuid = Uuid();
 
   static Future<void> init() async {
-    await Hive.openBox<String>(_boxName);
+    await Hive.openBox<String>(_boxName,
+        encryptionCipher: await SecureHive.cipher());
 
     // Si no existe aún, generar y guardar uno nuevo
     final box = Hive.box<String>(_boxName);

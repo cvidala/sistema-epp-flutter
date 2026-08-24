@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'secure_hive.dart';
 
 /// Estados: PENDING → UPLOADING → SENT
 ///                           ↘ ERROR (con backoff exponencial, máx 5 intentos)
@@ -128,7 +129,8 @@ class OfflineQueueService {
   static const _uuid = Uuid();
 
   static Future<void> init() async {
-    await Hive.openBox<String>(_boxName);
+    await Hive.openBox<String>(_boxName,
+        encryptionCipher: await SecureHive.cipher());
   }
 
   static String newLocalEventId() => _uuid.v4();
