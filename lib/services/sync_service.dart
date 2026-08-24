@@ -178,12 +178,9 @@ class SyncService {
           debugPrint('[SyncService] Fallback: insert directo (no atómico)');
           final userId  = supabase.auth.currentUser?.id;
           final eventId = 'EPP-SYNC-${e.localEventId}';
-          final evidenciaUrl = supabase.storage
-              .from('evidencias')
-              .getPublicUrl(remotePath);
-          final firmaUrl = firmaRemotePath != null
-              ? supabase.storage.from('evidencias').getPublicUrl(firmaRemotePath)
-              : null;
+          // Fase 2 buckets privados: guardamos el PATH (no la URL pública).
+          final evidenciaUrl = remotePath;
+          final firmaUrl = firmaRemotePath;
 
           await supabase.from('entregas_epp').insert({
             'event_id':          eventId,

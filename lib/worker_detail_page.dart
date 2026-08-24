@@ -12,6 +12,7 @@ import 'solicitudes_epp_page.dart';
 import 'services/cache_service.dart';
 import 'services/offline_queue_service.dart';
 import 'services/auth_service.dart';
+import 'services/storage_url_service.dart';
 
 class WorkerDetailPage extends StatefulWidget {
   final String obraId;
@@ -271,11 +272,29 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                   else if (url != null && url.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(url,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (_, _, _) =>
-                              const Center(child: Text('No se pudo cargar'))),
+                      child: FutureBuilder<String?>(
+                        future:
+                            StorageUrlService.signedUrl(url, 'evidencias'),
+                        builder: (_, snap) {
+                          if (snap.connectionState != ConnectionState.done) {
+                            return const SizedBox(
+                                height: 120,
+                                child: Center(
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2)));
+                          }
+                          final signed = snap.data;
+                          if (signed == null) {
+                            return const Center(
+                                child: Text('No se pudo cargar'));
+                          }
+                          return Image.network(signed,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (_, _, _) => const Center(
+                                  child: Text('No se pudo cargar')));
+                        },
+                      ),
                     )
                   else
                     Container(
@@ -324,10 +343,26 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7),
-                        child: Image.network(firmaUrl,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) =>
-                                const Center(child: Text('No se pudo cargar'))),
+                        child: FutureBuilder<String?>(
+                          future: StorageUrlService.signedUrl(
+                              firmaUrl, 'evidencias'),
+                          builder: (_, snap) {
+                            if (snap.connectionState != ConnectionState.done) {
+                              return const Center(
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2));
+                            }
+                            final signed = snap.data;
+                            if (signed == null) {
+                              return const Center(
+                                  child: Text('No se pudo cargar'));
+                            }
+                            return Image.network(signed,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, _, _) => const Center(
+                                    child: Text('No se pudo cargar')));
+                          },
+                        ),
                       ),
                     )
                   else
@@ -388,7 +423,11 @@ class _WorkerDetailPageState extends State<WorkerDetailPage> {
     pw.ImageProvider? evidenceImage;
     if (url.isNotEmpty) {
       try {
-        evidenceImage = await networkImage(url);
+        final signed =
+            await StorageUrlService.signedUrl(url, 'evidencias');
+        if (signed != null) {
+          evidenceImage = await networkImage(signed);
+        }
       } catch (_) {
         evidenceImage = null;
       }

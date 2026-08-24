@@ -1064,8 +1064,9 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             fileOptions: const FileOptions(upsert: true),
           );
 
-      final evidenciaUrl =
-          supabase.storage.from('evidencias').getPublicUrl(path);
+      // Fase 2 buckets privados: guardamos el PATH (no la URL pública). Las
+      // lecturas generan signed URLs vía StorageUrlService.
+      final evidenciaUrl = path;
 
       // Subir firma como PNG separado
       final firmaPath = 'epp/${eventId}_firma.png';
@@ -1074,8 +1075,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             firmaBytes!,
             fileOptions: const FileOptions(upsert: true),
           );
-      final firmaUrl =
-          supabase.storage.from('evidencias').getPublicUrl(firmaPath);
+      final firmaUrl = firmaPath;
 
       // RPC atómica: entregas_epp + stock_movimientos en una transacción
       final ins = await supabase.rpc('insert_entrega_online_v1', params: {
