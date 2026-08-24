@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-08-22T14:03:06.725Z"
-last_activity: 2026-08-22 -- Completed quick task 260822-dyl: Suspender módulo Portal DT (seguridad)
+last_updated: "2026-08-23T00:00:00.000Z"
+last_activity: 2026-08-23 -- Completed quick task 260823-t82: Fase 1 buckets privados (lecturas signed URLs)
 progress:
   total_phases: 7
   completed_phases: 1
@@ -101,6 +101,7 @@ None. v1.0 blockers all resolved. v2.0 ready to start.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260822-dyl | Suspender módulo Portal de Fiscalización DT (cerrar CRITICAL v_asistencias_dt) | 2026-08-22 | 422be7f | [260822-dyl-suspender-modulo-portal-fiscalizacion-dt](./quick/260822-dyl-suspender-modulo-portal-fiscalizacion-dt/) |
+| 260823-t82 | Fase 1 buckets privados: lecturas de fotos/firmas vía signed URLs | 2026-08-23 | 70b98e6 | [260823-t82-fase-1-buckets-privados-lecturas-de-foto](./quick/260823-t82-fase-1-buckets-privados-lecturas-de-foto/) |
 
 ## Deferred Items
 
