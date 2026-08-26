@@ -11,6 +11,7 @@ import 'services/offline_queue_service.dart';
 import 'services/cache_service.dart';
 import 'services/forensic_service.dart';
 import 'services/stock_calculator.dart';
+import 'services/auth_service.dart';
 
 class NewDeliveryPage extends StatefulWidget {
   final String obraId;
@@ -58,6 +59,29 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
 
   final Map<String, int> carrito = {};
   Map<String, int> stockDisponible = {};
+
+  // Críticos faltantes por falta de stock, para generar la solicitud a bodega
+  // luego de guardar la entrega.
+  List<Map<String, dynamic>> _faltantesSinStock = [];
+
+  // Un crítico está "sin stock" si su disponible es conocido y <= 0.
+  bool _sinStockCritico(Map c) {
+    final id = c['epp_id']?.toString();
+    if (id == null) return false;
+    final d = stockDisponible[id];
+    return d != null && d <= 0;
+  }
+
+  // BLOQUEO cuyo único motivo es falta de stock: todos los críticos
+  // pendientes están sin stock (y conocemos el stock). Si es así, se permite
+  // continuar registrando el motivo y solicitando a bodega.
+  bool get _bloqueoSoloPorStock {
+    if (estadoActual != 'BLOQUEO') return false;
+    if (stockDisponible.isEmpty) return false; // sin datos de stock → no bypass
+    final crit = evaluacionActual?.detalle['pendientes_criticos'];
+    if (crit is! List || crit.isEmpty) return false;
+    return crit.whereType<Map>().every(_sinStockCritico);
+  }
 
   Uint8List? evidenciaBytes;
   String? evidenciaNombre;
@@ -723,6 +747,53 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
     return ok ?? false;
   }
 
+  Future<bool> _dialogFaltaStock(List<Map<String, dynamic>> sinStock) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Falta de stock'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Estos EPP críticos no se pueden entregar porque no hay stock '
+                'en bodega:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ...sinStock.map((c) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      '• ${(c['nombre'] ?? c['codigo'] ?? c['epp_id']).toString()}',
+                    ),
+                  )),
+              const SizedBox(height: 12),
+              const Text(
+                'Puedes continuar con lo disponible. Quedará registrado el '
+                'motivo (falta de stock) y se enviará automáticamente una '
+                'solicitud a bodega.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Volver'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Continuar y solicitar'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   Future<bool> _dialogWarning(List<dynamic> warns) async {
     final proceed = await showDialog<bool>(
       context: context,
@@ -1032,9 +1103,38 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       if (!mounted) return;
 
       if (accion == 'BLOQUEO') {
-        await _dialogBloqueo(pendientesCrit);
-        setState(() => loading = false);
-        return;
+        final crit = pendientesCrit
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        final sinStock = crit.where(_sinStockCritico).toList();
+        final conStock = crit.where((c) => !_sinStockCritico(c)).toList();
+
+        // Si hay críticos que SÍ tienen stock (omisión), o no se pudo
+        // determinar la falta de stock, se mantiene el bloqueo.
+        if (sinStock.isEmpty || conStock.isNotEmpty) {
+          await _dialogBloqueo(conStock.isNotEmpty ? conStock : pendientesCrit);
+          setState(() => loading = false);
+          return;
+        }
+
+        // Todos los críticos faltantes son por falta de stock → se permite,
+        // dejando registrado el motivo y generando solicitud a bodega.
+        final proceder = await _dialogFaltaStock(sinStock);
+        if (!proceder) {
+          setState(() => loading = false);
+          return;
+        }
+        evaluacion['epp_no_entregado_sin_stock'] = sinStock
+            .map((c) => {
+                  'epp_id': c['epp_id'],
+                  'nombre':
+                      (c['nombre'] ?? c['codigo'] ?? c['epp_id']).toString(),
+                })
+            .toList();
+        _faltantesSinStock = sinStock;
+        // TODO(offline): en modo offline aún no se registra el motivo ni se
+        // genera la solicitud automática (el flujo offline no re-evalúa aquí).
       }
 
       if (accion == 'WARNING') {
@@ -1110,6 +1210,34 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
       } catch (usoErr) {
         // No crítico: la entrega ya quedó registrada.
         debugPrint('[guardar] registrar_uso_epp falló (no crítico): $usoErr');
+      }
+
+      // ✅ Solicitud automática a bodega por los EPP críticos sin stock.
+      // Best-effort: si falla, la entrega ya quedó registrada igual.
+      if (_faltantesSinStock.isNotEmpty) {
+        try {
+          await supabase.from('solicitudes_epp').insert({
+            'obra_id': widget.obraId,
+            'trabajador_id': widget.trabajadorId,
+            'trabajador_rut': widget.trabajadorRut,
+            'trabajador_nombre': widget.trabajadorNombre,
+            'supervisor_nombre': AuthService.instance.perfil?.nombre,
+            'items': _faltantesSinStock
+                .map((c) => {
+                      'epp_id': c['epp_id'],
+                      'nombre': (c['nombre'] ?? c['codigo'] ?? c['epp_id'])
+                          .toString(),
+                      'cantidad': 1,
+                    })
+                .toList(),
+            'observacion':
+                'Generada automáticamente: EPP crítico sin stock al momento de la entrega $eventId.',
+            'estado': 'pendiente',
+          });
+        } catch (solErr) {
+          debugPrint(
+              '[guardar] solicitud automática falló (no crítico): $solErr');
+        }
       }
 
       if (!mounted) return;
@@ -1551,11 +1679,14 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: (estadoActual == 'BLOQUEO' || evaluando || firmaBytes == null)
+              onPressed: (((estadoActual == 'BLOQUEO') && !_bloqueoSoloPorStock) ||
+                          evaluando ||
+                          firmaBytes == null)
                   ? null
                   : _guardar,
               style: ElevatedButton.styleFrom(
-                backgroundColor: estadoActual == 'BLOQUEO'
+                backgroundColor: ((estadoActual == 'BLOQUEO') &&
+                        !_bloqueoSoloPorStock)
                     ? Colors.grey
                     : firmaBytes == null
                         ? Colors.grey.shade400
@@ -1564,7 +1695,7 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                             : null,
               ),
               child: Text(
-                estadoActual == 'BLOQUEO'
+                ((estadoActual == 'BLOQUEO') && !_bloqueoSoloPorStock)
                     ? 'Bloqueado'
                     : evaluando
                         ? 'Evaluando...'
