@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'stock_entry_page.dart';
+import 'services/error_messages.dart';
 
 class StockPage extends StatefulWidget {
   const StockPage({super.key});
@@ -47,7 +48,7 @@ class _StockPageState extends State<StockPage> {
 
       await _loadStock();
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyError(e));
     } finally {
       setState(() => loading = false);
     }
@@ -77,7 +78,7 @@ class _StockPageState extends State<StockPage> {
             .toList();
       });
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyError(e));
     } finally {
       setState(() => loading = false);
     }

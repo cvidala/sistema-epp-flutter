@@ -11,6 +11,7 @@ import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
+import 'services/error_messages.dart';
 import 'suscripcion_bloqueada_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -270,7 +271,7 @@ class _LoginPageState extends State<LoginPage> {
       await Supabase.instance.client.auth.signOut();
       setState(() => error = e.message);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyError(e));
     } finally {
       if (mounted) setState(() => loading = false);
     }

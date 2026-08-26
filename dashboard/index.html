@@ -1797,6 +1797,29 @@ const SUPABASE_URL = 'https://ppltpmmtdnprgauwnytf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwbHRwbW10ZG5wcmdhdXdueXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNTM0NzIsImV4cCI6MjA4NTgyOTQ3Mn0.WsRKOEYNzU-tRrL3p6I_ip-AAQmNCgfVKEdockq_gE8';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ── Errores amigables ──────────────────────────────────────────────────────
+// Traduce cualquier error (objeto o string) a un mensaje simple para el
+// usuario. Nunca mostrar .message técnico ni el error crudo.
+function mensajeError(err){
+  const raw = ((err && err.message) ? err.message : String(err || '')).toLowerCase();
+  const has = (keys) => keys.some(k => raw.includes(k));
+  if (has(['failed to fetch','networkerror','network error','connection reset',
+           'connection closed','connection refused','failed host lookup',
+           'timeout','load failed','fetch'])) {
+    return 'Error de red. Revisa tu conexión e inténtalo nuevamente.';
+  }
+  if (has(['invalid login credentials','invalid_credentials','invalid grant'])) {
+    return 'Correo o contraseña incorrectos.';
+  }
+  if (has(['email not confirmed'])) {
+    return 'Debes confirmar tu correo antes de ingresar.';
+  }
+  if (has(['row-level security','permission denied','42501','not authorized','jwt'])) {
+    return 'No tienes permiso para realizar esta acción.';
+  }
+  return 'Ocurrió un error. Inténtalo nuevamente.';
+}
+
 // ── Storage: signed URLs para buckets privados (Fase 1: lecturas) ──────────
 // Normaliza un valor guardado (URL pública legacy o path) y devuelve una
 // signed URL temporal. Mientras el bucket siga público, createSignedUrl
@@ -1880,7 +1903,7 @@ async function doLogin() {
 
     await initApp();
   } catch(e) {
-    errEl.textContent = e.message;
+    errEl.textContent = mensajeError(e);
     errEl.style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Ingresar';
@@ -2564,7 +2587,7 @@ async function loadPageTrabajadores() {
     renderTrabajadoresPage(result);
   } catch(e) {
     console.error('loadPageTrabajadores error:', e);
-    document.getElementById('trabTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${e.message}</td></tr>`;
+    document.getElementById('trabTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${mensajeError(e)}</td></tr>`;
   } finally { showLoading(false); }
 }
 
@@ -2686,7 +2709,7 @@ async function loadPageStock() {
     renderStockPage(allStock);
   } catch(e) {
     console.error('loadPageStock error:', e);
-    document.getElementById('stockGrid').innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+    document.getElementById('stockGrid').innerHTML = `<div class="empty-state">Error: ${mensajeError(e)}</div>`;
   } finally { showLoading(false); }
 }
 
@@ -2752,7 +2775,7 @@ async function loadPageEntregas() {
     renderEntregasPage(allEntregas);
   } catch(e) {
     console.error('loadPageEntregas error:', e);
-    document.getElementById('entTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${e.message}</td></tr>`;
+    document.getElementById('entTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${mensajeError(e)}</td></tr>`;
   } finally { showLoading(false); }
 }
 
@@ -2856,7 +2879,7 @@ async function openEntregaModal(eventId) {
     `;
     hydrateStorageMedia(bodyEl);
   } catch(err) {
-    bodyEl.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
+    bodyEl.innerHTML = `<div class="empty-state">Error: ${mensajeError(err)}</div>`;
   }
 }
 
@@ -3011,7 +3034,7 @@ async function abrirComprobante(eventId) {
     w.document.write(html);
     w.document.close();
   } catch(err) {
-    alert('Error al generar comprobante: ' + err.message);
+    alert('Error al generar comprobante: ' + mensajeError(err));
   }
 }
 
@@ -3191,7 +3214,7 @@ async function saveTrabajador() {
   errEl.style.display = 'none';
   if (editId) {
     const { error } = await sb.from('trabajadores').update({ nombre, rut, cargo }).eq('trabajador_id', editId);
-    if (error) { errEl.textContent = 'Error al actualizar: ' + error.message; errEl.style.display='block'; return; }
+    if (error) { errEl.textContent = 'Error al actualizar: ' + mensajeError(error); errEl.style.display='block'; return; }
   } else {
     // Check for duplicate RUT first
     const { data: existing } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
@@ -3210,7 +3233,7 @@ async function saveTrabajador() {
       if (error.code === '23505') {
         errEl.textContent = 'Este RUT ya existe en el sistema. Busca al trabajador en la lista y asígnalo al centro.';
       } else {
-        errEl.textContent = 'Error al crear trabajador: ' + error.message;
+        errEl.textContent = 'Error al crear trabajador: ' + mensajeError(error);
       }
       errEl.style.display='block'; return;
     }
@@ -3279,7 +3302,7 @@ async function addCentroATrabajador() {
   const obraId = document.getElementById('asignarObraSelect').value;
   if (!obraId) return;
   const { error } = await sb.from('trabajador_obras').upsert({ trabajador_id: trabId, obra_id: obraId });
-  if (error) { alert('Error: ' + error.message); return; }
+  if (error) { alert('Error: ' + mensajeError(error)); return; }
   // Refresh
   const { data: asignados } = await sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId);
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
@@ -3321,7 +3344,7 @@ async function saveNuevoEpp() {
     notif_dias_2: notif2,
     activo: true
   });
-  if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  if (error) { errEl.textContent = mensajeError(error); errEl.style.display='block'; return; }
   closeModal('modalNuevoEpp');
   await loadPageStock();
 }
@@ -3371,7 +3394,7 @@ async function saveEntradaStock() {
   });
   if (!movimientos.length) { errEl.textContent = 'Sin cantidades válidas'; errEl.style.display='block'; return; }
   const { error } = await sb.from('stock_movimientos').insert(movimientos);
-  if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  if (error) { errEl.textContent = mensajeError(error); errEl.style.display='block'; return; }
   closeModal('modalEntradaStock');
   await loadPageStock();
 }
@@ -3477,7 +3500,7 @@ async function loadPageAuditoria() {
     filtrarAuditoria();
   } catch(e) {
     document.getElementById('auditoriaTable').innerHTML =
-      `<tr><td colspan="6" class="empty-state">Error: ${e.message}</td></tr>`;
+      `<tr><td colspan="6" class="empty-state">Error: ${mensajeError(e)}</td></tr>`;
   }
 }
 
@@ -3551,7 +3574,7 @@ async function loadPageUsuarios() {
   const { data, error } = await sb.from('perfiles')
     .select('user_id, nombre, rol, activo, created_at, email_notif, recibe_notif_venc')
     .order('created_at', { ascending: false });
-  if (error) { document.getElementById('usuariosTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${error.message}</td></tr>`; return; }
+  if (error) { document.getElementById('usuariosTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${mensajeError(error)}</td></tr>`; return; }
 
   const rows = (data||[]).map(u => {
     const rolLabel = u.rol === 'ADMIN' ? '🔑 Admin' : u.rol === 'SUPERVISOR' ? '👷 Supervisor' : '👁️ Visor';
@@ -3613,7 +3636,7 @@ async function saveNotifUsuario() {
     .update({ email_notif: emailNotif || null, recibe_notif_venc: activa })
     .eq('user_id', userId);
 
-  if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  if (error) { errEl.textContent = mensajeError(error); errEl.style.display='block'; return; }
   closeModal('modalNotifUsuario');
   await loadPageUsuarios();
 }
@@ -3661,7 +3684,7 @@ async function saveNuevoUsuario() {
     // Re-authenticate as admin
     await sb.auth.signInWithPassword({ email: currentPerfil.email || '', password: '' });
   } else if (signUpErr) {
-    errEl.textContent = signUpErr.message;
+    errEl.textContent = mensajeError(signUpErr);
     errEl.style.display = 'block';
     return;
   }
@@ -3675,7 +3698,7 @@ async function saveNuevoUsuario() {
     p_rol:     rol,
     p_org_id:  currentPerfil.org_id
   });
-  if (perfilErr) { errEl.textContent = 'Error creando perfil: ' + perfilErr.message; errEl.style.display='block'; return; }
+  if (perfilErr) { errEl.textContent = 'Error creando perfil: ' + mensajeError(perfilErr); errEl.style.display='block'; return; }
 
   // (asignación a centro no implementada en el modal — se hace desde Gestión de Centros)
 
@@ -3835,7 +3858,7 @@ async function capturarMiUbicacion() {
       btn.textContent = '📡 Usar mi ubicación';
       btn.disabled = false;
       const msgs = { 1: 'Permiso denegado', 2: 'Posición no disponible', 3: 'Tiempo de espera agotado' };
-      alert('GPS: ' + (msgs[err.code] || err.message));
+      alert('GPS: ' + (msgs[err.code] || mensajeError(err)));
     },
     { enableHighAccuracy: true, timeout: 12000 }
   );
@@ -3884,10 +3907,10 @@ async function saveCentro() {
 
   if (editId) {
     const { error } = await sb.from('obras').update(payload).eq('obra_id', editId);
-    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+    if (error) { errEl.textContent = mensajeError(error); errEl.style.display='block'; return; }
   } else {
     const { error } = await sb.from('obras').insert({ ...payload, estado: estado||'ACTIVA', org_id: currentPerfil.org_id });
-    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+    if (error) { errEl.textContent = mensajeError(error); errEl.style.display='block'; return; }
   }
 
   closeModal('modalCentroForm');
@@ -3898,7 +3921,7 @@ async function saveCentro() {
 async function eliminarCentro(id, nombre) {
   if (!confirm(`¿Eliminar el centro "${nombre}"? Se perderán todas las asignaciones.`)) return;
   const { error } = await sb.from('obras').delete().eq('obra_id', id);
-  if (error) { alert('Error: ' + error.message); return; }
+  if (error) { alert('Error: ' + mensajeError(error)); return; }
   allCentros = [];
   await loadPageCentros();
 }
@@ -3909,7 +3932,7 @@ async function eliminarCentro(id, nombre) {
 async function eliminarEpp(eppId, nombre) {
   if (!confirm(`¿Eliminar "${nombre}" del catálogo? El historial de entregas se conservará.`)) return;
   const { error } = await sb.from('catalogo_epp').update({ activo: false }).eq('epp_id', eppId);
-  if (error) { alert('Error: ' + error.message); return; }
+  if (error) { alert('Error: ' + mensajeError(error)); return; }
   allStock = [];
   await loadPageStock();
 }
@@ -4001,7 +4024,7 @@ async function generarReporte() {
     document.getElementById('reporteEmpty').style.display = 'none';
   } catch(e) {
     console.error('generarReporte error:', e);
-    alert('Error generando reporte: ' + e.message);
+    alert('Error generando reporte: ' + mensajeError(e));
   } finally { showLoading(false); }
 }
 
@@ -4491,7 +4514,7 @@ async function loadReglas() {
     .select('epp_id, nombre, codigo').order('nombre');
   if (catError) {
     document.getElementById('reglasTableBody').innerHTML =
-      `<tr><td colspan="5" class="empty-state">Error: ${catError.message}</td></tr>`;
+      `<tr><td colspan="5" class="empty-state">Error: ${mensajeError(catError)}</td></tr>`;
     return;
   }
 
@@ -4568,18 +4591,18 @@ async function setRegla(obraId, eppId, nivel) {
   if (nivel === 'NO_APLICA') {
     const { error } = await sb.from('obra_epp_reglas').delete()
       .eq('obra_id', obraId).eq('epp_id', eppId);
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { alert('Error: ' + mensajeError(error)); return; }
   } else {
     // Try with nivel column first, fallback to without
     let { error } = await sb.from('obra_epp_reglas')
       .upsert({ obra_id: obraId, epp_id: eppId, nivel }, { onConflict: 'obra_id,epp_id' });
-    if (error && error.message && error.message.includes('nivel')) {
+    if (error && mensajeError(error) && mensajeError(error).includes('nivel')) {
       // Table doesn't have nivel column yet — insert without it
       const res = await sb.from('obra_epp_reglas')
         .upsert({ obra_id: obraId, epp_id: eppId }, { onConflict: 'obra_id,epp_id' });
-      if (res.error) { alert('Error: ' + res.error.message); return; }
+      if (res.error) { alert('Error: ' + res.mensajeError(error)); return; }
     } else if (error) {
-      alert('Error al guardar regla: ' + error.message); return;
+      alert('Error al guardar regla: ' + mensajeError(error)); return;
     }
   }
   await loadReglas();
@@ -4652,7 +4675,7 @@ async function saveAsignarTrabExistente() {
   if (obraId) {
     const { error } = await sb.from('trabajador_obras')
       .upsert({ trabajador_id: selectedTrabId, obra_id: obraId });
-    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+    if (error) { errEl.textContent = mensajeError(error); errEl.style.display='block'; return; }
   }
   selectedTrabId = null;
   allTrabExistentes = [];
@@ -4710,7 +4733,7 @@ async function loadPageAsistencia() {
 
   if (error) {
     document.getElementById('asistTable').innerHTML =
-      `<tr><td colspan="9" class="empty-state">Error: ${error.message}</td></tr>`;
+      `<tr><td colspan="9" class="empty-state">Error: ${mensajeError(error)}</td></tr>`;
     return;
   }
 
@@ -5049,7 +5072,7 @@ async function recalcularCredibilidadLote() {
   } catch(e) {
     console.error('[credibilidad] Error lote:', e);
     btn.textContent = '❌ Error';
-    alert('Error al calcular credibilidad:\n' + e.message);
+    alert('Error al calcular credibilidad:\n' + mensajeError(e));
   } finally {
     setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 Credibilidad'; }, 3000);
   }
@@ -5063,7 +5086,7 @@ async function recalcularCredibilidadIndividual(asistenciaId) {
     await _procesarCredibilidadRegistro(registro);
     await loadPageAsistencia();
   } catch(e) {
-    alert('Error: ' + e.message);
+    alert('Error: ' + mensajeError(e));
   }
 }
 
@@ -5252,7 +5275,7 @@ async function confirmarValidacion() {
     filtrarAsistencia();  // refrescar tabla respetando filtros activos
 
   } catch(e) {
-    errDiv.textContent = e.message || 'Error al validar';
+    errDiv.textContent = mensajeError(e);
     errDiv.style.display = 'block';
   } finally {
     btn.disabled = false;
@@ -5302,7 +5325,7 @@ async function guardarDatosEmpresa() {
     domicilio_ciudad:  ciudad,
     domicilio_region:  region,
   }).eq('org_id', currentPerfil.org_id);
-  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  if (error) { errEl.textContent = mensajeError(error); errEl.style.display = 'block'; return; }
   closeModal('modalDatosEmpresa');
   alert('✅ Datos de empresa guardados correctamente.');
 }
@@ -5342,7 +5365,7 @@ async function guardarPin() {
     closeModal('modalConfigurarPin');
     alert('✅ PIN configurado correctamente');
   } catch(e) {
-    errDiv.textContent = e.message || 'Error al guardar';
+    errDiv.textContent = mensajeError(e);
     errDiv.style.display = 'block';
   } finally {
     btn.disabled = false; btn.textContent = 'Guardar PIN';
@@ -5418,7 +5441,7 @@ async function loadPageMantenimiento() {
     allMantTrab = rows || [];
     renderMantPage(allMantTrab);
   } catch(e) {
-    document.getElementById('mantTable').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+    document.getElementById('mantTable').innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--red)">Error: ${mensajeError(e)}</td></tr>`;
   } finally {
     showLoading(false);
   }
@@ -5443,7 +5466,7 @@ async function loadPageSolicitudes() {
     renderSolicitudesPage();
   } catch (e) {
     document.getElementById('solicitudesContent').innerHTML =
-      `<p style="color:red;padding:16px">Error: ${e.message}</p>`;
+      `<p style="color:red;padding:16px">Error: ${mensajeError(e)}</p>`;
   }
 }
 
@@ -5526,7 +5549,7 @@ async function cambiarEstadoSolicitud(id, nuevoEstado) {
     _actualizarBadgeSolicitudes();
     renderSolicitudesPage();
   } catch (e) {
-    alert('Error al actualizar: ' + e.message);
+    alert('Error al actualizar: ' + mensajeError(e));
   }
 }
 
@@ -5705,14 +5728,14 @@ async function saveMantNuevo() {
   if (editId) {
     // UPDATE
     const { error } = await sb.from('trabajadores').update(payload).eq('trabajador_id', editId);
-    if (error) { showMantError('Error: ' + error.message); return; }
+    if (error) { showMantError('Error: ' + mensajeError(error)); return; }
   } else {
     // CREATE — verificar RUT duplicado
     const { data: dup } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
     if (dup) { showMantError(`El RUT ya está registrado como ${dup.nombre}`); return; }
     // datos_completos es calculado automáticamente por el trigger fn_auto_datos_completos
     const { data: trab, error } = await sb.from('trabajadores').insert(payload).select().single();
-    if (error) { showMantError('Error: ' + error.message); return; }
+    if (error) { showMantError('Error: ' + mensajeError(error)); return; }
     const obraId = document.getElementById('mantCentroInicial').value;
     if (obraId && trab) {
       await sb.from('trabajador_obras').upsert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
@@ -5792,7 +5815,7 @@ async function iniciarCamara() {
     document.getElementById('btnRetomar').style.display = 'none';
     _fotoBlob = null;
   } catch(e) {
-    errEl.textContent = 'No se pudo acceder a la cámara: ' + e.message;
+    errEl.textContent = 'No se pudo acceder a la cámara: ' + mensajeError(e);
     errEl.style.display = 'block';
   }
 }
@@ -5878,7 +5901,7 @@ async function saveMantFoto() {
     cerrarModalFoto();
     await loadPageMantenimiento();
   } catch(e) {
-    errEl.textContent = 'Error al subir foto: ' + e.message;
+    errEl.textContent = 'Error al subir foto: ' + mensajeError(e);
     errEl.style.display = 'block';
   } finally {
     showLoading(false);
@@ -5896,7 +5919,7 @@ async function eliminarTrabajador(id, nombre) {
     // Invalidate trabajadores cache
     allTrabajadores = [];
   } catch(e) {
-    alert('Error al eliminar: ' + e.message);
+    alert('Error al eliminar: ' + mensajeError(e));
   } finally {
     showLoading(false);
   }
