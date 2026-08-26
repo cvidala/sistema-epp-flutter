@@ -1206,11 +1206,14 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
               ],
             )
           : IconButton(
-              icon: const Icon(Icons.add_circle),
-              onPressed: () {
-                setState(() => carrito[id] = 1);
-                _programarEvaluacionSemaforo();
-              },
+              icon: Icon(Icons.add_circle,
+                  color: sinStock ? Colors.grey.shade400 : null),
+              onPressed: sinStock
+                  ? null
+                  : () {
+                      setState(() => carrito[id] = 1);
+                      _programarEvaluacionSemaforo();
+                    },
             ),
     );
   }
@@ -1476,8 +1479,11 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
                         final List<Map<String, dynamic>> lista =
                             soloPendientes
                                 ? epps
-                                    .where((x) => pendientes.contains(
-                                        x['epp_id'].toString()))
+                                    .where((x) =>
+                                        pendientes.contains(
+                                            x['epp_id'].toString()) ||
+                                        carrito.containsKey(
+                                            x['epp_id'].toString()))
                                     .map((x) =>
                                         Map<String, dynamic>.from(x))
                                     .toList()
