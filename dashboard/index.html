@@ -3366,10 +3366,12 @@ async function saveEntradaStock() {
     const qtySel = row.querySelector('input[type="number"]');
     if (eppSel && qtySel) {
       const qty = parseInt(qtySel.value) || 0;
-      if (eppSel.value && qty > 0) movimientos.push({ bodega_id: bodegaId, epp_id: eppSel.value, tipo: 'ENTRADA', cantidad: qty });
+      // created_by es obligatorio para la política RLS de stock_movimientos.
+      if (eppSel.value && qty > 0) movimientos.push({ bodega_id: bodegaId, epp_id: eppSel.value, tipo: 'ENTRADA', cantidad: qty, motivo: motivo || null, created_by: currentUser?.id });
     }
   });
   if (!movimientos.length) { errEl.textContent = 'Sin cantidades válidas'; errEl.style.display='block'; return; }
+  if (!currentUser?.id) { errEl.textContent = 'Tu sesión expiró. Vuelve a iniciar sesión.'; errEl.style.display='block'; return; }
   const { error } = await sb.from('stock_movimientos').insert(movimientos);
   if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
   closeModal('modalEntradaStock');
