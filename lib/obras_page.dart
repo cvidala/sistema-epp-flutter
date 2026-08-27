@@ -6,6 +6,7 @@ import 'stock_page.dart';
 import 'services/auth_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
+import 'services/obra_offline_service.dart';
 import 'main.dart' show LoginPage;
 
 class ObrasPage extends StatefulWidget {
@@ -24,7 +25,43 @@ class _ObrasPageState extends State<ObrasPage> {
   bool modoOffline = false;
   List<Map<String, dynamic>> obras = [];
 
+  // Obras cuya descarga offline está en curso (por obra_id).
+  final Set<String> _descargando = {};
+
   PerfilUsuario? get perfil => AuthService.instance.perfil;
+
+  /// Descarga y cachea todo lo de la obra para poder usarla sin conexión.
+  Future<void> _descargarObra(Map<String, dynamic> o) async {
+    final id = o['obra_id'] as String;
+    if (modoOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Necesitas conexión para descargar la obra.')),
+      );
+      return;
+    }
+    setState(() => _descargando.add(id));
+    try {
+      final r = await ObraOfflineService.descargarObra(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(
+              '✓ Obra descargada: ${r['trabajadores']} trabajadores. Lista para uso sin conexión.'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'No se pudo descargar. Revisa tu conexión e inténtalo nuevamente.')),
+      );
+    } finally {
+      if (mounted) setState(() => _descargando.remove(id));
+    }
+  }
 
   @override
   void initState() {
@@ -319,9 +356,47 @@ class _ObrasPageState extends State<ObrasPage> {
                                       ),
                                     )
                                   : null,
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                color: Color(0xFF6B7A99),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_descargando.contains(o['obra_id']))
+                                    const SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    IconButton(
+                                      icon: Icon(
+                                        ObraOfflineService.ultimaDescarga(
+                                                    o['obra_id']) !=
+                                                null
+                                            ? Icons.cloud_done
+                                            : Icons.cloud_download_outlined,
+                                        color: ObraOfflineService.ultimaDescarga(
+                                                    o['obra_id']) !=
+                                                null
+                                            ? Colors.green
+                                            : const Color(0xFF6B7A99),
+                                      ),
+                                      tooltip: 'Descargar para uso sin conexión',
+                                      onPressed: modoOffline
+                                          ? null
+                                          : () => _descargarObra(o),
+                                    ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Color(0xFF6B7A99),
+                                  ),
+                                ],
                               ),
                               onTap: () {
                                 Navigator.of(context).push(

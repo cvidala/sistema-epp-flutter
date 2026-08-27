@@ -159,6 +159,8 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
           evaluacionActual = null;
           error = null; // ✅ No mostrar rojo si hay cache
         });
+        // Cargar el stock cacheado de la bodega para mostrar disponibilidad offline.
+        _cargarStock(bodegaId);
       } else {
         // Sin cache: mostrar error claro con instrucción
         if (!mounted) return;
@@ -174,7 +176,18 @@ class _NewDeliveryPageState extends State<NewDeliveryPage> {
   }
 
   Future<void> _cargarStock(String? bId) async {
-    if (bId == null || modoOffline) return;
+    if (bId == null) return;
+    // Offline: leer el stock cacheado por la descarga de la obra.
+    if (modoOffline) {
+      final cached = CacheService.getJson('stock', obraId: widget.obraId);
+      if (cached is Map && cached[bId] is Map) {
+        final m = <String, int>{};
+        (cached[bId] as Map)
+            .forEach((k, v) => m[k.toString()] = (v as num).toInt());
+        if (mounted) setState(() => stockDisponible = m);
+      }
+      return;
+    }
     try {
       final rows = await supabase
           .from('stock_movimientos')
