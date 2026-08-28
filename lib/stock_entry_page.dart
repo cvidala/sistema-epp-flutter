@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'services/error_messages.dart';
+
 class StockEntryPage extends StatefulWidget {
   final String? initialBodegaId;
 
@@ -70,7 +72,7 @@ class _StockEntryPageState extends State<StockEntryPage> {
         }
       });
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyError(e));
     } finally {
       setState(() => loading = false);
     }
@@ -123,7 +125,7 @@ class _StockEntryPageState extends State<StockEntryPage> {
 
       Navigator.of(context).pop(true);
     } catch (e) {
-      setState(() => error = e.toString());
+      setState(() => error = friendlyError(e));
     } finally {
       setState(() => loading = false);
     }

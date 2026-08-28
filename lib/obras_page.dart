@@ -7,6 +7,7 @@ import 'services/auth_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
 import 'services/obra_offline_service.dart';
+import 'services/error_messages.dart';
 import 'main.dart' show LoginPage;
 
 class ObrasPage extends StatefulWidget {
@@ -91,7 +92,7 @@ class _ObrasPageState extends State<ObrasPage> {
       if (cached.isNotEmpty) {
         setState(() { obras = cached; modoOffline = true; });
       } else {
-        setState(() => error = e.toString());
+        setState(() => error = friendlyError(e));
       }
     } finally {
       if (mounted) setState(() => loading = false);
