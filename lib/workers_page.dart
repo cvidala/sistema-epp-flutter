@@ -55,7 +55,10 @@ class _WorkersPageState extends State<WorkersPage> {
         if (mounted) _loadWorkersSilent();
       },
       onStatusChange: () {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {});
+        // Al recuperar señal, refrescar en vivo y salir del banner offline.
+        if (ConnectivityService.instance.isOnline) _loadWorkersSilent();
       },
     );
   }
@@ -115,6 +118,7 @@ class _WorkersPageState extends State<WorkersPage> {
       if (mounted) {
         setState(() {
           trabajadores = data;
+          offlineMode = false; // ✅ vino de la red → salir de modo offline
           _applyFilter();
         });
       }

@@ -6,6 +6,8 @@ import 'stock_page.dart';
 import 'services/auth_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
+import 'services/obra_offline_service.dart';
+import 'services/error_messages.dart';
 import 'main.dart' show LoginPage;
 
 class ObrasPage extends StatefulWidget {
@@ -24,7 +26,121 @@ class _ObrasPageState extends State<ObrasPage> {
   bool modoOffline = false;
   List<Map<String, dynamic>> obras = [];
 
+  // Obras cuya descarga offline está en curso (por obra_id).
+  final Set<String> _descargando = {};
+
   PerfilUsuario? get perfil => AuthService.instance.perfil;
+
+  /// Descarga y cachea todo lo de la obra para poder usarla sin conexión.
+  Future<void> _descargarObra(Map<String, dynamic> o) async {
+    final id = o['obra_id'] as String;
+    if (modoOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Necesitas conexión para descargar la obra.')),
+      );
+      return;
+    }
+    setState(() => _descargando.add(id));
+    try {
+      final r = await ObraOfflineService.descargarObra(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(
+              '✓ Obra descargada: ${r['trabajadores']} trabajadores. Lista para uso sin conexión.'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'No se pudo descargar. Revisa tu conexión e inténtalo nuevamente.')),
+      );
+    } finally {
+      if (mounted) setState(() => _descargando.remove(id));
+    }
+  }
+
+  /// Tras esta antigüedad, la descarga se considera desactualizada (ámbar).
+  /// El stock puede cambiar durante el turno, así que ~una jornada es razonable.
+  static const Duration _cacheTtl = Duration(hours: 8);
+
+  String _haceCuanto(DateTime d) {
+    final diff = DateTime.now().difference(d);
+    if (diff.inMinutes < 1) return 'recién';
+    if (diff.inMinutes < 60) return 'hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'hace ${diff.inHours} h';
+    return 'hace ${diff.inDays} d';
+  }
+
+  /// Botón compacto de descarga a caché con estado por color + antigüedad:
+  /// gris (nunca), verde (fresca <8h), ámbar (descargada pero desactualizada).
+  Widget _botonCache(Map<String, dynamic> o) {
+    final id = o['obra_id'] as String;
+    final descargando = _descargando.contains(id);
+    final ultima = ObraOfflineService.ultimaDescarga(id);
+    final fresca =
+        ultima != null && DateTime.now().difference(ultima) < _cacheTtl;
+
+    final IconData icono;
+    final Color color;
+    final String label;
+    if (ultima == null) {
+      icono = Icons.cloud_download_outlined;
+      color = const Color(0xFF6B7A99);
+      label = 'Descargar';
+    } else if (fresca) {
+      icono = Icons.cloud_done;
+      color = Colors.green.shade600;
+      label = _haceCuanto(ultima);
+    } else {
+      icono = Icons.cloud_off;
+      color = const Color(0xFFE8A100); // ámbar → desactualizada
+      label = _haceCuanto(ultima);
+    }
+
+    return InkWell(
+      onTap: modoOffline ? null : () => _descargarObra(o),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 64,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (descargando)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(icono, color: color, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              descargando ? 'Descargando…' : label,
+              style: TextStyle(
+                fontSize: 9,
+                height: 1.1,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -54,7 +170,7 @@ class _ObrasPageState extends State<ObrasPage> {
       if (cached.isNotEmpty) {
         setState(() { obras = cached; modoOffline = true; });
       } else {
-        setState(() => error = e.toString());
+        setState(() => error = friendlyError(e));
       }
     } finally {
       if (mounted) setState(() => loading = false);
@@ -319,9 +435,16 @@ class _ObrasPageState extends State<ObrasPage> {
                                       ),
                                     )
                                   : null,
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                color: Color(0xFF6B7A99),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _botonCache(o),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Color(0xFF6B7A99),
+                                  ),
+                                ],
                               ),
                               onTap: () {
                                 Navigator.of(context).push(
