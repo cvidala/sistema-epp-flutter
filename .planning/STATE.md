@@ -104,6 +104,7 @@ None. v1.0 blockers all resolved. v2.0 ready to start.
 | 260823-t82 | Fase 1 buckets privados: lecturas de fotos/firmas vía signed URLs | 2026-08-23 | 70b98e6 | [260823-t82-fase-1-buckets-privados-lecturas-de-foto](./quick/260823-t82-fase-1-buckets-privados-lecturas-de-foto/) |
 | 260823-uf7 | Cifrar caché local Hive en reposo (AES-256 + flutter_secure_storage) | 2026-08-23 | 4a1c12e | [260823-uf7-cifrar-cache-local-hive-con-hiveaesciphe](./quick/260823-uf7-cifrar-cache-local-hive-con-hiveaesciphe/) |
 | 260824-iaq | Documento formal de postura de seguridad (docs/SEGURIDAD.md) | 2026-08-24 | bebe379 | [260824-iaq-documento-formal-de-postura-de-seguridad](./quick/260824-iaq-documento-formal-de-postura-de-seguridad/) |
+| 260827-evs | Snapshot de evaluación en entregas offline (dashboard no limpiaba EPP crítico ya entregado) | 2026-08-27 | 4c54a54 | [260827-evs-fix-offline-entrega-snapshot-evaluacion](./quick/260827-evs-fix-offline-entrega-snapshot-evaluacion/) |
 
 ## Deferred Items
 
