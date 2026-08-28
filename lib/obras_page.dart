@@ -64,6 +64,84 @@ class _ObrasPageState extends State<ObrasPage> {
     }
   }
 
+  /// Tras esta antigüedad, la descarga se considera desactualizada (ámbar).
+  /// El stock puede cambiar durante el turno, así que ~una jornada es razonable.
+  static const Duration _cacheTtl = Duration(hours: 8);
+
+  String _haceCuanto(DateTime d) {
+    final diff = DateTime.now().difference(d);
+    if (diff.inMinutes < 1) return 'recién';
+    if (diff.inMinutes < 60) return 'hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'hace ${diff.inHours} h';
+    return 'hace ${diff.inDays} d';
+  }
+
+  /// Botón compacto de descarga a caché con estado por color + antigüedad:
+  /// gris (nunca), verde (fresca <8h), ámbar (descargada pero desactualizada).
+  Widget _botonCache(Map<String, dynamic> o) {
+    final id = o['obra_id'] as String;
+    final descargando = _descargando.contains(id);
+    final ultima = ObraOfflineService.ultimaDescarga(id);
+    final fresca =
+        ultima != null && DateTime.now().difference(ultima) < _cacheTtl;
+
+    final IconData icono;
+    final Color color;
+    final String label;
+    if (ultima == null) {
+      icono = Icons.cloud_download_outlined;
+      color = const Color(0xFF6B7A99);
+      label = 'Descargar';
+    } else if (fresca) {
+      icono = Icons.cloud_done;
+      color = Colors.green.shade600;
+      label = _haceCuanto(ultima);
+    } else {
+      icono = Icons.cloud_off;
+      color = const Color(0xFFE8A100); // ámbar → desactualizada
+      label = _haceCuanto(ultima);
+    }
+
+    return InkWell(
+      onTap: modoOffline ? null : () => _descargarObra(o),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 64,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (descargando)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(icono, color: color, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              descargando ? 'Descargando…' : label,
+              style: TextStyle(
+                fontSize: 9,
+                height: 1.1,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -360,38 +438,7 @@ class _ObrasPageState extends State<ObrasPage> {
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (_descargando.contains(o['obra_id']))
-                                    const SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: Center(
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2),
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    IconButton(
-                                      icon: Icon(
-                                        ObraOfflineService.ultimaDescarga(
-                                                    o['obra_id']) !=
-                                                null
-                                            ? Icons.cloud_done
-                                            : Icons.cloud_download_outlined,
-                                        color: ObraOfflineService.ultimaDescarga(
-                                                    o['obra_id']) !=
-                                                null
-                                            ? Colors.green
-                                            : const Color(0xFF6B7A99),
-                                      ),
-                                      tooltip: 'Descargar para uso sin conexión',
-                                      onPressed: modoOffline
-                                          ? null
-                                          : () => _descargarObra(o),
-                                    ),
+                                  _botonCache(o),
                                   const SizedBox(width: 4),
                                   const Icon(
                                     Icons.chevron_right,
