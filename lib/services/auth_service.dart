@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'sentry_config.dart';
+
 /// Configuración de módulos habilitados para la organización.
 /// Las claves siguen el contrato unificado MIRA/JSV.
 class ConfigModulos {
@@ -149,6 +151,14 @@ class AuthService {
       modulos:     modulos,
     );
 
+    // Etiquetar Sentry con empresa/rol (sin PII de personas) para filtrar
+    // errores por cliente. No-op si Sentry está deshabilitado (debug).
+    SentryConfig.setUsuario(
+      orgId: _perfil!.orgId,
+      rol: _perfil!.rol,
+      empresa: _perfil!.razonSocial,
+    );
+
     return _perfil!;
   }
 
@@ -212,6 +222,7 @@ class AuthService {
 
   void limpiar() {
     _perfil = null;
+    SentryConfig.clearUsuario();
   }
 }
 

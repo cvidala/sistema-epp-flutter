@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'asistencia/services/asistencia_hive_service.dart';
 import 'asistencia/screens/rut_input_screen.dart';
+import 'services/sentry_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,10 @@ Future<void> main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  runApp(const AsistenciaApp());
+  await SentryConfig.initAndRun(
+    flavor: 'asistencia',
+    app: () => const AsistenciaApp(),
+  );
 }
 
 class AsistenciaApp extends StatelessWidget {

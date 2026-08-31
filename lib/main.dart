@@ -12,6 +12,7 @@ import 'services/subscription_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
 import 'services/error_messages.dart';
+import 'services/sentry_config.dart';
 import 'suscripcion_bloqueada_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -29,7 +30,10 @@ Future<void> main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  runApp(const MyApp());
+  await SentryConfig.initAndRun(
+    flavor: 'epp',
+    app: () => const MyApp(),
+  );
 }
 
 class MyApp extends StatelessWidget {
