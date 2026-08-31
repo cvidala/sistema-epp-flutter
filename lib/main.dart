@@ -30,10 +30,9 @@ Future<void> main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  await SentryConfig.initAndRun(
-    flavor: 'epp',
-    app: () => const MyApp(),
-  );
+  await SentryConfig.init(flavor: 'epp');
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

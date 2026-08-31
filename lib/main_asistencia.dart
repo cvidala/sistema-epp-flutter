@@ -17,10 +17,9 @@ Future<void> main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  await SentryConfig.initAndRun(
-    flavor: 'asistencia',
-    app: () => const AsistenciaApp(),
-  );
+  await SentryConfig.init(flavor: 'asistencia');
+
+  runApp(const AsistenciaApp());
 }
 
 class AsistenciaApp extends StatelessWidget {
