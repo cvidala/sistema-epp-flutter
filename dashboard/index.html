@@ -11,6 +11,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Sentry (proyecto trazapp-dashboard, org MIRA). Monitoreo de errores.
+     Privacidad: sendDefaultPii=false + se descartan migas fetch/xhr (URLs de
+     Supabase que podrían llevar RUT en filtros). No se monitorea la preview local. -->
+<script>
+  window.sentryOnLoad = function () {
+    var host = location.hostname;
+    // No enviar eventos desde la preview local (open dashboard/index.html).
+    if (host === 'localhost' || host === '127.0.0.1' || host === '') return;
+    Sentry.init({
+      environment: 'production',
+      sendDefaultPii: false,
+      tracesSampleRate: 0,
+      beforeBreadcrumb: function (crumb) {
+        if (crumb && (crumb.category === 'fetch' || crumb.category === 'xhr')) return null;
+        return crumb;
+      }
+    });
+  };
+</script>
+<script src="https://js.sentry-cdn.com/1d7774c54adb91c3f0a1af393a0b1d32.min.js" crossorigin="anonymous"></script>
 <style>
   :root {
     --navy:#0D2148;--navy2:#162d5e;--orange:#E87722;--orange2:#ff8c3a;
@@ -2369,6 +2390,10 @@ function showLoading(v) {
     if (perfil && ['ADMIN','SUPERVISOR'].includes(perfil.rol)) {
       const razonSocial = perfil.organizaciones?.razon_social || null;
       currentPerfil = { ...perfil, userId: session.user.id, email: session.user.email, razonSocial };
+      // Etiquetar Sentry con empresa/rol (sin PII de personas) para filtrar por cliente.
+      if (window.Sentry && typeof Sentry.setTags === 'function') {
+        Sentry.setTags({ organization_id: perfil.org_id, rol: perfil.rol, empresa: razonSocial || '' });
+      }
       document.getElementById('loginScreen').style.display = 'none';
       await initApp();
       return;

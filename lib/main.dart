@@ -12,6 +12,7 @@ import 'services/subscription_service.dart';
 import 'services/offline_cache_service.dart';
 import 'services/data_cache_service.dart';
 import 'services/error_messages.dart';
+import 'services/sentry_config.dart';
 import 'suscripcion_bloqueada_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -28,6 +29,8 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+
+  await SentryConfig.init(flavor: 'epp');
 
   runApp(const MyApp());
 }
