@@ -51,82 +51,45 @@ Runbook para dar de alta una empresa nueva en TrazApp (módulo EPP). Cubre las
 > `GET https://js-vsytem.vercel.app/api/v1/subscriptions/check?empresaRut=<RUT>&producto=trazapp`
 > Devuelve `active`, `planNombre`, `estado`, `modulos`.
 > Si `MIRA_API_KEY` no está seteada en el build, el chequeo es **fail-open**
-> (acceso permitido) — ver §5.
+> (acceso permitido) — ver §6.
 
 ---
 
-## 3. Lado TrazApp / Supabase (datos operativos)
+## 3. Lado TrazApp (organización + admin) — vía API de aprovisionamiento
 
-> ⚠️ El esquema base vive en la BD (no en migraciones). **Confirmar los nombres
-> exactos de columnas contra la BD antes de ejecutar** cada INSERT. Las
-> plantillas siguientes usan los campos conocidos por el código de la app.
+> **Nada de SQL manual.** La organización y el usuario ADMIN se crean llamando a
+> la Edge Function `provision-organizacion` (la llama MIRA al dar de alta la
+> empresa). Contrato completo en [`PROVISIONING-API.md`](PROVISIONING-API.md).
 
-### 3.1 Organización
-```sql
-insert into organizaciones (rut, razon_social, config_modulos)
-values ('76.123.456-7', 'Constructora Demo SpA',
-        '{"gestion_epp": true, "asistencia": false, "prevencion": false, "dashboard": true}'::jsonb)
-returning org_id;   -- guardar este org_id para los pasos siguientes
 ```
-> El `config_modulos` sigue el contrato unificado MIRA/JSV.
-> El `rut` debe ser **idéntico** al de MIRA.
-
-### 3.2 Usuario ADMIN
-1. **Supabase Auth** → crear usuario (email + contraseña temporal) — vía Dashboard
-   (Authentication → Add user) o Admin API. Anotar su `user_id` (UUID).
-2. **Perfil**:
-```sql
-insert into perfiles (user_id, nombre, rol, org_id, activo)
-values ('<auth_user_id>', 'Nombre Admin', 'ADMIN', '<org_id>', true);
+POST /functions/v1/provision-organizacion
+Header: x-trazapp-provision-key: <secreto>
+Body: { rut, razon_social, config_modulos, admin: { email, nombre } }
+→ crea organización + usuario ADMIN (idempotente por RUT) y devuelve credenciales.
 ```
 
-### 3.3 Obras (centros de trabajo)
-```sql
-insert into obras (nombre, direccion, estado, org_id)  -- verificar si obras lleva org_id o hereda por RLS
-values ('Edificio Las Acacias', 'Av. Ejemplo 123', 'ACTIVA', '<org_id>')
-returning obra_id;
-```
+Resultado: el admin recibe email + contraseña temporal (debe cambiarla al ingresar).
 
-### 3.4 Bodegas
-```sql
-insert into bodegas (nombre, obra_id)   -- obra_id null = bodega central de la org
-values ('Bodega Las Acacias', '<obra_id>')
-returning bodega_id;
-```
+## 4. Setup operativo — self-service (dashboard/app, sin SQL)
 
-### 3.5 Catálogo EPP
-```sql
-insert into catalogo_epp (codigo, nombre, activo /*, es_critico, vence_por, ... */)
-values
- ('CASCO',   'Casco de seguridad',   true),
- ('CHALECO', 'Chaleco reflectante',  true),
- ('BOTAS',   'Botas de seguridad',   true),
- ('GUANTES', 'Guantes de nitrilo',   true),
- ('LENTES',  'Lentes de seguridad',  true);
--- Confirmar columnas de criticidad/vencimiento contra la BD (es_critico, vence_por FECHA/USO/AMBOS, etc.)
-```
+Con el admin ya creado, **todo lo demás se hace desde la UI** (así lo hará el
+cliente en el día a día — no hay carga manual):
 
-### 3.6 Stock inicial
-```sql
-insert into stock_movimientos (bodega_id, epp_id, tipo, cantidad, motivo, created_by)
-values ('<bodega_id>', '<epp_id>', 'ENTRADA', 100, 'Carga inicial onboarding', '<admin_user_id>');
-```
+| Qué | Dónde |
+|-----|-------|
+| Centros de trabajo (obras) | Dashboard → **Centros de trabajo** / app → crear obra |
+| Catálogo y reglas de EPP (críticos, vencimientos) | Dashboard → **Reglas EPP** |
+| Bodegas y **stock** inicial | Dashboard/app → **Stock EPP** (ingreso de stock) |
+| **Supervisores** | Dashboard → **Usuarios** (crea usuario + rol SUPERVISOR en la org) |
+| Asignar supervisores a obras | Dashboard → **Centros de trabajo** |
+| **Trabajadores** | Dashboard → **Trabajadores** (o los carga el supervisor en la app) |
 
-### 3.7 Supervisores
-- Crear cada usuario en Auth + fila en `perfiles` (rol `SUPERVISOR`, mismo `org_id`).
-- Asignar obras:
-```sql
-insert into obra_usuarios (obra_id, user_id /*, puede_escribir */)
-values ('<obra_id>', '<supervisor_user_id>');
-```
-
-### 3.8 Trabajadores (opcional; puede cargarlos el cliente desde la app)
-- `trabajadores` (rut, nombre, apellido, estado ACTIVO, org_id) + `trabajador_obras`
-  (obra_id, trabajador_id, cargo, activo).
+> Todas estas tablas están aisladas por `org_id` vía RLS, así que cada admin
+> solo ve/gestiona lo suyo.
 
 ---
 
-## 4. Verificación (smoke test)
+## 5. Verificación (smoke test)
 
 - [ ] Login del **admin** en la app → ve sus obras.
 - [ ] Login de un **supervisor** → ve solo sus obras asignadas (RLS).
@@ -137,7 +100,7 @@ values ('<obra_id>', '<supervisor_user_id>');
 
 ---
 
-## 5. App y distribución
+## 6. App y distribución
 
 - Compilar el APK **desde `main`** (trae todos los fixes + Sentry):
   `flutter build apk --release --flavor epp -t lib/main.dart`
@@ -149,7 +112,7 @@ values ('<obra_id>', '<supervisor_user_id>');
 
 ---
 
-## 6. Checklist final
+## 7. Checklist final
 
 - [ ] Empresa creada en **MIRA** con plan/módulos activos.
 - [ ] `organizaciones` en Supabase con el **mismo RUT**.
