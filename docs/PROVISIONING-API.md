@@ -142,17 +142,21 @@ interruptor entrar/no-entrar aparte, basado en la suscripción viva.
 
 - **Cómo funciona:** al **login** (app y dashboard) y en **re-chequeo periódico**
   (dashboard, cada 10 min), TrazApp llama a la Edge Function proxy
-  `subscription-check`, que consulta a MIRA/JSV por el RUT de la empresa:
-  `GET https://js-vsytem.vercel.app/api/v1/subscriptions/check?empresaRut=<rut>&producto=trazapp`.
-- **Proxy (no key en cliente):** la `SUBSCRIPTIONS_API_KEY` vive SOLO como secret
-  de Supabase; ni el APK ni el JS del dashboard la llevan. El proxy requiere JWT
+  `subscription-check`, que consulta a **MIRA** (`miradeveloper.cl`, fuente de
+  verdad de planes/pagos) por el RUT de la empresa:
+  `GET <SUBSCRIPTIONS_API_URL>?empresaRut=<rut>&producto=trazapp` → `{ active }`.
+- **Proxy (no key en cliente):** la URL y la key de MIRA viven SOLO como secrets
+  de Supabase; ni el APK ni el JS del dashboard las llevan. El proxy requiere JWT
   del usuario (verify_jwt). Deploy: `supabase functions deploy subscription-check`.
-  **Requiere el secret:** `supabase secrets set SUBSCRIPTIONS_API_KEY=<key JSV>`.
+  **Requiere 2 secrets (los provee MIRA):**
+  `supabase secrets set SUBSCRIPTIONS_API_URL=https://miradeveloper.cl/api/.../subscriptions/check`
+  y `supabase secrets set SUBSCRIPTIONS_API_KEY=<key de MIRA>`. La URL es
+  configurable para repuntear sin re-deploy. (JSV no interviene.)
 - **Bloqueo:** si el upstream responde `active:false` explícito → TrazApp niega el
   acceso con "Tu suscripción no está activa…" y cierra sesión. **No borra** org,
   usuarios ni datos. Al re-suscribir en MIRA (`active:true`), el acceso se
   reactiva solo en el próximo login/re-chequeo.
-- **FAIL-OPEN:** sin secret, error de red/timeout, RUT no resoluble o upstream
-  != 200 → **se permite** el acceso (nunca se bloquea a un cliente que paga por
-  una falla del servicio). Mientras el secret no esté seteado, el kill-switch está
-  latente (nadie se bloquea).
+- **FAIL-OPEN:** sin URL/key configuradas, error de red/timeout, RUT no resoluble
+  o upstream != 200 → **se permite** el acceso (nunca se bloquea a un cliente que
+  paga por una falla del servicio). Mientras los secrets no estén seteados, el
+  kill-switch está latente (nadie se bloquea).

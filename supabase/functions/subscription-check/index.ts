@@ -1,20 +1,24 @@
 // ============================================================
 // TrazApp — Edge Function: subscription-check (proxy kill-switch)
 //
-// Proxy server-to-server hacia la API de suscripciones de MIRA/JSV. Existe para
-// que la SUBSCRIPTIONS_API_KEY viva SOLO en el servidor (secret de Supabase) y
-// nunca en el APK (decompilable) ni en el JS público del dashboard.
+// Proxy server-to-server hacia la API de suscripciones de MIRA (miradeveloper.cl,
+// la compañía madre y fuente de verdad de planes/pagos). Existe para que la
+// SUBSCRIPTIONS_API_KEY viva SOLO en el servidor (secret de Supabase) y nunca en
+// el APK (decompilable) ni en el JS público del dashboard.
 //
 // Lo llaman la app (Flutter) y el dashboard tras el login, con el JWT del usuario.
 // Devuelve el estado de suscripción de la empresa (por RUT). Es SOLO el
 // interruptor entrar/no entrar; el gating de módulos sigue por config_modulos.
 //
 // FAIL-OPEN: el cliente bloquea SOLO ante `active:false` explícito. Cualquier otra
-// cosa (sin key, error de red, RUT no resoluble, upstream != 200) => ok:false y
-// SIN campo active => el cliente deja entrar.
+// cosa (sin URL/key, error de red, RUT no resoluble, upstream != 200) => ok:false
+// y SIN campo active => el cliente deja entrar.
 //
 // Deploy: supabase functions deploy subscription-check
-// Secret: supabase secrets set SUBSCRIPTIONS_API_KEY=<key JSV>
+// Secrets (los provee MIRA):
+//   supabase secrets set SUBSCRIPTIONS_API_URL=https://miradeveloper.cl/api/.../subscriptions/check
+//   supabase secrets set SUBSCRIPTIONS_API_KEY=<key de MIRA>
+// La URL es configurable por secret para no hardcodear el path y repuntear sin re-deploy.
 // ============================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -29,8 +33,6 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { 'Content-Type': 'application/json', ...CORS },
   });
-
-const UPSTREAM = 'https://js-vsytem.vercel.app/api/v1/subscriptions/check';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -49,7 +51,12 @@ Deno.serve(async (req: Request) => {
     }
   } catch (_) { /* ignore */ }
 
+  const upstream = (Deno.env.get('SUBSCRIPTIONS_API_URL') ?? '').trim();
   const apiKey = Deno.env.get('SUBSCRIPTIONS_API_KEY') ?? '';
+  if (!upstream) {
+    // Sin URL configurada => fail-open (no bloquear).
+    return json({ ok: false, failopen: true, reason: 'no_url' });
+  }
   if (!apiKey) {
     // Sin key configurada => fail-open (no bloquear).
     return json({ ok: false, failopen: true, reason: 'no_key' });
@@ -77,7 +84,8 @@ Deno.serve(async (req: Request) => {
 
   // Consultar upstream (MIRA/JSV).
   try {
-    const uri = `${UPSTREAM}?empresaRut=${encodeURIComponent(empresaRut)}&producto=trazapp`;
+    const sep = upstream.includes('?') ? '&' : '?';
+    const uri = `${upstream}${sep}empresaRut=${encodeURIComponent(empresaRut)}&producto=trazapp`;
     const resp = await fetch(uri, {
       headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(8000),
