@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-13)
 Phase: 06 (edge-function-tests) — EXECUTING
 Plan: 1 of 2
 Status: Executing Phase 06
-Last activity: 2026-06-15 -- Phase 06 execution started
+Last activity: 2026-09-02 -- Completed quick task 260901-uvk: gating de módulos por config_modulos (9 llaves)
 
 Progress: ░░░░░░░░░░ 0% (0/3 phases complete)
 
@@ -105,6 +105,7 @@ None. v1.0 blockers all resolved. v2.0 ready to start.
 | 260823-uf7 | Cifrar caché local Hive en reposo (AES-256 + flutter_secure_storage) | 2026-08-23 | 4a1c12e | [260823-uf7-cifrar-cache-local-hive-con-hiveaesciphe](./quick/260823-uf7-cifrar-cache-local-hive-con-hiveaesciphe/) |
 | 260824-iaq | Documento formal de postura de seguridad (docs/SEGURIDAD.md) | 2026-08-24 | bebe379 | [260824-iaq-documento-formal-de-postura-de-seguridad](./quick/260824-iaq-documento-formal-de-postura-de-seguridad/) |
 | 260827-evs | Snapshot de evaluación en entregas offline (dashboard no limpiaba EPP crítico ya entregado) | 2026-08-27 | 4c54a54 | [260827-evs-fix-offline-entrega-snapshot-evaluacion](./quick/260827-evs-fix-offline-entrega-snapshot-evaluacion/) |
+| 260901-uvk | Gating de módulos por config_modulos (9 llaves canónicas) en Edge Function y dashboard | 2026-09-02 | (ver PR) | [260901-uvk-gating-de-modulos-por-config-modulos-9-l](./quick/260901-uvk-gating-de-modulos-por-config-modulos-9-l/) |
 
 ## Deferred Items
 
