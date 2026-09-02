@@ -1902,6 +1902,48 @@ let obrasAccesibles = [];
 let chartInstance = null;
 
 // ── AUTH ──────────────────────────────────────────────────────────
+// ── Kill-switch de suscripción (entrar / no entrar) ───────────────
+// Consulta el proxy subscription-check (key server-side). FAIL-OPEN: solo
+// bloquea ante active:false explícito; cualquier error deja entrar.
+let _subsInterval = null;
+
+async function suscripcionActiva() {
+  try {
+    const { data, error } = await sb.functions.invoke('subscription-check', {
+      body: { org_id: currentPerfil?.org_id },
+    });
+    if (error) return true;                 // función caída / red → fail-open
+    if (data && data.active === false) return false; // único bloqueo
+    return true;                            // active:true o failopen → permitir
+  } catch (_) {
+    return true;                            // fail-open
+  }
+}
+
+// Bloquea el acceso SIN borrar datos: cierra sesión y vuelve al login con mensaje.
+function mostrarBloqueoSuscripcion() {
+  try { if (_subsInterval) clearInterval(_subsInterval); } catch (_) {}
+  try { sb.auth.signOut(); } catch (_) {}
+  currentUser = null; currentPerfil = null;
+  const shell = document.getElementById('appShell');
+  if (shell) shell.classList.remove('visible');
+  const ls = document.getElementById('loginScreen');
+  if (ls) ls.style.display = 'flex';
+  const err = document.getElementById('loginError');
+  if (err) {
+    err.textContent = 'Tu suscripción no está activa. Contáctanos para reactivarla.';
+    err.style.display = 'block';
+  }
+}
+
+// Re-chequeo periódico mientras la sesión está abierta (cada 10 min).
+function iniciarChequeoSuscripcion() {
+  try { if (_subsInterval) clearInterval(_subsInterval); } catch (_) {}
+  _subsInterval = setInterval(async () => {
+    if (!(await suscripcionActiva())) mostrarBloqueoSuscripcion();
+  }, 10 * 60 * 1000);
+}
+
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass  = document.getElementById('loginPass').value;
@@ -1930,6 +1972,12 @@ async function doLogin() {
     const razonSocial = perfil.organizaciones?.razon_social || null;
     currentPerfil = { ...perfil, userId: data.user.id, email: data.user.email, razonSocial };
 
+    // Kill-switch: bloquea la entrada si la suscripción no está activa (conserva datos).
+    if (!(await suscripcionActiva())) {
+      await sb.auth.signOut();
+      throw new Error('Tu suscripción no está activa. Contáctanos para reactivarla.');
+    }
+
     await initApp();
   } catch(e) {
     errEl.textContent = mensajeError(e);
@@ -1955,6 +2003,9 @@ document.addEventListener('keydown', e => {
 async function initApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').classList.add('visible');
+
+  // Kill-switch: re-chequeo periódico de la suscripción mientras la sesión vive.
+  iniciarChequeoSuscripcion();
 
   // User chip
   const nombre = currentPerfil.nombre || '';
@@ -2400,6 +2451,15 @@ function showLoading(v) {
       // Etiquetar Sentry con empresa/rol (sin PII de personas) para filtrar por cliente.
       if (window.Sentry && typeof Sentry.setTags === 'function') {
         Sentry.setTags({ organization_id: perfil.org_id, rol: perfil.rol, empresa: razonSocial || '' });
+      }
+      // Kill-switch en sesión restaurada (conserva datos).
+      if (!(await suscripcionActiva())) {
+        await sb.auth.signOut();
+        currentUser = null; currentPerfil = null;
+        const err = document.getElementById('loginError');
+        if (err) { err.textContent = 'Tu suscripción no está activa. Contáctanos para reactivarla.'; err.style.display = 'block'; }
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
       }
       document.getElementById('loginScreen').style.display = 'none';
       await initApp();
