@@ -363,7 +363,7 @@
     <!-- ── GENERAL (siempre visible) ─────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-label">General</div>
-      <div class="nav-item active" data-page="resumen"     data-modulo="dashboard" onclick="navTo('resumen')"><span class="nav-icon">📊</span> Resumen General</div>
+      <div class="nav-item active" data-page="resumen"     onclick="navTo('resumen')"><span class="nav-icon">📊</span> Resumen General</div>
       <div class="nav-item"        data-page="trabajadores" onclick="navTo('trabajadores')"><span class="nav-icon">👷</span> Trabajadores</div>
       <div class="nav-item"        data-page="centros"      onclick="navTo('centros')"><span class="nav-icon">🏗️</span> Centros de trabajo</div>
       <div class="nav-item"        data-page="reportes"     data-modulo="reportes_dt" onclick="navTo('reportes')"><span class="nav-icon">📊</span> Reportes</div>
@@ -442,6 +442,9 @@
     <div class="content">
       <!-- PAGE: RESUMEN -->
       <div class="page active" id="page-resumen">
+      <!-- Bloque EPP del Resumen. Se oculta si el plan no incluye Entrega EPP.
+           Fase 2: agregar aquí un bloque hermano gateado por marcaje_asistencia con KPIs de asistencia. -->
+      <div data-modulo="gestion_epp">
       <!-- KPIs -->
       <div class="kpi-grid">
         <div class="kpi-card green">
@@ -528,6 +531,11 @@
           </div>
         </div>
       </div><!-- end resumen inner -->
+      </div><!-- /bloque gestion_epp -->
+      <!-- Empty-state cuando el plan no tiene ningún bloque de resumen visible (Fase 1) -->
+      <div id="resumenVacio" class="empty-state" style="display:none; padding:48px 22px;">
+        Tu plan aún no incluye módulos con panel de resumen.
+      </div>
       </div><!-- /page-resumen -->
 
       <!-- PAGE: TRABAJADORES -->
@@ -2018,6 +2026,9 @@ async function initApp() {
 async function loadDashboard() {
   // Sin overlay bloqueante — las tarjetas muestran "Cargando..." internamente
   try {
+    // Fase 1: el Resumen solo tiene bloque EPP. Si el plan no incluye EPP, no
+    // consultamos datos de EPP (evita queries innecesarias y "Cargando…" colgado).
+    if (modulosActivos.gestion_epp === false) return;
     const obraId = document.getElementById('centroSelect')?.value || 'all';
     const filtroObra = obraId !== 'all' ? obraId : null;
 
@@ -2486,6 +2497,19 @@ const PAGE_TITLES = {
 };
 
 // ── Gating de módulos (config_modulos snapshot) ───────────────────
+// Mapa de módulos activos del plan. Lo llena aplicarGatingModulos() al iniciar.
+let modulosActivos = {};
+
+// Muestra el empty-state del Resumen si ningún bloque [data-modulo] del Resumen
+// quedó visible (p.ej. plan sin EPP y aún sin bloque de Asistencia — Fase 1).
+function ajustarResumenVacio() {
+  const vacio = document.getElementById('resumenVacio');
+  if (!vacio) return;
+  const bloques = document.querySelectorAll('#page-resumen [data-modulo]');
+  const algunoVisible = Array.from(bloques).some(b => b.style.display !== 'none');
+  vacio.style.display = algunoVisible ? 'none' : '';
+}
+
 // Visible = ningún ancestro con display:none inline (así es como el gating y
 // adminSection ocultan). Determinista y alineado a cómo escondemos elementos.
 function esVisible(el) {
@@ -2516,8 +2540,11 @@ async function aplicarGatingModulos() {
       const algunoVisible = Array.from(items).some(it => it.style.display !== 'none');
       sec.style.display = (items.length && !algunoVisible) ? 'none' : '';
     });
+    modulosActivos = m;
+    ajustarResumenVacio();
     return m;
   } catch (_) {
+    modulosActivos = {};
     return {}; // sin config / error → mostrar todo (fail-open)
   }
 }
