@@ -4,6 +4,12 @@ import 'sentry_config.dart';
 
 /// Configuración de módulos habilitados para la organización.
 /// Las claves siguen el contrato unificado MIRA/JSV.
+///
+/// Contrato canónico = 9 llaves booleanas en organizaciones.config_modulos:
+/// gestion_epp, marcaje_asistencia, stock_bodega, solicitudes_epp, firma_digital,
+/// reportes_dt, dashboard, prevencion, contratos. El gating fino (por sección)
+/// vive en el dashboard web; la app móvil hoy solo consume `gestion_epp` (gatea el
+/// botón "Entregar EPP"). Se lee del snapshot (offline-safe), no de la consulta viva.
 class ConfigModulos {
   final bool gestionEpp;    // key MIRA: gestion_epp
   final bool asistencia;

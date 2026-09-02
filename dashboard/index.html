@@ -363,46 +363,46 @@
     <!-- ── GENERAL (siempre visible) ─────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-label">General</div>
-      <div class="nav-item active" data-page="resumen"     onclick="navTo('resumen')"><span class="nav-icon">📊</span> Resumen General</div>
+      <div class="nav-item active" data-page="resumen"     data-modulo="dashboard" onclick="navTo('resumen')"><span class="nav-icon">📊</span> Resumen General</div>
       <div class="nav-item"        data-page="trabajadores" onclick="navTo('trabajadores')"><span class="nav-icon">👷</span> Trabajadores</div>
       <div class="nav-item"        data-page="centros"      onclick="navTo('centros')"><span class="nav-icon">🏗️</span> Centros de trabajo</div>
-      <div class="nav-item"        data-page="reportes"     onclick="navTo('reportes')"><span class="nav-icon">📊</span> Reportes</div>
+      <div class="nav-item"        data-page="reportes"     data-modulo="reportes_dt" onclick="navTo('reportes')"><span class="nav-icon">📊</span> Reportes</div>
     </div>
 
     <!-- ── MÓDULO EPP (gestion_epp) ───────────────────── -->
     <div class="sidebar-section sidebar-modulo" id="moduloEppSection">
       <div class="sidebar-label sidebar-label-modulo">🦺 Entrega EPP</div>
-      <div class="nav-item" data-page="stock"     onclick="navTo('stock')"><span class="nav-icon">📦</span> Stock EPP</div>
-      <div class="nav-item" data-page="entregas"  onclick="navTo('entregas')"><span class="nav-icon">📋</span> Entregas</div>
-      <div class="nav-item" data-page="solicitudes" onclick="navTo('solicitudes')">
+      <div class="nav-item" data-page="stock"     data-modulo="stock_bodega" onclick="navTo('stock')"><span class="nav-icon">📦</span> Stock EPP</div>
+      <div class="nav-item" data-page="entregas"  data-modulo="gestion_epp" onclick="navTo('entregas')"><span class="nav-icon">📋</span> Entregas</div>
+      <div class="nav-item" data-page="solicitudes" data-modulo="solicitudes_epp" onclick="navTo('solicitudes')">
         <span class="nav-icon">📥</span> Solicitudes EPP
         <span class="nav-badge" id="solicitudesBadge" style="display:none">0</span>
       </div>
-      <div class="nav-item" data-page="alertas" onclick="navTo('alertas')">
+      <div class="nav-item" data-page="alertas" data-modulo="stock_bodega" onclick="navTo('alertas')">
         <span class="nav-icon">⚠️</span> Alertas EPP
         <span class="nav-badge" id="alertBadge" style="display:none">0</span>
       </div>
-      <div class="nav-item" data-page="reglas" onclick="navTo('reglas')"><span class="nav-icon">⚙️</span> Reglas EPP</div>
+      <div class="nav-item" data-page="reglas" data-modulo="gestion_epp" onclick="navTo('reglas')"><span class="nav-icon">⚙️</span> Reglas EPP</div>
     </div>
 
     <!-- ── MÓDULO ASISTENCIA (marcaje_asistencia) ────────── -->
     <div class="sidebar-section sidebar-modulo" id="moduloAsistenciaSection">
       <div class="sidebar-label sidebar-label-modulo">🕐 Asistencia</div>
-      <div class="nav-item" data-page="asistencia" onclick="navTo('asistencia')"><span class="nav-icon">🕐</span> Asistencia Diaria</div>
+      <div class="nav-item" data-page="asistencia" data-modulo="marcaje_asistencia" onclick="navTo('asistencia')"><span class="nav-icon">🕐</span> Asistencia Diaria</div>
     </div>
 
     <!-- ── MÓDULO DOCUMENTACIÓN (contratos) ──────────────── -->
     <div class="sidebar-section sidebar-modulo" id="moduloContratosSection">
       <div class="sidebar-label sidebar-label-modulo">📄 Documentación</div>
-      <div class="nav-item nav-coming-soon" title="Próximamente disponible"><span class="nav-icon">🔒</span> Contratos</div>
-      <div class="nav-item nav-coming-soon" title="Próximamente disponible"><span class="nav-icon">🔒</span> Docs. Siniestro</div>
+      <div class="nav-item nav-coming-soon" data-modulo="contratos" title="Próximamente disponible"><span class="nav-icon">🔒</span> Contratos</div>
+      <div class="nav-item nav-coming-soon" data-modulo="contratos" title="Próximamente disponible"><span class="nav-icon">🔒</span> Docs. Siniestro</div>
     </div>
 
     <!-- ── MÓDULO PREVENCIÓN (prevencion) ────────────────── -->
     <div class="sidebar-section sidebar-modulo" id="moduloPrevencionSection">
       <div class="sidebar-label sidebar-label-modulo">🛡️ Prevención</div>
-      <div class="nav-item nav-coming-soon" title="Próximamente disponible"><span class="nav-icon">🔒</span> Charlas / PTS</div>
-      <div class="nav-item nav-coming-soon" title="Próximamente disponible"><span class="nav-icon">🔒</span> Asistente IA</div>
+      <div class="nav-item nav-coming-soon" data-modulo="prevencion" title="Próximamente disponible"><span class="nav-icon">🔒</span> Charlas / PTS</div>
+      <div class="nav-item nav-coming-soon" data-modulo="prevencion" title="Próximamente disponible"><span class="nav-icon">🔒</span> Asistente IA</div>
     </div>
 
     <!-- ── ADMINISTRACIÓN (solo ADMIN) ───────────────────── -->
@@ -1964,25 +1964,10 @@ async function initApp() {
   document.getElementById('adminSection').style.display = isAdmin ? '' : 'none';
   document.getElementById('btnNuevoCentro').style.display = isAdmin ? '' : 'none';
 
-  // Mostrar/ocultar secciones de módulos según config_modulos de la empresa
-  // Si config_modulos no está disponible, mostramos todo por defecto
-  (async () => {
-    try {
-      const { data: org } = await sb.from('organizaciones')
-        .select('config_modulos')
-        .eq('org_id', currentPerfil.org_id)
-        .maybeSingle();
-      const m = org?.config_modulos || {};
-      const show = (id, flag) => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = (flag === false) ? 'none' : '';
-      };
-      show('moduloEppSection',        m.gestion_epp       !== false);
-      show('moduloAsistenciaSection', m.marcaje_asistencia !== false);
-      show('moduloContratosSection',  m.contratos         !== false);
-      show('moduloPrevencionSection', m.prevencion        !== false);
-    } catch(_) { /* sin config → mostrar todo */ }
-  })();
+  // Gating de módulos por config_modulos (snapshot). AWAITED a propósito: debe
+  // aplicarse ANTES de restaurar la pestaña, para que el fallback de navegación
+  // vea el estado ya aplicado. Fail-open (solo oculta lo que viene en false).
+  await aplicarGatingModulos();
 
   // Cargar obras accesibles
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').order('nombre');
@@ -2001,9 +1986,20 @@ async function initApp() {
 
 
 
-  // Restaurar pestaña antes de cargar datos — sin flash de "resumen"
+  // Restaurar pestaña antes de cargar datos — sin flash de "resumen".
+  // Si la pestaña objetivo quedó oculta por gating (p.ej. resumen con
+  // dashboard=false, o una guardada de un módulo apagado), caer a la primera
+  // pestaña visible para no dejar el shell sin página activa.
   const savedPage = localStorage.getItem('trazapp_page');
-  if (savedPage && savedPage !== 'resumen') navTo(savedPage);
+  const objetivo = (savedPage && savedPage !== 'resumen') ? savedPage : 'resumen';
+  const objetivoEl = Array.from(document.querySelectorAll('.nav-item[data-page]'))
+    .find(el => el.dataset.page === objetivo);
+  if (objetivoEl && esVisible(objetivoEl)) {
+    if (objetivo !== 'resumen') navTo(objetivo);
+    // si es 'resumen' y está visible, ya es la pestaña activa por defecto
+  } else {
+    navTo(primeraPaginaVisible());
+  }
 
   // Cargar resumen y badge en background (no bloquea la pestaña activa)
   loadDashboard().catch(() => {});
@@ -2488,6 +2484,52 @@ const PAGE_TITLES = {
   reportes: '📊 Reportes',
   usuarios: '👤 Usuarios',
 };
+
+// ── Gating de módulos (config_modulos snapshot) ───────────────────
+// Visible = ningún ancestro con display:none inline (así es como el gating y
+// adminSection ocultan). Determinista y alineado a cómo escondemos elementos.
+function esVisible(el) {
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    if (n.style && n.style.display === 'none') return false;
+  }
+  return true;
+}
+
+// Aplica el gating leyendo organizaciones.config_modulos. FAIL-OPEN: solo oculta
+// un nav-item si su llave viene EXPLÍCITAMENTE en false; llave ausente / config
+// nulo / error de red → se muestra. Devuelve el mapa de módulos.
+async function aplicarGatingModulos() {
+  try {
+    const { data: org } = await sb.from('organizaciones')
+      .select('config_modulos')
+      .eq('org_id', currentPerfil.org_id)
+      .maybeSingle();
+    const m = (org && org.config_modulos) || {};
+    // Gatear cada nav-item por su llave (independiente entre llaves).
+    document.querySelectorAll('[data-modulo]').forEach(el => {
+      el.style.display = (m[el.dataset.modulo] === false) ? 'none' : '';
+    });
+    // Ocultar el wrapper de un módulo solo si TODOS sus nav-item quedaron ocultos
+    // (evita dejar el label del grupo huérfano).
+    document.querySelectorAll('.sidebar-modulo').forEach(sec => {
+      const items = sec.querySelectorAll('.nav-item');
+      const algunoVisible = Array.from(items).some(it => it.style.display !== 'none');
+      sec.style.display = (items.length && !algunoVisible) ? 'none' : '';
+    });
+    return m;
+  } catch (_) {
+    return {}; // sin config / error → mostrar todo (fail-open)
+  }
+}
+
+// data-page del primer nav-item VISIBLE (orden del DOM). Fallback de navegación
+// cuando la pestaña destino quedó oculta por gating.
+function primeraPaginaVisible() {
+  for (const el of document.querySelectorAll('.nav-item[data-page]')) {
+    if (esVisible(el)) return el.dataset.page;
+  }
+  return 'trabajadores'; // siempre visible como último recurso
+}
 
 function navTo(page) {
   // Update nav items
