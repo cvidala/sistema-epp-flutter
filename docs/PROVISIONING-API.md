@@ -39,6 +39,7 @@ MIRA por canal seguro. Si se compromete, se regenera de ambos lados.
     "firma_digital": true, "reportes_dt": true, "dashboard": true,
     "marcaje_asistencia": false, "contratos": false, "prevencion": false
   },
+  "limites": { "max_trabajadores": 100, "max_usuarios": 5, "max_obras": 6 },
   "admin": { "email": "admin@empresa.cl", "nombre": "Nombre Admin" },
   "plan": "piloto"
 }
@@ -49,6 +50,7 @@ MIRA por canal seguro. Si se compromete, se regenera de ambos lados.
 | `rut` | ✔ | Llave de idempotencia. **Debe coincidir** con el RUT de la suscripción en MIRA. |
 | `razon_social` | ✔ | Se guarda en `razon_social` y `nombre_empresa`. |
 | `config_modulos` | – | **Contrato canónico de 9 llaves booleanas** (ver `docs/PLANES-MIRA.md`): `gestion_epp, stock_bodega, solicitudes_epp, firma_digital, reportes_dt, marcaje_asistencia, contratos, prevencion, dashboard`. Se guarda **tal cual** (sin renombrar ni filtrar). Enviar siempre las 9. Default si se omite: plan EPP + asistencia off. |
+| `limites` | – | **Capacidad del plan** (2º eje): `{ max_trabajadores, max_usuarios, max_obras }`. Entero = tope; `null` o llave ausente = sin tope. TrazApp **bloquea de forma dura** la creación al llegar al tope (trabajadores `ACTIVO`, usuarios activos, obras `ACTIVA`). Si se omite en un `updated`, no se toca. Ver `docs/PLANES-MIRA.md`. |
 | `admin.email` | ✔ | Email del usuario ADMIN. |
 | `admin.nombre` | ✔ | Nombre del ADMIN. |
 | `plan` | – | Informativo. |
@@ -101,7 +103,7 @@ MIRA por canal seguro. Si se compromete, se regenera de ambos lados.
 ## Idempotencia y cambio de plan
 
 - **Organización:** por `rut`. Reintentar con el mismo RUT no la duplica.
-- **Cambio de plan:** re-llamar al endpoint con el mismo `rut` y un `config_modulos` distinto → `accion:"updated"` actualiza **solo** `config_modulos`. Es el mecanismo oficial para propagar un cambio de plan de MIRA a TrazApp (se refleja en el próximo ingreso/refresco del dashboard). No se tocan credenciales ni otros campos de la organización.
+- **Cambio de plan:** re-llamar al endpoint con el mismo `rut` y un `config_modulos` (y/o `limites`) distinto → `accion:"updated"` actualiza `config_modulos` y `limites` (este último solo si viene en el body). Es el mecanismo oficial para propagar un cambio de plan/capacidad de MIRA a TrazApp (se refleja en el próximo ingreso/refresco del dashboard). No se tocan credenciales ni otros campos de la organización.
 - **Perfil admin:** en alta nueva, `upsert` por `user_id` (no duplica). En re-aprovisionamiento no se toca.
 
 ## Ejemplo (curl, lo que hará MIRA)

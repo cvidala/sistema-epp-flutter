@@ -107,6 +107,41 @@ const config_modulos = {
 
 ---
 
+## Capacidad (2º eje del plan): `limites`
+
+Además de los módulos, cada plan tiene una **capacidad** = topes de cantidad, que
+se cobra por tramos (el costo real escala con el nº de trabajadores → storage de
+fotos). Se envía como objeto `limites` junto al `config_modulos`:
+
+```json
+"limites": { "max_trabajadores": 100, "max_usuarios": 5, "max_obras": 6 }
+```
+
+- Entero = tope · `null` o llave ausente (o `limites` completo ausente) = **sin tope**.
+- TrazApp **bloquea de forma dura en el servidor** la creación al llegar al tope
+  (trigger en BD, a prueba de bypass), con un mensaje claro al admin. Cuenta:
+  trabajadores `estado=ACTIVO`, usuarios (perfiles) `activo=true`, obras `estado=ACTIVA`.
+  Dar de baja libera cupo.
+- Los topes son **dato por empresa, editables sin tocar código**: MIRA los rellena
+  por tramo y puede **overridearlos por empresa** re-aprovisionando (o editando
+  `organizaciones.limites`). Así se sube/baja el tope de un cliente puntual sin
+  cambiar de tramo ni desplegar.
+
+### Tramos sugeridos (los números y precios los define MIRA)
+
+| Tramo | max_trabajadores | max_usuarios | max_obras |
+|---|---|---|---|
+| **S** | 50 | 3 | 3 |
+| **M** | 100 | 5 | 6 |
+| **L** | 200 | 8 | 12 |
+| **XL** | 350 | 12 | 25 |
+| **Enterprise** | `null` | `null` | `null` |
+
+El tramo **rellena** `limites`, pero MIRA debe permitir **editar los 3 números por
+empresa** (override manual desde el superadmin), defaulteando desde el tramo.
+
+**Precio final = módulos (qué) × tramo de capacidad (cuánto).**
+
 ## Cómo entregar el plan a TrazApp
 
 **Alta nueva** y **cambio de plan** usan el mismo endpoint (idempotente por `rut`):
@@ -121,7 +156,8 @@ Header: x-trazapp-provision-key: <TRAZAPP_PROVISION_KEY>
   "rut": "76.123.456-7",
   "razon_social": "Constructora Demo SpA",
   "admin": { "email": "admin@empresa.cl", "nombre": "Nombre Admin" },
-  "config_modulos": { "...las 9 llaves del plan elegido..." }
+  "config_modulos": { "...las 9 llaves del plan elegido..." },
+  "limites": { "max_trabajadores": 100, "max_usuarios": 5, "max_obras": 6 }
 }
 ```
 
