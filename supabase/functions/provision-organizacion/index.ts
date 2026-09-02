@@ -81,36 +81,56 @@ Deno.serve(async (req: Request) => {
       .eq('rut', rut)
       .maybeSingle();
 
-    let orgId = existing?.org_id as string | undefined;
-    const dedupOrg = !!orgId;
-    const accion = dedupOrg ? 'updated' : 'created';
+    const orgExistente = existing?.org_id as string | undefined;
 
-    if (!orgId) {
-      const { data: orgIns, error: orgErr } = await supabase
-        .from('organizaciones')
-        .insert({
-          rut,
-          rut_empresa: rut,
-          razon_social: razon,
-          nombre_empresa: razon,
-          config_modulos: modulos,
-          activo: true,
-        })
-        .select('org_id')
-        .single();
-      if (orgErr) return json({ ok: false, error: 'org_insert_failed', detail: orgErr.message }, 500);
-      orgId = orgIns.org_id as string;
-    } else {
-      // Org ya existe (re-aprovisionamiento): propagar el plan actualizando SOLO
-      // config_modulos. No se tocan razon_social/activo/otros campos para no
-      // pisar cambios hechos desde el dashboard. Así un cambio de plan en MIRA
-      // se refleja en TrazApp con un re-aprovisionamiento explícito.
+    // ── RE-APROVISIONAMIENTO (org ya existe por RUT) ────────────
+    // Es SOLO una sincronización de plan: actualiza config_modulos y retorna.
+    // NO toca Auth (un cambio de plan JAMÁS debe resetear/crear credenciales, o
+    // dejaría al cliente fuera en cada cambio) ni el perfil. No pisa
+    // razon_social/activo (cambios hechos desde el dashboard se respetan).
+    if (orgExistente) {
       const { error: updErr } = await supabase
         .from('organizaciones')
         .update({ config_modulos: modulos })
-        .eq('org_id', orgId);
+        .eq('org_id', orgExistente);
       if (updErr) return json({ ok: false, error: 'org_update_failed', detail: updErr.message }, 500);
+
+      // Admin actual, solo informativo — no se modifica.
+      const { data: adminPerfil } = await supabase
+        .from('perfiles')
+        .select('user_id')
+        .eq('org_id', orgExistente)
+        .eq('rol', 'ADMIN')
+        .eq('activo', true)
+        .limit(1)
+        .maybeSingle();
+
+      return json({
+        ok: true,
+        org_id: orgExistente,
+        admin_user_id: adminPerfil?.user_id ?? null,
+        dedup: true,
+        accion: 'updated',
+        // sin cambios de credenciales en re-aprovisionamiento
+        credenciales: { email: adminEmail, password_temporal: null, modo: 'sin_cambios' },
+      });
     }
+
+    // ── ALTA NUEVA: crear organización ──────────────────────────
+    const { data: orgIns, error: orgErr } = await supabase
+      .from('organizaciones')
+      .insert({
+        rut,
+        rut_empresa: rut,
+        razon_social: razon,
+        nombre_empresa: razon,
+        config_modulos: modulos,
+        activo: true,
+      })
+      .select('org_id')
+      .single();
+    if (orgErr) return json({ ok: false, error: 'org_insert_failed', detail: orgErr.message }, 500);
+    const orgId = orgIns.org_id as string;
 
     // ── 2) Usuario ADMIN en Auth ────────────────────────────
     const pwd = tempPassword();
@@ -158,15 +178,15 @@ Deno.serve(async (req: Request) => {
       );
     if (perfilErr) return json({ ok: false, error: 'perfil_failed', detail: perfilErr.message }, 500);
 
-    // ── Respuesta ───────────────────────────────────────────
+    // ── Respuesta (alta nueva) ──────────────────────────────
     return json({
       ok: true,
       org_id: orgId,
       admin_user_id: adminUserId,
-      dedup: dedupOrg,
-      accion, // 'created' (org nueva) | 'updated' (re-aprovisionamiento: config_modulos actualizado)
+      dedup: false,
+      accion: 'created',
       credenciales: dedupUser
-        ? { email: adminEmail, modo: 'existente' }
+        ? { email: adminEmail, password_temporal: null, modo: 'existente' }
         : { email: adminEmail, password_temporal: pwd, modo: 'password_temporal' },
     });
   } catch (e) {
