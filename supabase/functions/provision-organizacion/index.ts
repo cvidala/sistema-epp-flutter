@@ -6,7 +6,8 @@
 // Contrato: docs/PROVISIONING-API.md
 // Auth: secreto compartido en header `x-trazapp-provision-key`
 //       (validado contra el secret TRAZAPP_PROVISION_KEY).
-// Idempotente por RUT: si la org ya existe, no la duplica.
+// Idempotente por RUT: si la org ya existe, no la duplica; en re-aprovisionamiento
+// actualiza config_modulos (propaga cambios de plan desde MIRA).
 // Deploy: supabase functions deploy provision-organizacion --no-verify-jwt
 // ============================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -48,11 +49,19 @@ Deno.serve(async (req: Request) => {
   const admin = (body.admin as Record<string, unknown>) ?? {};
   const adminEmail = String((admin.email as string) ?? '').trim().toLowerCase();
   const adminNombre = String((admin.nombre as string) ?? '').trim();
+  // config_modulos: contrato canónico de 9 llaves booleanas (fuente de verdad = MIRA).
+  // Se guarda TAL CUAL llega en el body (sin remapear ni filtrar llaves). El default
+  // solo aplica si MIRA no envía config_modulos (red de seguridad, plan base EPP).
   const modulos = (body.config_modulos as Record<string, boolean>) ?? {
     gestion_epp: true,
-    asistencia: false,
-    prevencion: false,
+    marcaje_asistencia: false,
+    stock_bodega: true,
+    solicitudes_epp: true,
+    firma_digital: true,
+    reportes_dt: true,
     dashboard: true,
+    prevencion: false,
+    contratos: false,
   };
 
   if (!rut || !razon || !adminEmail || !adminNombre) {
@@ -74,6 +83,7 @@ Deno.serve(async (req: Request) => {
 
     let orgId = existing?.org_id as string | undefined;
     const dedupOrg = !!orgId;
+    const accion = dedupOrg ? 'updated' : 'created';
 
     if (!orgId) {
       const { data: orgIns, error: orgErr } = await supabase
@@ -90,6 +100,16 @@ Deno.serve(async (req: Request) => {
         .single();
       if (orgErr) return json({ ok: false, error: 'org_insert_failed', detail: orgErr.message }, 500);
       orgId = orgIns.org_id as string;
+    } else {
+      // Org ya existe (re-aprovisionamiento): propagar el plan actualizando SOLO
+      // config_modulos. No se tocan razon_social/activo/otros campos para no
+      // pisar cambios hechos desde el dashboard. Así un cambio de plan en MIRA
+      // se refleja en TrazApp con un re-aprovisionamiento explícito.
+      const { error: updErr } = await supabase
+        .from('organizaciones')
+        .update({ config_modulos: modulos })
+        .eq('org_id', orgId);
+      if (updErr) return json({ ok: false, error: 'org_update_failed', detail: updErr.message }, 500);
     }
 
     // ── 2) Usuario ADMIN en Auth ────────────────────────────
@@ -144,6 +164,7 @@ Deno.serve(async (req: Request) => {
       org_id: orgId,
       admin_user_id: adminUserId,
       dedup: dedupOrg,
+      accion, // 'created' (org nueva) | 'updated' (re-aprovisionamiento: config_modulos actualizado)
       credenciales: dedupUser
         ? { email: adminEmail, modo: 'existente' }
         : { email: adminEmail, password_temporal: pwd, modo: 'password_temporal' },
