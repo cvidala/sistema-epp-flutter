@@ -543,7 +543,7 @@
         <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
           <div>
             <div class="page-title">👷 Trabajadores</div>
-            <div class="page-sub">Listado completo de trabajadores activos</div>
+            <div class="page-sub">Listado completo de trabajadores activos<span id="usoTrabajadores" style="display:none;margin-left:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;"></span></div>
           </div>
           <button class="btn btn-secondary" onclick="navTo('mantenimiento')">⚙️ Mantenimiento de Trabajadores</button>
         </div>
@@ -649,7 +649,7 @@
         <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
           <div>
             <div class="page-title">🏗️ Centros de trabajo</div>
-            <div class="page-sub">Resumen operativo y asignación de personas</div>
+            <div class="page-sub">Resumen operativo y asignación de personas<span id="usoObras" style="display:none;margin-left:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;"></span></div>
           </div>
           <button class="btn btn-primary" id="btnNuevoCentro" style="display:none" onclick="openNuevoCentro()">+ Nuevo Centro</button>
         </div>
@@ -1018,7 +1018,7 @@
         <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">
           <div>
             <div class="page-title">👤 Usuarios</div>
-            <div class="page-sub">Gestión de accesos al sistema</div>
+            <div class="page-sub">Gestión de accesos al sistema<span id="usoUsuarios" style="display:none;margin-left:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;"></span></div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-secondary" onclick="openDatosEmpresa()">🏢 Datos de Empresa</button>
@@ -2499,6 +2499,43 @@ const PAGE_TITLES = {
 // ── Gating de módulos (config_modulos snapshot) ───────────────────
 // Mapa de módulos activos del plan. Lo llena aplicarGatingModulos() al iniciar.
 let modulosActivos = {};
+// Capacidad del plan: {max_trabajadores, max_usuarios, max_obras} o null = sin tope.
+let limitesPlan = null;
+
+// Indicador de uso vs. tope del plan (badges en Trabajadores/Usuarios/Centros).
+// Solo para ADMIN (el resto ve datos scoped por obra y confundiría el conteo).
+async function renderUsoPlan() {
+  if (!currentPerfil || currentPerfil.rol !== 'ADMIN') return;
+  const lim = limitesPlan || {};
+  const org = currentPerfil.org_id;
+  const defs = [
+    { id: 'usoTrabajadores', max: lim.max_trabajadores, label: 'trabajadores',
+      q: () => sb.from('trabajadores').select('trabajador_id', { count: 'exact', head: true }).eq('org_id', org).eq('estado', 'ACTIVO') },
+    { id: 'usoUsuarios', max: lim.max_usuarios, label: 'usuarios',
+      q: () => sb.from('perfiles').select('user_id', { count: 'exact', head: true }).eq('org_id', org).eq('activo', true) },
+    { id: 'usoObras', max: lim.max_obras, label: 'centros',
+      q: () => sb.from('obras').select('obra_id', { count: 'exact', head: true }).eq('org_id', org).eq('estado', 'ACTIVA') },
+  ];
+  for (const d of defs) {
+    const el = document.getElementById(d.id);
+    if (!el) continue;
+    try {
+      const { count } = await d.q();
+      const n = count || 0;
+      if (d.max === null || d.max === undefined) {
+        el.textContent = `${n} ${d.label}`;
+        el.style.background = '#eef2f7'; el.style.color = '#475569';
+      } else {
+        el.textContent = `${n} / ${d.max} ${d.label}`;
+        const ratio = d.max > 0 ? n / d.max : 1;
+        if (n >= d.max)        { el.style.background = '#fee2e2'; el.style.color = '#b91c1c'; } // lleno
+        else if (ratio >= 0.8) { el.style.background = '#fef9c3'; el.style.color = '#854d0e'; } // cerca
+        else                   { el.style.background = '#dcfce7'; el.style.color = '#166534'; } // holgado
+      }
+      el.style.display = '';
+    } catch (_) { /* no romper la página por el badge */ }
+  }
+}
 
 // Muestra el empty-state del Resumen si ningún bloque [data-modulo] del Resumen
 // quedó visible (p.ej. plan sin EPP y aún sin bloque de Asistencia — Fase 1).
@@ -2525,10 +2562,11 @@ function esVisible(el) {
 async function aplicarGatingModulos() {
   try {
     const { data: org } = await sb.from('organizaciones')
-      .select('config_modulos')
+      .select('config_modulos, limites')
       .eq('org_id', currentPerfil.org_id)
       .maybeSingle();
     const m = (org && org.config_modulos) || {};
+    limitesPlan = (org && org.limites) || null; // capacidad del plan (null = sin tope)
     // Gatear cada nav-item por su llave (independiente entre llaves).
     document.querySelectorAll('[data-modulo]').forEach(el => {
       el.style.display = (m[el.dataset.modulo] === false) ? 'none' : '';
@@ -2587,6 +2625,9 @@ function navTo(page) {
   if (page === 'asistencia')    initPageAsistencia();
   if (page === 'mantenimiento') loadPageMantenimiento();
   if (page === 'solicitudes')   loadPageSolicitudes();
+
+  // Indicador de uso vs. tope del plan (solo en páginas con límite; ADMIN).
+  if (page === 'trabajadores' || page === 'usuarios' || page === 'centros') renderUsoPlan();
 
   // Re-populate if switching back
   if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);

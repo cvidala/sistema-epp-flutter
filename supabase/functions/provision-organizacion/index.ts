@@ -63,6 +63,11 @@ Deno.serve(async (req: Request) => {
     prevencion: false,
     contratos: false,
   };
+  // limites: capacidad del plan (2º eje). Objeto {max_trabajadores, max_usuarios,
+  // max_obras} o null = sin tope. Se guarda tal cual. `undefined` (MIRA no lo
+  // manda) ⇒ no se toca en update / null en alta nueva.
+  const limitesProvisto = Object.prototype.hasOwnProperty.call(body, 'limites');
+  const limites = (body.limites as Record<string, unknown> | null) ?? null;
 
   if (!rut || !razon || !adminEmail || !adminNombre) {
     return json({ ok: false, error: 'missing_fields', code: 'VALIDATION' }, 400);
@@ -89,9 +94,12 @@ Deno.serve(async (req: Request) => {
     // dejaría al cliente fuera en cada cambio) ni el perfil. No pisa
     // razon_social/activo (cambios hechos desde el dashboard se respetan).
     if (orgExistente) {
+      const updatePayload: Record<string, unknown> = { config_modulos: modulos };
+      // Solo tocar limites si MIRA lo mandó (así un update de módulos no borra el tope).
+      if (limitesProvisto) updatePayload.limites = limites;
       const { error: updErr } = await supabase
         .from('organizaciones')
-        .update({ config_modulos: modulos })
+        .update(updatePayload)
         .eq('org_id', orgExistente);
       if (updErr) return json({ ok: false, error: 'org_update_failed', detail: updErr.message }, 500);
 
@@ -125,6 +133,7 @@ Deno.serve(async (req: Request) => {
         razon_social: razon,
         nombre_empresa: razon,
         config_modulos: modulos,
+        limites: limites, // null = sin tope
         activo: true,
       })
       .select('org_id')
