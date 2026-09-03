@@ -773,9 +773,15 @@ footer {
 <style>
   section[id] { scroll-margin-top:84px; }
   #precios { background:white; }
-  .precios-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:56px; align-items:stretch; }
-  .precio-card { background:var(--bg); border:1px solid var(--border); border-radius:18px; padding:30px 24px; display:flex; flex-direction:column; }
-  .precio-card.destacado { background:white; border:2px solid var(--navy); box-shadow:0 14px 44px rgba(0,0,0,0.10); position:relative; }
+  .precios-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:56px; align-items:stretch; max-width:1020px; margin-left:auto; margin-right:auto; }
+  .precio-card { background:var(--bg); border:1px solid var(--border); border-radius:18px; padding:30px 24px; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  .precio-card.destacado { background:white; border:2px solid var(--navy); box-shadow:0 14px 44px rgba(0,0,0,0.10); }
+  .precio-card.proximo { opacity:0.9; }
+  .precio-card.proximo .precio-precio, .precio-card.proximo .precio-feats { opacity:0.72; }
+  .precio-ribbon { position:absolute; top:16px; right:-40px; transform:rotate(45deg); background:#6b7280; color:white; font-size:10.5px; font-weight:700; letter-spacing:0.6px; padding:5px 48px; text-transform:uppercase; box-shadow:0 2px 6px rgba(0,0,0,0.18); }
+  .precio-oferta { display:inline-block; align-self:flex-start; background:#fde68a; color:#7c4a03; font-size:11px; font-weight:800; letter-spacing:0.4px; padding:5px 12px; border-radius:20px; text-transform:uppercase; margin-bottom:12px; }
+  .precio-precio .desde { display:block; font-size:24px; font-weight:900; color:var(--navy); margin-top:2px; }
+  .precio-precio .desde small { font-size:13px; font-weight:600; color:var(--muted); }
   .precio-badge { position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--navy); color:white; font-size:11px; font-weight:700; padding:4px 14px; border-radius:20px; white-space:nowrap; }
   .precio-nombre { font-size:19px; font-weight:800; color:var(--navy); }
   .precio-desc { font-size:13px; color:var(--muted); margin-top:6px; min-height:40px; line-height:1.5; }
@@ -800,11 +806,13 @@ footer {
   </div>
   <div class="precios-grid">
 
-    <!-- EPP -->
-    <div class="precio-card">
+    <!-- EPP (disponible, oferta lanzamiento) -->
+    <div class="precio-card destacado">
+      <div class="precio-badge">Disponible ahora</div>
+      <div class="precio-oferta">🔥 Oferta primeros clientes</div>
       <div class="precio-nombre">EPP</div>
       <div class="precio-desc">El núcleo de cumplimiento: entrega de EPP firmada y lista para fiscalización.</div>
-      <div class="precio-precio">Cotiza según tamaño<span>Precio final próximamente</span></div>
+      <div class="precio-precio">Plan de lanzamiento<span class="desde">Desde $75.000 <small>/ mes</small></span></div>
       <ul class="precio-feats">
         <li>✓ Entregas firmadas por el trabajador</li>
         <li>✓ Stock por bodega y alertas</li>
@@ -812,11 +820,12 @@ footer {
         <li>✓ Reportes y exportación (PDF/CSV)</li>
         <li>✓ Panel web de control</li>
       </ul>
-      <a href="#contacto" class="precio-cta outline" onclick="prefillPlan('EPP')">Cotizar</a>
+      <a href="#contacto" class="precio-cta fill" onclick="prefillPlan('EPP')">Quiero la oferta</a>
     </div>
 
-    <!-- Asistencia -->
-    <div class="precio-card">
+    <!-- Asistencia (próximamente) -->
+    <div class="precio-card proximo">
+      <div class="precio-ribbon">Próximamente</div>
       <div class="precio-nombre">Asistencia</div>
       <div class="precio-desc">Marcaje de asistencia diaria del personal en obra, con respaldo.</div>
       <div class="precio-precio">Cotiza según tamaño<span>Precio final próximamente</span></div>
@@ -825,12 +834,12 @@ footer {
         <li>✓ Registro con foto y GPS</li>
         <li>✓ Panel web de control</li>
       </ul>
-      <a href="#contacto" class="precio-cta outline" onclick="prefillPlan('Asistencia')">Cotizar</a>
+      <a href="#contacto" class="precio-cta outline" onclick="prefillPlan('Asistencia')">Avísame cuando salga</a>
     </div>
 
-    <!-- EPP + Asistencia (destacado) -->
-    <div class="precio-card destacado">
-      <div class="precio-badge">Más elegido</div>
+    <!-- EPP + Asistencia (próximamente) -->
+    <div class="precio-card proximo">
+      <div class="precio-ribbon">Próximamente</div>
       <div class="precio-nombre">EPP + Asistencia</div>
       <div class="precio-desc">Las dos operaciones de terreno en un solo sistema.</div>
       <div class="precio-precio">Cotiza según tamaño<span>Precio final próximamente</span></div>
@@ -839,21 +848,7 @@ footer {
         <li>✓ Todo el módulo <strong>Asistencia</strong></li>
         <li>✓ Panel web unificado</li>
       </ul>
-      <a href="#contacto" class="precio-cta fill" onclick="prefillPlan('EPP + Asistencia')">Cotizar</a>
-    </div>
-
-    <!-- Full -->
-    <div class="precio-card">
-      <div class="precio-nombre">Full</div>
-      <div class="precio-desc">Todo TrazApp, incluyendo los módulos que vienen en camino.</div>
-      <div class="precio-precio">Cotiza según tamaño<span>Precio final próximamente</span></div>
-      <ul class="precio-feats">
-        <li>✓ EPP + Asistencia completos</li>
-        <li class="soon">🔒 Documentación (contratos, siniestros)</li>
-        <li class="soon">🔒 Prevención (charlas / PTS)</li>
-        <li style="font-size:12px;color:var(--muted)">Documentación y Prevención: próximamente</li>
-      </ul>
-      <a href="#contacto" class="precio-cta outline" onclick="prefillPlan('Full')">Cotizar</a>
+      <a href="#contacto" class="precio-cta outline" onclick="prefillPlan('EPP + Asistencia')">Avísame cuando salga</a>
     </div>
 
   </div>
@@ -1013,7 +1008,11 @@ function prefillPrueba() {
   _setMensaje('Hola, me interesa la prueba gratis de 14 días de TrazApp. ¿Cómo empiezo?');
 }
 function prefillPlan(nombre) {
-  _setMensaje('Hola, me interesa el plan ' + nombre + ' de TrazApp. ¿Me ayudan a cotizarlo para mi empresa?');
+  if (nombre === 'EPP') {
+    _setMensaje('Hola, quiero aprovechar la oferta primeros clientes del plan EPP de TrazApp (desde $75.000/mes). ¿Me ayudan a activarlo para mi empresa?');
+  } else {
+    _setMensaje('Hola, me interesa el plan ' + nombre + ' de TrazApp (aún próximamente). Avísenme cuando esté disponible y ayúdenme a cotizarlo.');
+  }
 }
 
 // ── FORM ────────────────────────────────────────────────────
