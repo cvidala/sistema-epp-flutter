@@ -462,7 +462,7 @@ footer {
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
     <a href="https://trazapp.cl/dashboard" class="nav-login" target="_blank">Acceder</a>
-    <a href="#contacto" class="nav-cta" onclick="prefillPrueba()">Prueba gratis 14 días</a>
+    <a href="#contacto" class="nav-cta" onclick="prefillPrueba()">Prueba gratis 15 días</a>
   </div>
   <button class="nav-mobile-btn" onclick="toggleMobileMenu()">☰</button>
 </nav>
@@ -478,11 +478,11 @@ footer {
     en obra y hasta sin señal. Exportas todo listo para una fiscalización.
   </p>
   <div class="hero-actions">
-    <a href="#contacto" class="btn-primary" onclick="prefillPrueba()">Prueba gratis 14 días →</a>
+    <a href="#contacto" class="btn-primary" onclick="prefillPrueba()">Prueba gratis 15 días →</a>
     <a href="#como-funciona" class="btn-secondary">Ver cómo funciona</a>
   </div>
   <div style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.55);font-weight:500">
-    14 días gratis · hasta 15 usuarios · sin tarjeta de crédito
+    15 días gratis · 1 usuario y 10 trabajadores · sin tarjeta de crédito
   </div>
 
   <div class="hero-mockup" style="max-width:900px;width:100%">
@@ -774,9 +774,9 @@ footer {
   section[id] { scroll-margin-top:84px; }
   #precios { background:white; }
   .precios-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:56px; align-items:stretch; max-width:1020px; margin-left:auto; margin-right:auto; }
-  .precio-card { background:var(--bg); border:1px solid var(--border); border-radius:18px; padding:30px 24px; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  .precio-card { background:var(--bg); border:1px solid var(--border); border-radius:18px; padding:30px 24px; display:flex; flex-direction:column; position:relative; }
   .precio-card.destacado { background:white; border:2px solid var(--navy); box-shadow:0 14px 44px rgba(0,0,0,0.10); }
-  .precio-card.proximo { opacity:0.9; }
+  .precio-card.proximo { opacity:0.9; overflow:hidden; }
   .precio-card.proximo .precio-precio, .precio-card.proximo .precio-feats { opacity:0.72; }
   .precio-ribbon { position:absolute; top:16px; right:-40px; transform:rotate(45deg); background:#6b7280; color:white; font-size:10.5px; font-weight:700; letter-spacing:0.6px; padding:5px 48px; text-transform:uppercase; box-shadow:0 2px 6px rgba(0,0,0,0.18); }
   .precio-oferta { display:inline-block; align-self:flex-start; background:#fde68a; color:#7c4a03; font-size:11px; font-weight:800; letter-spacing:0.4px; padding:5px 12px; border-radius:20px; text-transform:uppercase; margin-bottom:12px; }
@@ -879,7 +879,7 @@ footer {
     </div>
     <div class="faq-item">
       <div class="faq-q">¿Cuánto cuesta?</div>
-      <div class="faq-a">Pruébala gratis 14 días, hasta 15 usuarios y sin tarjeta de crédito. Después conversamos el plan que te sirva.</div>
+      <div class="faq-a">Pruébala gratis 15 días, con 1 usuario y hasta 10 trabajadores, sin tarjeta de crédito. Después conversamos el plan que te sirva.</div>
     </div>
   </div>
 </section>
@@ -890,7 +890,7 @@ footer {
     <div>
       <div class="section-label">Empieza hoy</div>
       <h2 class="section-title">Deja de improvisar<br>el registro de <em>EPP</em></h2>
-      <p class="section-sub">Prueba TrazApp gratis 14 días con tu equipo. Déjanos tus datos y te ayudamos a partir en obra en menos de una semana.</p>
+      <p class="section-sub">Prueba TrazApp gratis 15 días con tu equipo. Déjanos tus datos y te ayudamos a partir en obra en menos de una semana.</p>
       <div class="contacto-info" style="margin-top:36px">
         <div class="contacto-info-item">
           <div class="contacto-info-icon">✉️</div>
@@ -954,7 +954,7 @@ footer {
         <div class="form-success" id="formSuccess">
           ✅ ¡Mensaje enviado! Te contactaremos en menos de 24 horas.
         </div>
-        <button type="submit" class="form-submit" id="formSubmit">Prueba gratis 14 días →</button>
+        <button type="submit" class="form-submit" id="formSubmit">Prueba gratis 15 días →</button>
       </form>
     </div>
   </div>
@@ -987,7 +987,7 @@ footer {
       <div class="footer-col">
         <div class="footer-col-title">Contacto</div>
         <a href="#precios">Precios</a>
-        <a href="#contacto" onclick="prefillPrueba()">Prueba gratis 14 días</a>
+        <a href="#contacto" onclick="prefillPrueba()">Prueba gratis 15 días</a>
         <a href="mailto:hola@trazapp.cl">hola@trazapp.cl</a>
       </div>
     </div>
@@ -1005,7 +1005,7 @@ function _setMensaje(txt) {
   if (m && !m.value.trim()) m.value = txt;
 }
 function prefillPrueba() {
-  _setMensaje('Hola, me interesa la prueba gratis de 14 días de TrazApp. ¿Cómo empiezo?');
+  _setMensaje('Hola, me interesa la prueba gratis de 15 días de TrazApp. ¿Cómo empiezo?');
 }
 function prefillPlan(nombre) {
   if (nombre === 'EPP') {
