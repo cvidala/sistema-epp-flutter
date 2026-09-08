@@ -8,6 +8,7 @@ on:
       - 'website/**'
       - 'inspector/**'
       - 'privacidad/**'
+      - 'eliminar-cuenta/**'
       - 'index.html'
 
 jobs:
