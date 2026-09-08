@@ -7,6 +7,7 @@ on:
       - 'dashboard/**'
       - 'website/**'
       - 'inspector/**'
+      - 'privacidad/**'
       - 'index.html'
 
 jobs:
