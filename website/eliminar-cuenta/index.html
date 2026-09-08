@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/favicon.png">
+<title>Eliminación de cuenta y datos — TrazApp</title>
+<meta name="description" content="Cómo solicitar la eliminación de tu cuenta de TrazApp y los datos asociados.">
+<link rel="canonical" href="https://trazapp.cl/eliminar-cuenta">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+:root {
+  --navy:#0D2148; --navy2:#162d5e; --orange:#E87722; --orange2:#ff8c3a;
+  --bg:#F0F3FA; --border:#DDE3F0; --muted:#6B7A99; --ink:#0D2148;
+}
+body { font-family:'Sora',sans-serif; color:var(--ink); background:#fff; line-height:1.7; -webkit-font-smoothing:antialiased; }
+.bar { background:var(--navy); padding:0 5%; height:68px; display:flex; align-items:center; justify-content:space-between; }
+.brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.brand-icon { width:44px; height:44px; border-radius:11px; overflow:hidden; flex-shrink:0; }
+.brand-icon img { width:100%; height:100%; object-fit:cover; display:block; }
+.brand-text { font-size:18px; font-weight:700; color:#fff; letter-spacing:-0.3px; }
+.back { color:rgba(255,255,255,0.8); text-decoration:none; font-size:14px; font-weight:500; border:1px solid rgba(255,255,255,0.25); border-radius:9px; padding:8px 16px; transition:all .15s; }
+.back:hover { color:#fff; border-color:rgba(255,255,255,0.5); }
+.hero { background:linear-gradient(140deg, var(--navy) 0%, var(--navy2) 100%); color:#fff; padding:52px 5% 44px; }
+.hero-inner { max-width:760px; margin:0 auto; }
+.hero .eyebrow { text-transform:uppercase; letter-spacing:0.18em; font-size:12px; font-weight:600; color:var(--orange2); }
+.hero h1 { font-size:clamp(28px,5vw,40px); font-weight:800; margin:12px 0 10px; letter-spacing:-0.02em; }
+.hero p { color:#c3d0ee; font-size:15px; max-width:60ch; }
+.hero .updated { margin-top:16px; font-size:13px; color:#94a6cc; }
+main { max-width:760px; margin:0 auto; padding:48px 5% 40px; }
+main > section { margin-bottom:38px; }
+main h2 { font-size:20px; font-weight:700; letter-spacing:-0.01em; margin-bottom:10px; }
+main p { color:#33405c; font-size:15px; margin-bottom:10px; }
+main p.small { color:var(--muted); font-size:13.5px; }
+a.inline { color:var(--orange); font-weight:500; }
+ol.steps { counter-reset:s; list-style:none; padding:0; margin:12px 0; }
+ol.steps li { counter-increment:s; position:relative; padding:4px 0 20px 56px; }
+ol.steps li:last-child { padding-bottom:0; }
+ol.steps li::before { content:counter(s); position:absolute; left:0; top:0; width:36px; height:36px; display:grid; place-items:center; font-size:15px; font-weight:700; color:#fff; background:var(--orange); border-radius:10px; }
+ol.steps li::after { content:""; position:absolute; left:17px; top:40px; bottom:8px; width:2px; background:var(--border); }
+ol.steps li:last-child::after { display:none; }
+ol.steps b { color:var(--ink); }
+ul { list-style:none; margin:8px 0 4px; }
+ul li { position:relative; padding:7px 0 7px 24px; font-size:14.5px; color:#33405c; border-bottom:1px solid var(--border); }
+ul li:last-child { border-bottom:none; }
+ul li::before { content:""; position:absolute; left:3px; top:15px; width:7px; height:7px; border-radius:50%; background:var(--orange); }
+ul li b { color:var(--ink); font-weight:600; }
+.callout { background:var(--bg); border:1px solid var(--border); border-left:4px solid var(--orange); border-radius:12px; padding:16px 18px; margin:14px 0; }
+.callout p { margin:0; font-size:14.5px; }
+.tablewrap { overflow-x:auto; border:1px solid var(--border); border-radius:12px; margin:12px 0; }
+table { border-collapse:collapse; width:100%; min-width:520px; font-size:14px; }
+th, td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+th { background:var(--bg); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); font-weight:600; }
+tr:last-child td { border-bottom:none; }
+td b { color:var(--ink); }
+footer { background:var(--navy); color:#94a6cc; padding:30px 5%; text-align:center; font-size:13px; }
+footer a { color:#c3d0ee; text-decoration:none; }
+footer a:hover { color:#fff; }
+footer .orange { color:var(--orange2); }
+a:focus-visible, .back:focus-visible { outline:2px solid var(--orange2); outline-offset:3px; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <a class="brand" href="/">
+    <span class="brand-icon"><img src="/logo.png" alt="TrazApp"></span>
+    <span class="brand-text">TrazApp</span>
+  </a>
+  <a class="back" href="/">← Volver al inicio</a>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Cuenta y datos</div>
+    <h1>Eliminación de cuenta y datos</h1>
+    <p>Cómo solicitar la eliminación de tu cuenta de <strong>TrazApp</strong> (desarrollada por MIRA Developer) y de los datos personales asociados.</p>
+    <div class="updated">Última actualización: 8 de septiembre de 2026</div>
+  </div>
+</div>
+
+<main>
+
+  <section>
+    <h2>Cómo solicitar la eliminación</h2>
+    <p>Las cuentas de TrazApp se crean con correo y contraseña. Para pedir que se eliminen tu cuenta y tus datos, sigue estos pasos:</p>
+    <ol class="steps">
+      <li>Envía un correo a <a class="inline" href="mailto:hola@trazapp.cl?subject=Eliminaci%C3%B3n%20de%20cuenta%20-%20TrazApp">hola@trazapp.cl</a> desde tu dirección de contacto.</li>
+      <li>Usa el asunto <b>«Eliminación de cuenta - TrazApp»</b> e indica tu <b>nombre completo</b> y la <b>empresa</b> a la que perteneces (si eres trabajador, agrega tu RUT).</li>
+      <li>Verificaremos la solicitud con la empresa responsable de tus datos y la procesaremos. Te confirmaremos por correo cuando esté completada.</li>
+    </ol>
+    <div class="callout">
+      <p>Plazo: procesamos las solicitudes en un máximo de <b>30 días</b>. Si tu cuenta pertenece a una empresa cliente, coordinaremos la eliminación con esa empresa, que es la responsable del tratamiento de los datos de sus trabajadores.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Qué datos se eliminan</h2>
+    <p>Al procesar tu solicitud, eliminamos los datos personales asociados a tu cuenta o registro:</p>
+    <ul>
+      <li><b>Cuenta de usuario</b> (correo y credenciales de acceso).</li>
+      <li><b>Datos de identificación:</b> nombre y RUT.</li>
+      <li><b>Fotografías</b> asociadas a tus registros (evidencia de entrega y, si aplica, foto de marcaje).</li>
+      <li><b>Ubicación (GPS)</b> y <b>firma</b> capturadas en tus registros.</li>
+      <li><b>Información del dispositivo</b> vinculada a tus registros.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Qué datos pueden conservarse</h2>
+    <p>Por obligaciones legales y de fiscalización laboral, la <b>empresa empleadora</b> puede estar obligada a conservar ciertos registros de entrega de EPP como evidencia de cumplimiento, incluso tras la eliminación de la cuenta. En esos casos:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Dato</th><th>Conservación</th></tr></thead>
+        <tbody>
+          <tr><td>Cuenta y credenciales de acceso</td><td><b>Se eliminan</b> al procesar la solicitud.</td></tr>
+          <tr><td>Registros de entrega de EPP (evidencia de cumplimiento)</td><td>La empresa puede conservarlos por el <b>plazo legal aplicable</b>; luego se eliminan o anonimizan.</td></tr>
+          <tr><td>Datos requeridos por ley (contables/laborales)</td><td>Se conservan solo el <b>tiempo exigido por la normativa</b> y con acceso restringido.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">Consulta el detalle completo del tratamiento en nuestra <a class="inline" href="/privacidad">Política de Privacidad</a>.</p>
+  </section>
+
+  <section>
+    <h2>Contacto</h2>
+    <p>Dudas sobre este proceso: <a class="inline" href="mailto:hola@trazapp.cl">hola@trazapp.cl</a> · <a class="inline" href="https://trazapp.cl">trazapp.cl</a></p>
+  </section>
+
+</main>
+
+<footer>
+  © 2026 TrazApp — <a href="https://trazapp.cl" class="orange">trazapp.cl</a> · Hecho con ❤️ en Chile 🇨🇱
+</footer>
+
+</body>
+</html>
